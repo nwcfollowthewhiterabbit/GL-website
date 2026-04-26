@@ -1,5 +1,6 @@
 import { ArrowRight, Building2, CheckCircle2, Factory, Mail, Search, Truck } from "lucide-react";
 import { catalogStats, manufacturers } from "../data/catalog";
+import { legacyBrand } from "../data/legacyContent";
 
 type HeroSectionProps = {
   catalogTotal: number | null;
@@ -31,7 +32,8 @@ export function HeroSection({
         <h1>Procurement storefront ready for ERPNext.</h1>
         <p className="hero__copy">
           A modern Green Leaf commerce concept with quote-led buying, product groups for hospitality operations, and a
-          data structure prepared for two-way ERPNext synchronization.
+          data structure prepared for two-way ERPNext synchronization. Based on the existing Green Leaf promise for hotel,
+          restaurant, laundry and furniture supply in Fiji.
         </p>
         <div className="quick-links">
           <span className="pill">
@@ -42,6 +44,9 @@ export function HeroSection({
           </span>
           <span className="pill">
             <CheckCircle2 /> {manufacturers.length}+ mapped brands
+          </span>
+          <span className="pill">
+            <Mail /> {legacyBrand.email}
           </span>
         </div>
       </div>

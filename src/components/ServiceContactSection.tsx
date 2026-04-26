@@ -1,4 +1,5 @@
 import { CheckCircle2, Mail, Phone } from "lucide-react";
+import { legacyBrand } from "../data/legacyContent";
 
 export function ServiceContactSection() {
   return (
@@ -15,11 +16,11 @@ export function ServiceContactSection() {
       </article>
       <article className="contact-card" id="contact">
         <h3>Contact</h3>
-        <p>Green Leaf Ltd, Nippon Complex Back Rd., Nadi, Fiji Islands</p>
-        <div className="contact-strip">
-          <Phone size={18} /> +679 670 2222
-          <Mail size={18} /> buy@greenleafpacific.com
-        </div>
+          <p>Green Leaf Ltd, {legacyBrand.address}</p>
+          <div className="contact-strip">
+            <Phone size={18} /> {legacyBrand.phone}
+            <Mail size={18} /> {legacyBrand.email}
+          </div>
       </article>
     </section>
   );

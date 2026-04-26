@@ -111,6 +111,7 @@ Planned ERPNext endpoints:
 - ERPNext has richer operational data than the old site. The new storefront should prefer ERPNext item and price data where duplicates exist.
 - The old WooCommerce connector is useful as a field reference but should not dictate the new API design.
 - Product image paths in OpenCart include local files and remote supplier URLs; the new site needs an image ingestion/normalization pass.
+- Legacy brand/logo assets and reusable About Us content were copied into the new storefront; large PDF catalogues were discovered but intentionally not committed because they are about 152 MB and should move to object storage/CDN.
 - See [legacy-sync-analysis.md](legacy-sync-analysis.md) for the already-built OpenCart/ERPNext sync behavior found in the old containers.
 
 ## Current Quote Flow

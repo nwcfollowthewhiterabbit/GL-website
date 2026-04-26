@@ -5,6 +5,7 @@ import { CatalogSection } from "./components/CatalogSection";
 import { DiagnosticsSection } from "./components/DiagnosticsSection";
 import { HeroSection } from "./components/HeroSection";
 import { IntegrationSection } from "./components/IntegrationSection";
+import { LegacyContentSection } from "./components/LegacyContentSection";
 import { ProductDetailPage } from "./components/ProductDetailPage";
 import { QuoteDrawer } from "./components/QuoteDrawer";
 import { ServiceContactSection } from "./components/ServiceContactSection";
@@ -462,6 +463,7 @@ function App() {
           onAddToQuote={addToQuote}
         />
       )}
+      <LegacyContentSection />
       <IntegrationSection />
       <ServiceContactSection />
       <DiagnosticsSection diagnostics={diagnostics} recentQuotes={recentQuotes} />
