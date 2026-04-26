@@ -184,6 +184,34 @@ function App() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
+  useEffect(() => {
+    const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let frame = 0;
+
+    const updateParallax = () => {
+      frame = 0;
+      const offset = motionQuery.matches ? 0 : Math.round(window.scrollY * -0.08);
+      document.documentElement.style.setProperty("--parallax-offset", `${offset}px`);
+    };
+
+    const requestUpdate = () => {
+      if (!frame) frame = window.requestAnimationFrame(updateParallax);
+    };
+
+    requestUpdate();
+    window.addEventListener("scroll", requestUpdate, { passive: true });
+    window.addEventListener("resize", requestUpdate);
+    motionQuery.addEventListener("change", requestUpdate);
+
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", requestUpdate);
+      window.removeEventListener("resize", requestUpdate);
+      motionQuery.removeEventListener("change", requestUpdate);
+      document.documentElement.style.removeProperty("--parallax-offset");
+    };
+  }, []);
+
   useLayoutEffect(() => {
     if (route.view !== "product") return;
     scrollToPageTopInstantly();

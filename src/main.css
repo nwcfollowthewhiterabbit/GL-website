@@ -38,6 +38,7 @@ body {
   margin: 0;
   min-width: 320px;
   overflow-x: hidden;
+  background: #f6f7f3;
 }
 
 button,
@@ -97,11 +98,37 @@ textarea:focus-visible {
 }
 
 .app {
+  position: relative;
+  isolation: isolate;
   min-height: 100vh;
+  background: transparent;
+}
+
+.app::before,
+.app::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+.app::before {
+  z-index: -2;
+  inset: -90px 0;
   background:
-    linear-gradient(180deg, rgba(246, 247, 243, 0.7) 0%, rgba(246, 247, 243, 0.97) 520px, #f6f7f3 100%),
-    url("https://images.unsplash.com/photo-1556911220-bff31c812dba?auto=format&fit=crop&w=2400&q=78")
-      center top / cover no-repeat fixed;
+    linear-gradient(180deg, rgba(246, 247, 243, 0.15), rgba(246, 247, 243, 0.82) 46%, #f6f7f3 100%),
+    url("/assets/fiji-hospitality-background.webp") center calc(34% + var(--parallax-offset, 0px)) / cover no-repeat;
+  opacity: 0.42;
+  transform: translate3d(0, var(--parallax-offset, 0px), 0);
+  will-change: transform, background-position;
+}
+
+.app::after {
+  z-index: -1;
+  background:
+    radial-gradient(circle at 16% 8%, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.35) 28%, rgba(255, 255, 255, 0) 48%),
+    radial-gradient(circle at 86% 18%, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0) 42%),
+    linear-gradient(180deg, rgba(246, 247, 243, 0.5) 0%, rgba(246, 247, 243, 0.93) 620px, rgba(246, 247, 243, 0.98) 100%);
 }
 
 .shell {
@@ -3556,6 +3583,14 @@ textarea:focus-visible {
   .nav-menu__links {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app::before {
+    background-position: center 34%;
+    transform: none;
+    will-change: auto;
   }
 }
 
