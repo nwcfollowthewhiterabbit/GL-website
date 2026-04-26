@@ -175,14 +175,6 @@ export function CatalogSection({
         </aside>
 
         <div className="catalog-main">
-          <div className="catalog-current">
-            <div>
-              <span>{activeCategory ? "ERP item group" : activeDepartment ? "Department" : "Catalog"}</span>
-              <strong>{activeLabel}</strong>
-            </div>
-            {activeDepartment ? <p>{activeDepartment.description}</p> : null}
-          </div>
-
           <div className="catalog-tools">
             <div className="search-shell">
               <label className="search">
