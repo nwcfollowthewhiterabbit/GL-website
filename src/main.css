@@ -116,9 +116,9 @@ textarea:focus-visible {
   z-index: -2;
   inset: -90px 0;
   background:
-    linear-gradient(180deg, rgba(246, 247, 243, 0.15), rgba(246, 247, 243, 0.82) 46%, #f6f7f3 100%),
+    linear-gradient(180deg, rgba(246, 247, 243, 0.05), rgba(246, 247, 243, 0.56) 48%, rgba(246, 247, 243, 0.76) 100%),
     url("/assets/fiji-hospitality-background.webp") center calc(34% + var(--parallax-offset, 0px)) / cover no-repeat;
-  opacity: 0.42;
+  opacity: 0.68;
   transform: translate3d(0, var(--parallax-offset, 0px), 0);
   will-change: transform, background-position;
 }
@@ -126,9 +126,9 @@ textarea:focus-visible {
 .app::after {
   z-index: -1;
   background:
-    radial-gradient(circle at 16% 8%, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.35) 28%, rgba(255, 255, 255, 0) 48%),
-    radial-gradient(circle at 86% 18%, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0) 42%),
-    linear-gradient(180deg, rgba(246, 247, 243, 0.5) 0%, rgba(246, 247, 243, 0.93) 620px, rgba(246, 247, 243, 0.98) 100%);
+    radial-gradient(circle at 16% 8%, rgba(255, 255, 255, 0.66), rgba(255, 255, 255, 0.22) 28%, rgba(255, 255, 255, 0) 48%),
+    radial-gradient(circle at 86% 18%, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 42%),
+    linear-gradient(180deg, rgba(246, 247, 243, 0.28) 0%, rgba(246, 247, 243, 0.72) 620px, rgba(246, 247, 243, 0.86) 100%);
 }
 
 .shell {
