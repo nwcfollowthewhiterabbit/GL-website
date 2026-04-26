@@ -48,6 +48,9 @@ async function main() {
   const product = await readJson(`/api/catalog/product?sku=${encodeURIComponent(catalog.products[0].sku)}`);
   assert(product.product?.sku === catalog.products[0].sku, "Product endpoint returned the wrong SKU");
 
+  const related = await readJson(`/api/catalog/related?sku=${encodeURIComponent(catalog.products[0].sku)}&limit=4`);
+  assert(Array.isArray(related.products), "Related products response is invalid");
+
   const productPage = await readText(`/products/${encodeURIComponent(catalog.products[0].sku)}`);
   assert(productPage.includes('<div id="root"></div>'), "Product route did not return the SPA shell");
 
@@ -62,6 +65,7 @@ async function main() {
   console.log(`- Catalog search products: ${catalog.products.length} of ${catalog.total}`);
   console.log(`- Facet item groups: ${facets.itemGroups.length}`);
   console.log(`- Product route SKU: ${product.product.sku}`);
+  console.log(`- Related products: ${related.products.length}`);
   console.log("- Category route shell: ok");
   console.log(`- Recent website quotations: ${quotes.quotes.length}`);
 }

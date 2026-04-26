@@ -17,7 +17,8 @@ import {
   fetchCatalogFacets,
   fetchCatalogProducts,
   fetchItemGroups,
-  fetchRecentQuotes
+  fetchRecentQuotes,
+  fetchRelatedCatalogProducts
 } from "./lib/api";
 import { catalogPath, findCategoryBySlug, parseStorefrontRoute, productPath, type StorefrontRoute } from "./lib/routes";
 import type {
@@ -63,6 +64,7 @@ function App() {
   const [route, setRoute] = useState<StorefrontRoute>(() => parseStorefrontRoute());
   const [activeProduct, setActiveProduct] = useState<CatalogProduct | null>(null);
   const [productLoading, setProductLoading] = useState(false);
+  const [relatedProducts, setRelatedProducts] = useState<CatalogProduct[]>([]);
   const [recentQuotes, setRecentQuotes] = useState<RecentQuote[]>([]);
   const [catalogFacets, setCatalogFacets] = useState<CatalogFacets | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -128,6 +130,7 @@ function App() {
   useEffect(() => {
     if (route.view !== "product") {
       setProductLoading(false);
+      setRelatedProducts([]);
       return;
     }
 
@@ -142,10 +145,16 @@ function App() {
       .then((product) => {
         if (ignore) return;
         setActiveProduct(product);
+        return fetchRelatedCatalogProducts(product.sku, 4).catch(() => []);
+      })
+      .then((related) => {
+        if (ignore || !related) return;
+        setRelatedProducts(related);
       })
       .catch(() => {
         if (ignore) return;
         setActiveProduct(localProduct || null);
+        setRelatedProducts([]);
       })
       .finally(() => {
         if (!ignore) setProductLoading(false);
@@ -217,13 +226,6 @@ function App() {
   }, [itemGroups]);
 
   const totalPages = Math.max(1, Math.ceil((catalogTotal || products.length) / PAGE_SIZE));
-
-  const relatedProducts = useMemo(() => {
-    if (!activeProduct) return [];
-    return products
-      .filter((product) => product.category === activeProduct.category && product.sku !== activeProduct.sku)
-      .slice(0, 4);
-  }, [activeProduct, products]);
 
   function navigate(path: string, nextRoute = parseStorefrontRoute(path)) {
     window.history.pushState({}, "", path);

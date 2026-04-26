@@ -38,6 +38,7 @@ Useful API endpoints:
 - `GET /api/catalog/search?q=&category=`
 - `GET /api/catalog/products?page=1&pageSize=24&q=&category=`
 - `GET /api/catalog/product?sku=`
+- `GET /api/catalog/related?sku=&limit=4`
 - `GET /api/catalog/products/:sku`
 - `GET /api/catalog/item-groups`
 - `GET /api/catalog/facets`

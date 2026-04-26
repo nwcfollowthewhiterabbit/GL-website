@@ -36,6 +36,12 @@ export async function fetchCatalogProduct(sku: string) {
   return data.product;
 }
 
+export async function fetchRelatedCatalogProducts(sku: string, limit = 4) {
+  const search = new URLSearchParams({ sku, limit: String(limit) });
+  const data = await getJson<{ products: CatalogProduct[] }>(`/api/catalog/related?${search.toString()}`);
+  return data.products || [];
+}
+
 export async function fetchItemGroups() {
   const data = await getJson<{ itemGroups: ItemGroup[] }>("/api/catalog/item-groups");
   return data.itemGroups || [];

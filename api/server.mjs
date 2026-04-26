@@ -113,6 +113,36 @@ app.get("/api/catalog/product", async (req, res) => {
   }
 });
 
+app.get("/api/catalog/related", async (req, res) => {
+  try {
+    const sku = String(req.query.sku || "").trim();
+    const limit = Math.min(Math.max(Number.parseInt(String(req.query.limit || "4"), 10) || 4, 1), 12);
+    if (!sku) {
+      res.status(400).json({ error: "sku_required" });
+      return;
+    }
+
+    const product = await getCatalogProductBySku(sku);
+    if (!product) {
+      res.status(404).json({ error: "product_not_found" });
+      return;
+    }
+
+    const result = await getCatalogProducts({
+      category: product.category,
+      pageSize: limit + 1
+    });
+    res.json({
+      products: result.products.filter((item) => item.sku !== sku).slice(0, limit)
+    });
+  } catch (error) {
+    res.status(503).json({
+      error: "erpnext_related_products_unavailable",
+      message: error instanceof Error ? error.message : "Unknown ERPNext related products error"
+    });
+  }
+});
+
 app.get("/api/catalog/products/:sku", async (req, res) => {
   try {
     const product = await getCatalogProductBySku(req.params.sku);
