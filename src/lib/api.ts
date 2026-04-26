@@ -4,6 +4,7 @@ import type {
   CatalogProductsResponse,
   ItemGroup,
   QuoteRequestPayload,
+  QuoteRequestResponse,
   RecentQuote
 } from "../types";
 
@@ -46,7 +47,7 @@ export async function fetchRecentQuotes(limit = 5) {
   return data.quotes || [];
 }
 
-export async function createQuoteRequest(payload: QuoteRequestPayload) {
+export async function createQuoteRequest(payload: QuoteRequestPayload): Promise<QuoteRequestResponse> {
   const response = await fetch("/api/quote-requests", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

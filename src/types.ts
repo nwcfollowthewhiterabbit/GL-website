@@ -73,3 +73,15 @@ export type QuoteRequestPayload = {
   lines: Array<{ sku: string; qty: number }>;
   notes?: string;
 };
+
+export type QuoteRequestResponse = {
+  mode?: string;
+  error?: string;
+  quotation?: string | {
+    name: string;
+    owner?: string;
+    customer?: string;
+    grand_total?: number;
+  };
+  missing?: Array<{ sku: string; qty: number; reason?: string }>;
+};
