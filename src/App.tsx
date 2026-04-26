@@ -35,7 +35,7 @@ import type {
 } from "./types";
 import "./main.css";
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 12;
 
 function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
@@ -481,6 +481,8 @@ function App() {
           activeWebsiteCategory={activeWebsiteCategory}
           searchTerm={searchTerm}
           page={page}
+          pageSize={PAGE_SIZE}
+          productCount={catalogTotal || products.length}
           totalPages={totalPages}
           filtersOpen={filtersOpen}
           diagnostics={diagnostics}
