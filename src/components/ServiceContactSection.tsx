@@ -50,6 +50,35 @@ export function ServiceContactSection({ onOpenQuote }: ServiceContactSectionProp
         </div>
       </section>
 
+      <section className="shell section location-section" aria-label="Green Leaf location">
+        <div className="location-panel">
+          <div className="location-panel__copy">
+            <span className="legacy-panel__label">
+              <MapPin size={18} /> Location
+            </span>
+            <h2>Visit Green Leaf in Nadi.</h2>
+            <p>{legacyBrand.address}</p>
+            <div className="location-panel__actions">
+              <a className="primary-button" href={legacyBrand.mapLink} target="_blank" rel="noreferrer">
+                Open directions <ArrowRight size={18} />
+              </a>
+              <a className="secondary-button" href={`tel:${legacyBrand.phone.replace(/[^+\d]/g, "")}`}>
+                <Phone size={18} /> Call showroom
+              </a>
+            </div>
+          </div>
+          <div className="location-map">
+            <iframe
+              title="Green Leaf Ltd location map"
+              src={legacyBrand.mapEmbed}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              allowFullScreen
+            />
+          </div>
+        </div>
+      </section>
+
       <section className="final-cta">
         <div className="shell final-cta__inner">
           <div>

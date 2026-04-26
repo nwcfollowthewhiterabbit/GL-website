@@ -5,6 +5,9 @@ export const legacyBrand = {
   phone: "+679 670 1444",
   alternatePhone: "+679 725 1452",
   address: "Nippon Complex, Back Rd., Nadi, Fiji Islands",
+  mapEmbed:
+    "https://www.google.com.fj/maps/embed?pb=!1m14!1m8!1m3!1d15197.03171977411!2d177.454092!3d-17.779571!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0xdf46d7adbf067f23!2sGreen+Leaf+Ltd!5e0!3m2!1sru!2sua!4v1492019400533",
+  mapLink: "https://www.google.com/maps/search/?api=1&query=Green%20Leaf%20Ltd%20Nippon%20Complex%20Back%20Rd%20Nadi%20Fiji",
   metaDescription:
     "Hotel, Restaurant & Laundry supplies, Furniture factory. Nippon Complex, Back Rd., Nadi, Fiji Islands."
 };
