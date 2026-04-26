@@ -117,21 +117,6 @@ export function HeroSection({
       </div>
 
       <aside className="hero__side">
-        <div className="hero-summary">
-          <h2>Hospitality supplies for Fiji operations.</h2>
-          <p>
-            Browse commercial kitchen equipment, front-of-house serviceware, housekeeping supplies, furniture and
-            eco-friendly consumables.
-          </p>
-          <div className="hero__actions">
-            <a className="primary-button" href="#catalog">
-              Browse catalog <ArrowRight size={18} />
-            </a>
-            <a className="secondary-button" href="#contact">
-              Contact sales
-            </a>
-          </div>
-        </div>
         <div className="quote-panel" aria-label="Fast quote form">
           <h2>Fast trade quote</h2>
           <p>Send your company details and start a quote request with Green Leaf sales.</p>

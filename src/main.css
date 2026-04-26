@@ -506,8 +506,7 @@ textarea:focus-visible {
   padding: 36px;
 }
 
-.hero-slide h1,
-.hero-summary h2 {
+.hero-slide h1 {
   margin: 0;
   color: var(--ink);
   font-size: 30px;
@@ -515,8 +514,7 @@ textarea:focus-visible {
   letter-spacing: 0;
 }
 
-.hero__copy,
-.hero-summary p {
+.hero__copy {
   margin: 0;
   color: #314239;
   font-size: 15px;
@@ -575,25 +573,6 @@ textarea:focus-visible {
   display: grid;
   gap: 14px;
   align-self: stretch;
-}
-
-.hero-summary {
-  padding: 22px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(251, 250, 244, 0.97)),
-    #fff;
-  box-shadow: var(--shadow);
-}
-
-.hero-summary h2 {
-  margin-top: 0;
-  font-size: 28px;
-}
-
-.hero-summary p {
-  font-size: 15px;
 }
 
 .hero__actions {
@@ -2593,8 +2572,7 @@ textarea:focus-visible {
     line-height: 1.08;
   }
 
-  .hero__copy,
-  .hero-summary p {
+  .hero__copy {
     font-size: 16px;
   }
 
