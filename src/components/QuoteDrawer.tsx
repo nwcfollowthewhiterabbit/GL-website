@@ -1,6 +1,6 @@
 import { ArrowRight, Minus, Plus, Trash2 } from "lucide-react";
 import { priceLabel } from "../lib/catalog";
-import type { QuoteLine } from "../types";
+import type { QuoteLine, QuoteResult } from "../types";
 
 type QuoteDrawerProps = {
   isOpen: boolean;
@@ -13,6 +13,7 @@ type QuoteDrawerProps = {
   buyerPhone: string;
   quoteNotes: string;
   quoteStatus: string;
+  quoteResult: QuoteResult | null;
   isSubmitting: boolean;
   onClose: () => void;
   onCompanyChange: (value: string) => void;
@@ -37,6 +38,7 @@ export function QuoteDrawer({
   buyerPhone,
   quoteNotes,
   quoteStatus,
+  quoteResult,
   isSubmitting,
   onClose,
   onCompanyChange,
@@ -92,6 +94,13 @@ export function QuoteDrawer({
       </div>
 
       <div className="quote-form">
+        {quoteResult ? (
+          <div className="quote-result" role="status">
+            <span>{quoteResult.reused ? "Existing quotation" : "Quotation created"}</span>
+            <strong>{quoteResult.name}</strong>
+            {quoteResult.missingCount ? <p>{quoteResult.missingCount} SKU could not be matched in ERPNext.</p> : null}
+          </div>
+        ) : null}
         <label className="field">
           <input placeholder="Company" value={quoteCompany} onChange={(event) => onCompanyChange(event.target.value)} />
         </label>

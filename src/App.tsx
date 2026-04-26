@@ -20,13 +20,27 @@ import {
   fetchRecentQuotes
 } from "./lib/api";
 import { catalogPath, findCategoryBySlug, parseStorefrontRoute, productPath, type StorefrontRoute } from "./lib/routes";
-import type { CatalogDiagnostics, CatalogFacets, CatalogProduct, ItemGroup, QuoteLine, RecentQuote } from "./types";
+import type {
+  CatalogDiagnostics,
+  CatalogFacets,
+  CatalogProduct,
+  ItemGroup,
+  QuoteLine,
+  QuoteRequestResponse,
+  QuoteResult,
+  RecentQuote
+} from "./types";
 import "./main.css";
 
 const PAGE_SIZE = 8;
 
 function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+function quotationName(data: QuoteRequestResponse) {
+  if (typeof data.quotation === "string") return data.quotation;
+  return data.quotation?.name || "";
 }
 
 function App() {
@@ -53,6 +67,7 @@ function App() {
   const [catalogFacets, setCatalogFacets] = useState<CatalogFacets | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [quoteSubmitting, setQuoteSubmitting] = useState(false);
+  const [quoteResult, setQuoteResult] = useState<QuoteResult | null>(null);
 
   useEffect(() => {
     const handlePopState = () => setRoute(parseStorefrontRoute());
@@ -239,6 +254,7 @@ function App() {
   }
 
   function addToQuote(product: CatalogProduct) {
+    setQuoteResult(null);
     setQuoteLines((current) => {
       const existing = current.find((line) => line.sku === product.sku);
       if (existing) {
@@ -250,6 +266,7 @@ function App() {
   }
 
   function setLineQty(sku: string, qty: number) {
+    setQuoteResult(null);
     setQuoteLines((current) =>
       current
         .map((line) => (line.sku === sku ? { ...line, qty: Math.max(1, qty) } : line))
@@ -258,6 +275,7 @@ function App() {
   }
 
   function removeLine(sku: string) {
+    setQuoteResult(null);
     setQuoteLines((current) => current.filter((line) => line.sku !== sku));
   }
 
@@ -272,6 +290,7 @@ function App() {
   async function submitQuickQuote() {
     const validationError = validateQuoteForm(false);
     if (validationError) {
+      setQuoteResult(null);
       setQuoteStatus(validationError);
       return;
     }
@@ -283,6 +302,7 @@ function App() {
     }
 
     setQuoteSubmitting(true);
+    setQuoteResult(null);
     setQuoteStatus("Sending quote request...");
     try {
       const data = await createQuoteRequest({
@@ -294,12 +314,15 @@ function App() {
         notes: "Quick quote from storefront hero form"
       });
 
-      if (data.quotation?.name) {
+      const name = quotationName(data);
+      if (name && typeof data.quotation !== "string") {
         const missingText = data.missing?.length ? ` ${data.missing.length} SKU missing.` : "";
-        setQuoteStatus(`Quotation ${data.quotation.name} created.${missingText}`);
+        setQuoteResult({ name, missingCount: data.missing?.length || 0 });
+        setQuoteStatus(`Quotation ${name} created.${missingText}`);
         refreshRecentQuotes();
-      } else if (typeof data.quotation === "string") {
-        setQuoteStatus(`Quotation ${data.quotation} already exists.`);
+      } else if (name) {
+        setQuoteResult({ name, missingCount: data.missing?.length || 0, reused: true });
+        setQuoteStatus(`Quotation ${name} already exists.`);
       } else if (data.mode === "validated_dry_run") {
         setQuoteStatus("Validated. ERPNext REST credentials are not configured.");
       } else {
@@ -315,11 +338,13 @@ function App() {
   async function submitQuote() {
     const validationError = validateQuoteForm(true);
     if (validationError) {
+      setQuoteResult(null);
       setQuoteStatus(validationError);
       return;
     }
 
     setQuoteSubmitting(true);
+    setQuoteResult(null);
     setQuoteStatus("Creating ERPNext quotation...");
     try {
       const data = await createQuoteRequest({
@@ -333,13 +358,16 @@ function App() {
         notes: quoteNotes || "Quote basket from storefront"
       });
 
-      if (data.quotation?.name) {
+      const name = quotationName(data);
+      if (name && typeof data.quotation !== "string") {
         const missingText = data.missing?.length ? ` ${data.missing.length} SKU missing.` : "";
-        setQuoteStatus(`Quotation ${data.quotation.name} created.${missingText}`);
+        setQuoteResult({ name, missingCount: data.missing?.length || 0 });
+        setQuoteStatus(`Quotation ${name} created.${missingText}`);
         setQuoteLines([]);
         refreshRecentQuotes();
-      } else if (typeof data.quotation === "string") {
-        setQuoteStatus(`Quotation ${data.quotation} already exists.`);
+      } else if (name) {
+        setQuoteResult({ name, missingCount: data.missing?.length || 0, reused: true });
+        setQuoteStatus(`Quotation ${name} already exists.`);
       } else if (data.mode === "validation_failed") {
         setQuoteStatus("No valid ERPNext items in basket.");
       } else {
@@ -420,8 +448,12 @@ function App() {
         onNotesChange={setQuoteNotes}
         onSetLineQty={setLineQty}
         onRemoveLine={removeLine}
-        onClear={() => setQuoteLines([])}
+        onClear={() => {
+          setQuoteResult(null);
+          setQuoteLines([]);
+        }}
         onSubmit={submitQuote}
+        quoteResult={quoteResult}
       />
     </main>
   );

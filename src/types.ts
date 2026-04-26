@@ -85,3 +85,9 @@ export type QuoteRequestResponse = {
   };
   missing?: Array<{ sku: string; qty: number; reason?: string }>;
 };
+
+export type QuoteResult = {
+  name: string;
+  missingCount: number;
+  reused?: boolean;
+};
