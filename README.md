@@ -32,6 +32,13 @@ Smoke test after the Docker stack is running:
 npm run smoke
 ```
 
+ERPNext readiness checks and fixture application:
+
+```bash
+npm run erpnext:validate:docker
+npm run erpnext:apply-fixtures:docker
+```
+
 Useful API endpoints:
 
 - `GET /api/catalog/summary`
@@ -60,6 +67,7 @@ Useful API endpoints:
 
 - Catalog grid reads live ERPNext items, `Standard Selling` prices, stock-derived availability, and proxied ERP images.
 - Quote basket persists in `localStorage` and creates draft ERPNext `Quotation` documents through the integration user.
+- ERPNext custom fields are defined under `erpnext/fixtures` and can store website quote id, source, customer email, and payload.
 - Advanced catalog filters read ERPNext item groups and display storefront rules such as excluded showroom warehouses.
 - Diagnostics show ERPNext catalog quality counters and recent website-created quotations.
 

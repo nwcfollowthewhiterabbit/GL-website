@@ -5,6 +5,8 @@ COPY package*.json ./
 RUN npm install --omit=dev
 
 COPY api ./api
+COPY erpnext ./erpnext
+COPY scripts ./scripts
 COPY src/data ./src/data
 
 ENV NODE_ENV=production

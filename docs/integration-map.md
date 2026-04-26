@@ -122,4 +122,5 @@ Planned ERPNext endpoints:
 - matches or prepares a `Customer` by email
 - creates a draft ERPNext `Quotation` through REST when credentials are configured
 - prevents duplicates with `Green Leaf Website Quote #<id>` in `Quotation.enq_det`
+- uses `Quotation.website_quote_id` for duplicate protection when the ERPNext custom field patch is applied
 - returns missing SKUs explicitly

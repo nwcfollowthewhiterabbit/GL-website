@@ -9,7 +9,11 @@
     "dev:api": "node --watch api/server.mjs",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "smoke": "node scripts/smoke-test.mjs"
+    "smoke": "node scripts/smoke-test.mjs",
+    "erpnext:validate": "node scripts/erpnext-validate.mjs",
+    "erpnext:validate:docker": "docker compose exec api npm run erpnext:validate",
+    "erpnext:apply-fixtures": "node scripts/erpnext-apply-fixtures.mjs",
+    "erpnext:apply-fixtures:docker": "docker compose exec api npm run erpnext:apply-fixtures"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^5.0.0",

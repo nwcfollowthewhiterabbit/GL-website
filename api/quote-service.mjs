@@ -3,6 +3,7 @@ import { createDoc, hasErpnextRestCredentials, listDoc } from "./erpnext-rest.mj
 import { legacySyncRules } from "./legacy-sync-rules.mjs";
 
 const DEFAULTS = legacySyncRules.quote.defaults;
+const customFieldCache = new Map();
 
 function clean(value) {
   return String(value || "").trim();
@@ -10,6 +11,24 @@ function clean(value) {
 
 function quoteId() {
   return `GLQ-${Date.now()}`;
+}
+
+async function hasCustomField(dt, fieldname) {
+  const key = `${dt}.${fieldname}`;
+  if (customFieldCache.has(key)) return customFieldCache.get(key);
+
+  const [rows] = await getErpPool().execute(
+    "SELECT name FROM `tabCustom Field` WHERE dt = :dt AND fieldname = :fieldname LIMIT 1",
+    { dt, fieldname }
+  );
+  const exists = Boolean(rows[0]);
+  customFieldCache.set(key, exists);
+  return exists;
+}
+
+async function hasCustomFields(dt, fieldnames) {
+  const entries = await Promise.all(fieldnames.map(async (fieldname) => [fieldname, await hasCustomField(dt, fieldname)]));
+  return Object.fromEntries(entries);
 }
 
 function normalizeLines(lines) {
@@ -88,23 +107,35 @@ async function getOrCreateCustomer(customer) {
     };
   }
 
-  const created = await createDoc("Customer", {
+  const customerFields = await hasCustomFields("Customer", ["website_origin", "website_last_quote_request"]);
+  const customerDoc = {
     customer_name: buildCustomerName(customer).slice(0, 140),
     customer_group: process.env.ERP_CUSTOMER_GROUP || DEFAULTS.customerGroup,
     territory: process.env.ERP_TERRITORY || DEFAULTS.territory,
     customer_type: "Company",
     email_id: email || undefined,
     mobile_no: clean(customer.phone) || undefined
-  });
+  };
+
+  if (customerFields.website_origin) customerDoc.website_origin = "greenleaf-storefront";
+  if (customerFields.website_last_quote_request) customerDoc.website_last_quote_request = new Date().toISOString().slice(0, 19).replace("T", " ");
+
+  const created = await createDoc("Customer", customerDoc);
 
   return { name: created.name, created: true };
 }
 
-async function existingQuotationByMarker(marker) {
-  const [rows] = await getErpPool().execute(
-    "SELECT name FROM `tabQuotation` WHERE enq_det LIKE :marker ORDER BY creation DESC LIMIT 1",
-    { marker: `%${marker}%` }
-  );
+async function existingQuotationByMarker(marker, id) {
+  const hasWebsiteQuoteId = await hasCustomField("Quotation", "website_quote_id");
+  const [rows] = hasWebsiteQuoteId
+    ? await getErpPool().execute(
+        "SELECT name FROM `tabQuotation` WHERE website_quote_id = :id OR enq_det LIKE :marker ORDER BY creation DESC LIMIT 1",
+        { id, marker: `%${marker}%` }
+      )
+    : await getErpPool().execute(
+        "SELECT name FROM `tabQuotation` WHERE enq_det LIKE :marker ORDER BY creation DESC LIMIT 1",
+        { marker: `%${marker}%` }
+      );
   return rows[0]?.name || null;
 }
 
@@ -147,7 +178,7 @@ export async function prepareQuoteRequest(payload = {}) {
     });
   }
 
-  const duplicateQuotation = await existingQuotationByMarker(marker);
+  const duplicateQuotation = await existingQuotationByMarker(marker, id);
   const erpCustomer = await getOrCreateCustomer(normalizedCustomer);
 
   const notes = [
@@ -176,6 +207,27 @@ export async function prepareQuoteRequest(payload = {}) {
     })),
     enq_det: notes.join("\n")
   };
+
+  const quotationFields = await hasCustomFields("Quotation", [
+    "website_quote_id",
+    "website_source",
+    "website_customer_email",
+    "website_payload"
+  ]);
+
+  if (quotationFields.website_quote_id) quotationDoc.website_quote_id = id;
+  if (quotationFields.website_source) quotationDoc.website_source = "greenleaf-storefront";
+  if (quotationFields.website_customer_email) quotationDoc.website_customer_email = normalizedCustomer.email || undefined;
+  if (quotationFields.website_payload) {
+    quotationDoc.website_payload = JSON.stringify({
+      id,
+      marker,
+      customer: normalizedCustomer,
+      lines,
+      missing,
+      notes: clean(payload.notes)
+    });
+  }
 
   return {
     id,
