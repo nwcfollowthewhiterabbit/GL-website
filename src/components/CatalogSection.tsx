@@ -67,6 +67,20 @@ export function CatalogSection({
         .filter((group): group is ItemGroup => Boolean(group))
         .sort((a, b) => b.itemCount - a.itemCount)
     : topFacetGroups.slice(0, 18);
+  const subcategoryButtons = activeDepartment ? (
+    <div className="catalog-nav-subcategories" aria-label={`${activeDepartment.label} subcategories`}>
+      {sidebarGroups.map((group) => (
+        <button
+          className={`catalog-subcategory ${activeCategory === group.name ? "is-active" : ""}`}
+          key={group.name}
+          onClick={() => onCategoryChange(group.name)}
+        >
+          <span>{group.name}</span>
+          <strong>{group.itemCount.toLocaleString()}</strong>
+        </button>
+      ))}
+    </div>
+  ) : null;
 
   return (
     <section className="shell section" id="catalog">
@@ -92,29 +106,33 @@ export function CatalogSection({
             <ChevronRight size={16} />
           </button>
           {visibleCategories.map((category) => (
-            <button
-              className={`catalog-nav-button ${activeWebsiteCategory === category.id ? "is-active" : ""}`}
-              key={category.id}
-              onClick={() => onDepartmentChange(category.id)}
-            >
-              <span>{category.label}</span>
-              <strong>{category.itemCount.toLocaleString()}</strong>
-            </button>
+            <div className="catalog-nav-group" key={category.id}>
+              <button
+                className={`catalog-nav-button ${activeWebsiteCategory === category.id ? "is-active" : ""}`}
+                onClick={() => onDepartmentChange(category.id)}
+              >
+                <span>{category.label}</span>
+                <strong>{category.itemCount.toLocaleString()}</strong>
+              </button>
+              {activeWebsiteCategory === category.id ? subcategoryButtons : null}
+            </div>
           ))}
 
-          <div className="catalog-sidebar__groups">
-            <span>{activeDepartment ? "Subcategories" : "Popular ERP groups"}</span>
-            {sidebarGroups.map((group) => (
-              <button
-                className={`catalog-subcategory ${activeCategory === group.name ? "is-active" : ""}`}
-                key={group.name}
-                onClick={() => onCategoryChange(group.name)}
-              >
-                <span>{group.name}</span>
-                <strong>{group.itemCount.toLocaleString()}</strong>
-              </button>
-            ))}
-          </div>
+          {!activeDepartment ? (
+            <div className="catalog-sidebar__groups">
+              <span>Popular ERP groups</span>
+              {sidebarGroups.map((group) => (
+                <button
+                  className={`catalog-subcategory ${activeCategory === group.name ? "is-active" : ""}`}
+                  key={group.name}
+                  onClick={() => onCategoryChange(group.name)}
+                >
+                  <span>{group.name}</span>
+                  <strong>{group.itemCount.toLocaleString()}</strong>
+                </button>
+              ))}
+            </div>
+          ) : null}
         </aside>
 
         <div className="catalog-main">

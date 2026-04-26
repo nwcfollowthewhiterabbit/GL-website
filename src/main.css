@@ -841,6 +841,11 @@ textarea:focus-visible {
   font-weight: 800;
 }
 
+.catalog-nav-group {
+  display: grid;
+  gap: 4px;
+}
+
 .catalog-nav-button strong,
 .catalog-subcategory strong {
   color: var(--soft);
@@ -862,6 +867,18 @@ textarea:focus-visible {
 .catalog-nav-button.is-active strong,
 .catalog-subcategory.is-active strong {
   color: rgba(255, 255, 255, 0.78);
+}
+
+.catalog-nav-subcategories {
+  display: grid;
+  gap: 3px;
+  padding: 2px 0 8px 12px;
+}
+
+.catalog-nav-subcategories .catalog-subcategory {
+  border-left: 2px solid rgba(46, 111, 74, 0.16);
+  border-radius: 0 8px 8px 0;
+  color: #3a4c41;
 }
 
 .catalog-sidebar__groups {

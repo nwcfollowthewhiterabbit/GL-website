@@ -384,10 +384,19 @@ function App() {
   }
 
   function setCategory(category: string) {
-    setActiveWebsiteCategory("");
+    const activeDepartment = websiteNavigationCategories.find((item) => item.id === activeWebsiteCategory);
+    const categoryBelongsToActiveDepartment = activeDepartment
+      ? matchedItemGroups(activeDepartment, itemGroups).includes(category)
+      : false;
+
+    if (!categoryBelongsToActiveDepartment) {
+      setActiveWebsiteCategory("");
+    }
     setActiveCategory(category);
     setPage(1);
-    navigate(catalogPath(category), { view: "catalog", categorySlug: category ? undefined : undefined });
+    if (!categoryBelongsToActiveDepartment) {
+      navigate(catalogPath(category), { view: "catalog", categorySlug: undefined });
+    }
   }
 
   function setDepartment(categoryId: string) {
