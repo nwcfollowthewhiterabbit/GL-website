@@ -125,3 +125,31 @@ Planned ERPNext endpoints:
 - prevents duplicates with `Green Leaf Website Quote #<id>` in `Quotation.enq_det`
 - uses `Quotation.website_quote_id` for duplicate protection when the ERPNext custom field patch is applied
 - returns missing SKUs explicitly
+
+## Pending Payment Gateway: Windcave
+
+Status: waiting for Windcave response and sandbox credentials.
+
+Recommended integration path:
+
+- Use Windcave Hosted Payment Page / redirect flow, not direct card capture on the storefront.
+- Storefront API creates a Windcave payment session for a confirmed quote/order.
+- Customer is redirected to Windcave for card entry.
+- Windcave returns the customer to the storefront and sends a server callback/webhook.
+- Storefront API verifies the transaction with Windcave before updating ERPNext.
+- ERPNext should store payment status, Windcave transaction reference, and related quote/order/invoice links.
+
+Expected implementation pieces once credentials are available:
+
+- Environment variables for Windcave test/live credentials.
+- `POST /api/payments/windcave/session` to create a hosted payment session.
+- `GET /payment/success` and `GET /payment/failure` storefront routes.
+- `POST /api/payments/windcave/callback` for server-side notification.
+- ERPNext payment update path, most likely `Payment Entry` or status fields on the related quotation/order/invoice.
+- Website Command Center settings for enabling online payments and selecting the payment flow.
+
+Open business decisions:
+
+- Whether payment is available immediately from cart, or only after Green Leaf confirms price/stock/lead time.
+- Whether refunds are manual in Windcave Payline at launch or managed from ERPNext later.
+- Whether partial deposits are needed for B2B quotes.

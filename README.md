@@ -84,6 +84,7 @@ Useful API endpoints:
 
 1. Split the large `App.tsx` and `main.css` into focused catalog, quote, diagnostics, and layout modules.
 2. Add a quote-request confirmation flow with validation messages for missing SKUs, duplicate requests, and ERPNext failures.
-3. Add customer account scaffolding for saved quote history and customer-specific price lists.
-4. Add admin controls for include/exclude storefront item groups, hidden no-price products, and showroom stock rules.
-5. Add visual/browser regression checks once the frontend structure settles.
+3. Harden customer account scaffolding for saved quote history, orders, and customer-specific price lists.
+4. Expand Website Command Center controls for payment settings, featured products, catalogs, manufacturers, and storefront rules.
+5. Add Windcave Hosted Payment Page integration after sandbox credentials are provided.
+6. Add broader browser regression checks for catalog departments, subcategories, account routes, and payment flow.
