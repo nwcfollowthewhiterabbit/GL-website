@@ -1943,14 +1943,30 @@ textarea:focus-visible {
   border-top: 1px solid var(--line);
 }
 
+.quote-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 29;
+  border: 0;
+  background: rgba(17, 28, 21, 0.28);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms ease;
+}
+
+.quote-backdrop.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 .quote-drawer {
   position: fixed;
   top: 0;
   right: 0;
   z-index: 30;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  width: min(520px, 100vw);
+  grid-template-rows: auto auto minmax(0, 1fr);
+  width: min(720px, 100vw);
   height: 100vh;
   padding: 20px;
   background:
@@ -2007,6 +2023,41 @@ textarea:focus-visible {
   font-weight: 800;
 }
 
+.quote-drawer__progress {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  padding: 14px 0 0;
+}
+
+.quote-drawer__progress span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.quote-drawer__progress span.is-complete {
+  border-color: rgba(46, 111, 74, 0.25);
+  background: #edf6ed;
+  color: var(--leaf-dark);
+}
+
+.quote-drawer__content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 14px;
+  align-content: start;
+  min-height: 0;
+}
+
 .quote-drawer__lines {
   display: grid;
   align-content: start;
@@ -2038,9 +2089,9 @@ textarea:focus-visible {
 
 .quote-line {
   display: grid;
-  grid-template-columns: 74px minmax(0, 1fr) auto;
+  grid-template-columns: 64px minmax(0, 1fr);
   gap: 12px;
-  align-items: center;
+  align-items: start;
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -2049,8 +2100,8 @@ textarea:focus-visible {
 }
 
 .quote-line img {
-  width: 74px;
-  height: 74px;
+  width: 64px;
+  height: 64px;
   border-radius: 8px;
   object-fit: cover;
   background: var(--wash);
@@ -2074,10 +2125,12 @@ textarea:focus-visible {
 
 .qty-control {
   display: grid;
-  grid-template-columns: repeat(3, 34px);
+  grid-template-columns: repeat(4, 34px);
   gap: 6px;
   align-items: center;
+  justify-content: start;
   justify-items: center;
+  grid-column: 1 / -1;
 }
 
 .qty-control .icon-button {
@@ -2086,8 +2139,8 @@ textarea:focus-visible {
 }
 
 .qty-control .icon-button:last-child {
-  grid-column: 1 / -1;
-  width: 100%;
+  grid-column: auto;
+  width: 34px;
   color: #8b3d2f;
 }
 
@@ -2105,6 +2158,11 @@ textarea:focus-visible {
 .quote-form {
   display: grid;
   gap: 10px;
+  align-content: start;
+  align-self: start;
+  max-height: calc(100vh - 150px);
+  margin-top: 14px;
+  overflow: auto;
   padding: 14px;
   border-top: 1px solid var(--line);
   border: 1px solid var(--line);
@@ -2502,6 +2560,28 @@ textarea:focus-visible {
 
   .product-modal__media {
     min-height: 260px;
+  }
+
+  .quote-drawer {
+    width: 100vw;
+    padding: 12px;
+  }
+
+  .quote-drawer__content {
+    grid-template-columns: 1fr;
+    overflow: auto;
+    padding-bottom: 12px;
+  }
+
+  .quote-drawer__lines {
+    overflow: visible;
+    padding-bottom: 0;
+  }
+
+  .quote-form {
+    max-height: none;
+    margin-top: 0;
+    overflow: visible;
   }
 
   .quote-line {
