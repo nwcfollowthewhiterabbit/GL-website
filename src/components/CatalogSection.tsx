@@ -74,23 +74,9 @@ export function CatalogSection({
               : "Product cards are ready for live prices, quote-only products, lead times, and ERP item groups."}
           </p>
         </div>
-        <button className="secondary-button" onClick={onToggleFilters}>
+        <button className="secondary-button catalog-toggle" onClick={onToggleFilters}>
           <Layers3 size={18} /> Categories
         </button>
-      </div>
-
-      <div className="department-grid" aria-label="Shop by department">
-        {visibleCategories.map((category) => (
-          <button
-            className={`department-card ${activeWebsiteCategory === category.id ? "is-active" : ""}`}
-            key={category.id}
-            onClick={() => onDepartmentChange(category.id)}
-          >
-            <span>{category.label}</span>
-            <strong>{category.itemCount.toLocaleString()} items</strong>
-            <small>{category.description}</small>
-          </button>
-        ))}
       </div>
 
       <div className="catalog-layout">
