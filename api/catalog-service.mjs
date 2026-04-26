@@ -31,7 +31,7 @@ function parseCategoryList(value) {
     .filter(Boolean);
 }
 
-function itemWhere({ q, category, categories, featured, includeHidden, includeWeakGroups, categoryRule, hasItemFields }) {
+function itemWhere({ q, category, categoryNames, categories, featured, includeHidden, includeWeakGroups, categoryRule, hasItemFields }) {
   const clauses = [
     "IFNULL(i.disabled, 0) = 0",
     "IFNULL(i.is_sales_item, 1) = 1",
@@ -67,8 +67,12 @@ function itemWhere({ q, category, categories, featured, includeHidden, includeWe
   }
 
   if (category) {
-    params.category = category;
-    clauses.push("i.item_group = :category");
+    const selectedCategories = categoryNames.length ? categoryNames : [category];
+    const categoryPlaceholders = selectedCategories.map((_, index) => `:selectedCategory${index}`).join(", ");
+    selectedCategories.forEach((itemGroup, index) => {
+      params[`selectedCategory${index}`] = itemGroup;
+    });
+    clauses.push(`i.item_group IN (${categoryPlaceholders})`);
   } else if (categories.length) {
     const categoryPlaceholders = categories.map((_, index) => `:category${index}`).join(", ");
     categories.forEach((itemGroup, index) => {
@@ -78,6 +82,26 @@ function itemWhere({ q, category, categories, featured, includeHidden, includeWe
   }
 
   return { sql: clauses.join(" AND "), params };
+}
+
+async function getItemGroupBranchNames(category) {
+  if (!category) return [];
+
+  const [rows] = await getErpPool().execute(
+    `
+      SELECT child.name
+      FROM \`tabItem Group\` parent
+      JOIN \`tabItem Group\` child
+        ON child.lft >= parent.lft
+       AND child.rgt <= parent.rgt
+      WHERE parent.name = :category
+      ORDER BY child.lft
+    `,
+    { category }
+  );
+
+  const names = rows.map((row) => row.name).filter(Boolean);
+  return names.length ? names : [category];
 }
 
 function itemBaseSql(priceList = DEFAULT_PRICE_LIST) {
@@ -151,7 +175,8 @@ export async function getCatalogProducts(options = {}) {
   ]);
 
   const base = itemBaseSql(priceList);
-  const where = itemWhere({ q, category, categories, featured, includeHidden, includeWeakGroups, categoryRule, hasItemFields });
+  const categoryNames = category ? await getItemGroupBranchNames(category) : [];
+  const where = itemWhere({ q, category, categoryNames, categories, featured, includeHidden, includeWeakGroups, categoryRule, hasItemFields });
   const params = {
     ...baseParams(priceList),
     ...where.params,

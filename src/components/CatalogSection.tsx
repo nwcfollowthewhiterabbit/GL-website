@@ -272,7 +272,7 @@ export function CatalogSection({
           {products.length ? (
             <div className="product-grid">
               {products.map((product) => (
-              <article className="product-card" key={product.name}>
+              <article className="product-card" key={product.sku}>
                 <div className="product-card__image">
                   <img
                     src={productImage(product)}

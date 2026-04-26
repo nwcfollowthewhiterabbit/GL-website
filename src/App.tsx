@@ -159,6 +159,9 @@ function App() {
   useEffect(() => {
     let ignore = false;
     const activeWebsiteDepartment = websiteNavigationCategories.find((category) => category.id === activeWebsiteCategory);
+    setCatalogState("loading");
+    setErpProducts([]);
+    setCatalogTotal(null);
 
     fetchCatalogProducts({
       page,
@@ -385,9 +388,9 @@ function App() {
   }, []);
 
   const products = useMemo<CatalogProduct[]>(() => {
-    if (erpProducts.length) return erpProducts;
-    return fallbackProducts;
-  }, [erpProducts]);
+    if (catalogState === "fallback") return fallbackProducts;
+    return erpProducts;
+  }, [catalogState, erpProducts]);
 
   const quoteCount = quoteLines.reduce((sum, line) => sum + line.qty, 0);
   const quoteTotal = quoteLines.reduce((sum, line) => {
