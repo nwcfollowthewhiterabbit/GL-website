@@ -19,6 +19,7 @@ Storefront routes:
 - `/catalog`
 - `/catalog/:item-group-slug`
 - `/products/:encoded-sku`
+- `/account`
 
 Integration API health:
 
@@ -47,6 +48,7 @@ Useful API endpoints:
 - `GET /api/catalog/product?sku=`
 - `GET /api/catalog/related?sku=&limit=4`
 - `GET /api/catalog/products/:sku`
+- `GET /api/account/quotes?email=&limit=20`
 - `GET /api/catalog/item-groups`
 - `GET /api/catalog/facets`
 - `GET /api/files/:filename`

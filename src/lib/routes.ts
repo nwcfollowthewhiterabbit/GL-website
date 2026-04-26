@@ -1,6 +1,7 @@
 export type StorefrontRoute =
   | { view: "catalog"; categorySlug?: string }
-  | { view: "product"; sku: string };
+  | { view: "product"; sku: string }
+  | { view: "account" };
 
 export function slugify(value: string) {
   return value
@@ -35,6 +36,10 @@ export function parseStorefrontRoute(pathname = window.location.pathname): Store
       view: "catalog",
       categorySlug: path.slice("/catalog/".length)
     };
+  }
+
+  if (path === "/account") {
+    return { view: "account" };
   }
 
   return { view: "catalog" };

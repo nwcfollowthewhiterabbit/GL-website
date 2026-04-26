@@ -35,6 +35,7 @@ export function SiteHeader({ quoteCount, onOpenQuote }: SiteHeaderProps) {
           <div className="nav__links">
             <a href="#catalog">Catalog</a>
             <a href="#erp">ERPNext sync</a>
+            <a href="/account">Account</a>
             <a href="#service">Service</a>
             <a href="#contact">Contact</a>
           </div>

@@ -48,9 +48,12 @@ export type CatalogFacets = {
 
 export type RecentQuote = {
   name: string;
+  owner?: string;
   customer: string;
+  transactionDate?: string;
   grandTotal: number;
   status: string;
+  creation?: string;
   marker: string;
 };
 

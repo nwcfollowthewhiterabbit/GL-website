@@ -316,3 +316,44 @@ export async function getRecentWebsiteQuotes(limit = 12) {
     marker: String(row.enq_det || "").split("\n")[0] || ""
   }));
 }
+
+export async function getWebsiteQuotesByEmail(email, limit = 20) {
+  const cleanEmail = clean(email).toLowerCase();
+  if (!cleanEmail) return [];
+
+  const hasWebsiteEmail = await hasCustomField("Quotation", "website_customer_email");
+  const maxLimit = Math.min(Math.max(Number(limit) || 20, 1), 50);
+  const [rows] = hasWebsiteEmail
+    ? await getErpPool().execute(
+        `
+          SELECT name, owner, party_name, transaction_date, grand_total, status, creation, enq_det, website_customer_email
+          FROM \`tabQuotation\`
+          WHERE website_customer_email = :email
+             OR enq_det LIKE :emailMarker
+          ORDER BY creation DESC
+          LIMIT :limit
+        `,
+        { email: cleanEmail, emailMarker: `%Email: ${cleanEmail}%`, limit: maxLimit }
+      )
+    : await getErpPool().execute(
+        `
+          SELECT name, owner, party_name, transaction_date, grand_total, status, creation, enq_det
+          FROM \`tabQuotation\`
+          WHERE enq_det LIKE :emailMarker
+          ORDER BY creation DESC
+          LIMIT :limit
+        `,
+        { emailMarker: `%Email: ${cleanEmail}%`, limit: maxLimit }
+      );
+
+  return rows.map((row) => ({
+    name: row.name,
+    owner: row.owner,
+    customer: row.party_name,
+    transactionDate: row.transaction_date,
+    grandTotal: Number(row.grand_total || 0),
+    status: row.status,
+    creation: row.creation,
+    marker: String(row.enq_det || "").split("\n")[0] || ""
+  }));
+}

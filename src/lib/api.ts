@@ -60,6 +60,12 @@ export async function fetchRecentQuotes(limit = 5) {
   return data.quotes || [];
 }
 
+export async function fetchAccountQuotes(email: string, limit = 20) {
+  const search = new URLSearchParams({ email, limit: String(limit) });
+  const data = await getJson<{ quotes: RecentQuote[] }>(`/api/account/quotes?${search.toString()}`);
+  return data.quotes || [];
+}
+
 export async function createQuoteRequest(payload: QuoteRequestPayload): Promise<QuoteRequestResponse> {
   const response = await fetch("/api/quote-requests", {
     method: "POST",

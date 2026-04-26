@@ -608,6 +608,44 @@ a {
   color: var(--leaf-dark);
 }
 
+.account-page {
+  padding-top: 32px;
+}
+
+.account-lookup {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 210px;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.account-quotes {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.account-quotes article {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px 150px;
+  gap: 16px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.account-quotes div {
+  display: grid;
+  gap: 4px;
+}
+
+.account-quotes span {
+  color: var(--muted);
+  font-weight: 800;
+}
+
 .pagination {
   display: flex;
   align-items: center;
@@ -1107,6 +1145,7 @@ a {
   }
 
   .catalog-tools,
+  .account-lookup,
   .filter-panel,
   .product-grid,
   .erp-grid,
@@ -1158,6 +1197,10 @@ a {
   }
 
   .recent-quotes__list article {
+    grid-template-columns: 1fr;
+  }
+
+  .account-quotes article {
     grid-template-columns: 1fr;
   }
 }

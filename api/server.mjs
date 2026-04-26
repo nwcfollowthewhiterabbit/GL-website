@@ -4,7 +4,7 @@ import express from "express";
 import { getCatalogDiagnostics, getCatalogItemGroups, getCatalogProductBySku, getCatalogProducts } from "./catalog-service.mjs";
 import { pingErpDb } from "./erpnext-db.mjs";
 import { legacySyncRules } from "./legacy-sync-rules.mjs";
-import { createQuoteRequest, getRecentWebsiteQuotes } from "./quote-service.mjs";
+import { createQuoteRequest, getRecentWebsiteQuotes, getWebsiteQuotesByEmail } from "./quote-service.mjs";
 import { catalogStats, categories, featuredProducts, manufacturers } from "../src/data/catalog.mjs";
 
 const app = express();
@@ -204,6 +204,23 @@ app.post("/api/quote-requests", (req, res) => {
       res.status(503).json({
         error: "erpnext_quote_unavailable",
         message: error instanceof Error ? error.message : "Unknown ERPNext quote error"
+      });
+    });
+});
+
+app.get("/api/account/quotes", (req, res) => {
+  const email = String(req.query.email || "").trim().toLowerCase();
+  if (!email) {
+    res.status(400).json({ error: "email_required" });
+    return;
+  }
+
+  getWebsiteQuotesByEmail(email, req.query.limit)
+    .then((quotes) => res.json({ quotes }))
+    .catch((error) => {
+      res.status(503).json({
+        error: "erpnext_account_quotes_unavailable",
+        message: error instanceof Error ? error.message : "Unknown ERPNext account quote error"
       });
     });
 });

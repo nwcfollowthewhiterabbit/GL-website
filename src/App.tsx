@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { AccountPage } from "./components/AccountPage";
 import { CatalogSection } from "./components/CatalogSection";
 import { DiagnosticsSection } from "./components/DiagnosticsSection";
 import { HeroSection } from "./components/HeroSection";
@@ -12,6 +13,7 @@ import { SiteHeader } from "./components/SiteHeader";
 import { featuredProducts as fallbackProducts } from "./data/catalog";
 import {
   createQuoteRequest,
+  fetchAccountQuotes,
   fetchCatalogDiagnostics,
   fetchCatalogProduct,
   fetchCatalogFacets,
@@ -70,6 +72,10 @@ function App() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [quoteSubmitting, setQuoteSubmitting] = useState(false);
   const [quoteResult, setQuoteResult] = useState<QuoteResult | null>(null);
+  const [accountEmail, setAccountEmail] = useState("");
+  const [accountQuotes, setAccountQuotes] = useState<RecentQuote[]>([]);
+  const [accountStatus, setAccountStatus] = useState("");
+  const [accountLoading, setAccountLoading] = useState(false);
 
   useEffect(() => {
     const handlePopState = () => setRoute(parseStorefrontRoute());
@@ -382,6 +388,27 @@ function App() {
     }
   }
 
+  async function loadAccountQuotes() {
+    if (!isValidEmail(accountEmail)) {
+      setAccountStatus("Enter a valid buyer email.");
+      setAccountQuotes([]);
+      return;
+    }
+
+    setAccountLoading(true);
+    setAccountStatus("Loading quote history...");
+    try {
+      const quotes = await fetchAccountQuotes(accountEmail, 20);
+      setAccountQuotes(quotes);
+      setAccountStatus(quotes.length ? `${quotes.length} quotation${quotes.length === 1 ? "" : "s"} found.` : "No quotations found.");
+    } catch {
+      setAccountQuotes([]);
+      setAccountStatus("Quote history could not be loaded.");
+    } finally {
+      setAccountLoading(false);
+    }
+  }
+
   return (
     <main className="app">
       <SiteHeader quoteCount={quoteCount} onOpenQuote={() => setQuoteOpen(true)} />
@@ -395,7 +422,16 @@ function App() {
         onEmailChange={setQuoteEmail}
         onSubmitQuickQuote={submitQuickQuote}
       />
-      {route.view === "product" ? (
+      {route.view === "account" ? (
+        <AccountPage
+          email={accountEmail}
+          quotes={accountQuotes}
+          status={accountStatus}
+          isLoading={accountLoading}
+          onEmailChange={setAccountEmail}
+          onLoadQuotes={loadAccountQuotes}
+        />
+      ) : route.view === "product" ? (
         <ProductDetailPage
           product={activeProduct}
           isLoading={productLoading}

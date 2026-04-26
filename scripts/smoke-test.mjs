@@ -57,6 +57,12 @@ async function main() {
   const categoryPage = await readText("/catalog/karcher-au");
   assert(categoryPage.includes('<div id="root"></div>'), "Category route did not return the SPA shell");
 
+  const accountPage = await readText("/account");
+  assert(accountPage.includes('<div id="root"></div>'), "Account route did not return the SPA shell");
+
+  const accountQuotes = await readJson("/api/account/quotes?email=patch.fields%40example.com&limit=5");
+  assert(Array.isArray(accountQuotes.quotes), "Account quotes response is invalid");
+
   const quotes = await readJson("/api/admin/recent-quotes?limit=2");
   assert(Array.isArray(quotes.quotes), "Recent quotes response is invalid");
 
@@ -67,6 +73,7 @@ async function main() {
   console.log(`- Product route SKU: ${product.product.sku}`);
   console.log(`- Related products: ${related.products.length}`);
   console.log("- Category route shell: ok");
+  console.log(`- Account quotes: ${accountQuotes.quotes.length}`);
   console.log(`- Recent website quotations: ${quotes.quotes.length}`);
 }
 
