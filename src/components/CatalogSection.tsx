@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import { ChevronRight, Clock3, Layers3, Search, ShoppingCart, X } from "lucide-react";
 import { availabilityLabel, availabilityTone, plainTextDescription, priceLabel, productImage, productPlaceholder } from "../lib/catalog";
 import type { CatalogDiagnostics, CatalogFacets, CatalogProduct, CatalogSuggestion, ItemGroup, WebsiteCategory } from "../types";
@@ -74,6 +75,10 @@ export function CatalogSection({
   onAddToQuote
 }: CatalogSectionProps) {
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+  const [sidebarPin, setSidebarPin] = useState<"normal" | "fixed" | "bottom">("normal");
+  const [sidebarMetrics, setSidebarMetrics] = useState({ left: 0, width: 280 });
+  const layoutRef = useRef<HTMLDivElement | null>(null);
+  const sidebarRef = useRef<HTMLElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const activeDepartment = visibleCategories.find((category) => category.id === activeWebsiteCategory);
   const activeLabel = activeCategory || activeDepartment?.label || "All products";
@@ -107,6 +112,51 @@ export function CatalogSection({
     if (!searchTerm.trim()) setSuggestionsOpen(false);
   }, [searchTerm]);
 
+  useEffect(() => {
+    let frame = 0;
+
+    const updateSidebarPosition = () => {
+      frame = 0;
+      const layout = layoutRef.current;
+      const sidebar = sidebarRef.current;
+
+      if (!layout || !sidebar || window.innerWidth <= 980) {
+        setSidebarPin((current) => (current === "normal" ? current : "normal"));
+        return;
+      }
+
+      const topOffset = 92;
+      const layoutRect = layout.getBoundingClientRect();
+      const sidebarHeight = sidebar.offsetHeight;
+      const nextPin =
+        layoutRect.top <= topOffset && layoutRect.bottom - sidebarHeight > topOffset
+          ? "fixed"
+          : layoutRect.bottom - sidebarHeight <= topOffset
+            ? "bottom"
+            : "normal";
+
+      setSidebarPin((current) => (current === nextPin ? current : nextPin));
+      setSidebarMetrics((current) => {
+        const nextMetrics = { left: layoutRect.left, width: sidebar.offsetWidth };
+        return Math.abs(current.left - nextMetrics.left) < 0.5 && Math.abs(current.width - nextMetrics.width) < 0.5 ? current : nextMetrics;
+      });
+    };
+
+    const requestUpdate = () => {
+      if (!frame) frame = window.requestAnimationFrame(updateSidebarPosition);
+    };
+
+    requestUpdate();
+    window.addEventListener("scroll", requestUpdate, { passive: true });
+    window.addEventListener("resize", requestUpdate);
+
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", requestUpdate);
+      window.removeEventListener("resize", requestUpdate);
+    };
+  }, [activeCategory, activeWebsiteCategory, filtersOpen, productCount, sidebarGroups.length]);
+
   function selectSuggestion(suggestion: CatalogSuggestion) {
     setSuggestionsOpen(false);
     searchInputRef.current?.blur();
@@ -134,8 +184,18 @@ export function CatalogSection({
         </div>
       </div>
 
-      <div className="catalog-layout">
-        <aside className={`catalog-sidebar ${filtersOpen ? "is-open" : ""}`} aria-label="Catalog navigation">
+      <div className="catalog-layout" ref={layoutRef}>
+        <aside
+          className={`catalog-sidebar ${filtersOpen ? "is-open" : ""} ${sidebarPin !== "normal" ? `is-${sidebarPin}` : ""}`}
+          ref={sidebarRef}
+          style={
+            {
+              "--catalog-sidebar-left": `${sidebarMetrics.left}px`,
+              "--catalog-sidebar-width": `${sidebarMetrics.width}px`
+            } as CSSProperties
+          }
+          aria-label="Catalog navigation"
+        >
           <div className="catalog-sidebar__head">
             <span>Departments</span>
             <strong>{activeLabel}</strong>
