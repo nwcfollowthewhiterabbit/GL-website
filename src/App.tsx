@@ -2,9 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { AccountPage } from "./components/AccountPage";
 import { CatalogSection } from "./components/CatalogSection";
-import { DiagnosticsSection } from "./components/DiagnosticsSection";
 import { HeroSection } from "./components/HeroSection";
-import { IntegrationSection } from "./components/IntegrationSection";
 import { LegacyContentSection } from "./components/LegacyContentSection";
 import { ProductDetailPage } from "./components/ProductDetailPage";
 import { QuoteDrawer } from "./components/QuoteDrawer";
@@ -497,9 +495,7 @@ function App() {
         />
       )}
       <LegacyContentSection />
-      <IntegrationSection />
-      <ServiceContactSection />
-      <DiagnosticsSection diagnostics={diagnostics} recentQuotes={recentQuotes} />
+      <ServiceContactSection onOpenQuote={() => setQuoteOpen(true)} />
       <SiteFooter />
       <QuoteDrawer
         isOpen={quoteOpen}

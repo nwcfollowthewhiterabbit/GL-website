@@ -1,12 +1,12 @@
-import { CheckCircle2, PackageCheck, ShieldCheck } from "lucide-react";
-import { legacyAbout, legacyCatalogues, legacyLogoStrip, legacyManufacturers, legacyTopCategories } from "../data/legacyContent";
+import { CheckCircle2, PackageCheck, ShieldCheck, Sparkles } from "lucide-react";
+import { legacyAbout, legacyLogoStrip, legacyManufacturers } from "../data/legacyContent";
 
 export function LegacyContentSection() {
   return (
     <section className="shell section legacy-section" id="about">
       <div className="section-heading">
         <div>
-          <h2>Green Leaf supply model</h2>
+          <h2>Built for hospitality operations.</h2>
           <p>{legacyAbout.intro}</p>
         </div>
       </div>
@@ -14,9 +14,9 @@ export function LegacyContentSection() {
       <div className="legacy-layout">
         <article className="legacy-panel">
           <span className="legacy-panel__label">
-            <ShieldCheck size={18} /> From the current site
+            <ShieldCheck size={18} /> Supply promise
           </span>
-          <h3>Why customers buy from Green Leaf</h3>
+          <h3>Service that fits trade buying</h3>
           <ul className="legacy-list">
             {legacyAbout.promises.map((item) => (
               <li key={item}>
@@ -31,7 +31,7 @@ export function LegacyContentSection() {
           <span className="legacy-panel__label">
             <PackageCheck size={18} /> Product scope
           </span>
-          <h3>Operational categories</h3>
+          <h3>Categories for hotels, restaurants and resorts</h3>
           <div className="legacy-chip-grid">
             {legacyAbout.productAreas.map((item) => (
               <span key={item}>{item}</span>
@@ -40,27 +40,24 @@ export function LegacyContentSection() {
         </article>
       </div>
 
-      <div className="legacy-category-band">
-        <span>Old site top categories</span>
+      <div className="brands-section" id="brands">
         <div>
-          {legacyTopCategories.map((category) => (
-            <strong key={category}>{category}</strong>
+          <span className="legacy-panel__label">
+            <Sparkles size={18} /> Brands
+          </span>
+          <h3>Recognized hospitality supply brands</h3>
+          <p>
+            The old catalog included {legacyManufacturers.length} mapped manufacturers. Brand assets can be refined as
+            product images and supplier media are normalized for production.
+          </p>
+        </div>
+        <div>
+          {legacyLogoStrip.map((brand) => (
+            <div className="brand-strip__item" key={brand.name}>
+              <img src={brand.image} alt={brand.name} />
+            </div>
           ))}
         </div>
-      </div>
-
-      <div className="brand-strip" aria-label="Legacy brand logos">
-        {legacyLogoStrip.map((brand) => (
-          <div className="brand-strip__item" key={brand.name}>
-            <img src={brand.image} alt={brand.name} />
-          </div>
-        ))}
-      </div>
-
-      <div className="legacy-meta">
-        <span>{legacyManufacturers.length} manufacturers found in the old OpenCart site</span>
-        <strong>{legacyAbout.serviceLine}</strong>
-        <span>Legacy catalogues found: {legacyCatalogues.length}</span>
       </div>
     </section>
   );
