@@ -980,6 +980,14 @@ textarea:focus-visible {
   color: #3a4c41;
 }
 
+.catalog-nav-subcategories .catalog-subcategory.is-active {
+  color: #fff;
+}
+
+.catalog-nav-subcategories .catalog-subcategory.is-active strong {
+  color: rgba(255, 255, 255, 0.78);
+}
+
 .catalog-sidebar__groups {
   display: grid;
   gap: 4px;
