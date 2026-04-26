@@ -897,6 +897,11 @@ textarea:focus-visible {
   width: 280px;
 }
 
+.catalog-main {
+  grid-column: 2;
+  min-width: 0;
+}
+
 .catalog-sidebar::-webkit-scrollbar {
   width: 8px;
 }
@@ -3476,6 +3481,10 @@ textarea:focus-visible {
 
   .catalog-layout {
     grid-template-columns: 1fr;
+  }
+
+  .catalog-main {
+    grid-column: auto;
   }
 
   .catalog-sidebar {
