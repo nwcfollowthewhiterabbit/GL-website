@@ -107,6 +107,12 @@ function App() {
   }, [route]);
 
   useEffect(() => {
+    if (route.view !== "catalog" || route.search === undefined) return;
+    setSearchTerm(route.search);
+    setPage(1);
+  }, [route.view, route.search]);
+
+  useEffect(() => {
     let ignore = false;
 
     fetchCatalogProducts({

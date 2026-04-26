@@ -1,5 +1,5 @@
 export type StorefrontRoute =
-  | { view: "catalog"; categorySlug?: string }
+  | { view: "catalog"; categorySlug?: string; search?: string }
   | { view: "product"; sku: string }
   | { view: "account" };
 
@@ -21,8 +21,12 @@ export function productPath(sku: string) {
   return `/products/${encodeURIComponent(sku)}`;
 }
 
-export function parseStorefrontRoute(pathname = window.location.pathname): StorefrontRoute {
-  const path = pathname.replace(/\/+$/, "") || "/";
+export function parseStorefrontRoute(pathname = window.location.pathname, search = window.location.search): StorefrontRoute {
+  const queryIndex = pathname.indexOf("?");
+  const routePath = queryIndex >= 0 ? pathname.slice(0, queryIndex) : pathname;
+  const query = queryIndex >= 0 ? pathname.slice(queryIndex) : search;
+  const searchTerm = new URLSearchParams(query).get("q") || undefined;
+  const path = routePath.replace(/\/+$/, "") || "/";
 
   if (path.startsWith("/products/")) {
     return {
@@ -34,7 +38,8 @@ export function parseStorefrontRoute(pathname = window.location.pathname): Store
   if (path.startsWith("/catalog/")) {
     return {
       view: "catalog",
-      categorySlug: path.slice("/catalog/".length)
+      categorySlug: path.slice("/catalog/".length),
+      search: searchTerm
     };
   }
 
@@ -42,7 +47,7 @@ export function parseStorefrontRoute(pathname = window.location.pathname): Store
     return { view: "account" };
   }
 
-  return { view: "catalog" };
+  return { view: "catalog", search: searchTerm };
 }
 
 export function findCategoryBySlug(categories: string[], slug?: string) {

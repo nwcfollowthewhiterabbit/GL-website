@@ -7,23 +7,23 @@ export function HeroSection() {
     {
       label: "Iced tea program",
       title: "Beverage dispensers for hotel service.",
-      copy: "Clickable legacy campaign adapted for the new ERP-backed catalog.",
+      copy: "Contact Green Leaf sales about beverage programs and dispensers.",
       image: "/legacy/slider/iced3.jpg",
-      href: "/catalog/coffee-iced-tea"
+      href: "/catalog#contact"
     },
     {
       label: "Trex decking",
       title: "Outdoor fitouts for Fiji resorts.",
-      copy: "Decking and exterior hospitality spaces sourced through Green Leaf.",
+      copy: "Open the Trex Fiji project site for decking and exterior spaces.",
       image: "/legacy/slider/trex.jpg",
-      href: "/catalog/furniture-fitouts"
+      href: "https://trexfiji.com/"
     },
     {
       label: "Karcher cleaning",
       title: "Wet season cleaning equipment.",
-      copy: "Commercial cleaning lines mapped into the quote workflow.",
+      copy: "Search commercial wet and dry vacuum cleaners in the catalog.",
       image: "/legacy/slider/karcher_slider.jpg",
-      href: "/catalog/housekeeping-cleaning"
+      href: "/catalog?q=Vacuum%20Cleaner%2C%20Wet%20and%20Dry"
     },
     {
       label: "Buffet solutions",
