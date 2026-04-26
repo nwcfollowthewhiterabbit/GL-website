@@ -2112,10 +2112,52 @@ textarea:focus-visible {
   line-height: 1.55;
 }
 
-.brands-section > div:last-child {
+.brands-section__content {
+  display: grid;
+  gap: 12px;
+}
+
+.brands-section__logos {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
+}
+
+.brands-section__logos.is-collapsed {
+  position: relative;
+  max-height: 254px;
+  overflow: hidden;
+}
+
+.brands-section__logos.is-collapsed::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 56px;
+  pointer-events: none;
+  content: "";
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0), #fbfaf4 88%);
+}
+
+.brands-expand {
+  justify-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid rgba(31, 68, 47, 0.18);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--leaf-dark);
+  font-size: 13px;
+  font-weight: 900;
+  box-shadow: 0 8px 18px rgba(23, 35, 27, 0.06);
+}
+
+.brands-expand:hover {
+  background: #f3f6ed;
 }
 
 .legacy-meta {
@@ -2915,7 +2957,7 @@ textarea:focus-visible {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
-  .brands-section > div:last-child {
+  .brands-section__logos {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
@@ -3033,7 +3075,7 @@ textarea:focus-visible {
   .erp-grid,
   .diagnostic-grid,
   .brand-strip,
-  .brands-section > div:last-child {
+  .brands-section__logos {
     grid-template-columns: 1fr;
   }
 
