@@ -1,0 +1,29 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    env_file:
+      - path: /Users/bc/woocommerce/erp-greenleafpacific-local/.env
+        required: false
+      - path: .env
+        required: false
+    expose:
+      - "3000"
+    networks:
+      - default
+      - erpnext-local
+    restart: unless-stopped
+
+  web:
+    build: .
+    depends_on:
+      - api
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+
+networks:
+  erpnext-local:
+    external: true
+    name: erp-greenleafpacific-local_default

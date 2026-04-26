@@ -1,0 +1,26 @@
+{
+  "name": "green-leaf-ecommerce",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "api": "node api/server.mjs",
+    "dev": "vite --host 0.0.0.0",
+    "dev:api": "node --watch api/server.mjs",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "smoke": "node scripts/smoke-test.mjs"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^5.0.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "lucide-react": "^0.468.0",
+    "mysql2": "^3.22.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "typescript": "^5.8.0",
+    "vite": "^7.0.0"
+  }
+}

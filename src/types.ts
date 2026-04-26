@@ -1,0 +1,75 @@
+export type CatalogProduct = {
+  sku: string;
+  name: string;
+  category: string;
+  price: number | string;
+  currency?: string;
+  status?: string;
+  availability?: string;
+  image?: string | null;
+  description?: string;
+};
+
+export type QuoteLine = CatalogProduct & {
+  qty: number;
+};
+
+export type ItemGroup = {
+  name: string;
+  parent: string | null;
+  isGroup: boolean;
+  itemCount: number;
+};
+
+export type CatalogDiagnostics = {
+  priceList?: string;
+  storefrontRules?: StorefrontRules;
+  totals: {
+    total_items: number;
+    enabled_items: string | number;
+    without_image: string | number;
+    weak_group: string | number;
+    without_selling_price: string | number;
+  };
+  topGroups: Array<{ item_group: string; item_count: number }>;
+};
+
+export type StorefrontRules = {
+  excludedGroups: string[];
+  excludedWarehouses: string[];
+  defaultCurrency: string;
+};
+
+export type CatalogFacets = {
+  itemGroups: ItemGroup[];
+  rules: StorefrontRules;
+  topGroups: Array<{ item_group: string; item_count: number }>;
+};
+
+export type RecentQuote = {
+  name: string;
+  customer: string;
+  grandTotal: number;
+  status: string;
+  marker: string;
+};
+
+export type CatalogProductsResponse = {
+  page: number;
+  pageSize: number;
+  total: number;
+  priceList: string;
+  products: CatalogProduct[];
+};
+
+export type QuoteRequestPayload = {
+  id?: string;
+  customer: {
+    company?: string;
+    contact?: string;
+    email?: string;
+    phone?: string;
+  };
+  lines: Array<{ sku: string; qty: number }>;
+  notes?: string;
+};
