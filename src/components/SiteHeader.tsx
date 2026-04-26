@@ -26,7 +26,7 @@ export function SiteHeader({ quoteCount, onOpenQuote }: SiteHeaderProps) {
 
       <nav className="nav">
         <div className="shell nav__inner">
-          <a className="brand" href="#">
+          <a className="brand" href="/catalog">
             <span className="brand__mark brand__mark--image">
               <img src={legacyBrand.logo} alt="" />
             </span>
@@ -36,12 +36,12 @@ export function SiteHeader({ quoteCount, onOpenQuote }: SiteHeaderProps) {
             </span>
           </a>
           <div className="nav__links">
-            <a href="#catalog">Catalog</a>
-            <a href="#about">About</a>
-            <a href="#erp">ERPNext sync</a>
+            <a href="/catalog">Catalog</a>
+            <a href="/catalog#about">About</a>
+            <a href="/catalog#erp">ERPNext sync</a>
             <a href="/account">Account</a>
-            <a href="#service">Service</a>
-            <a href="#contact">Contact</a>
+            <a href="/catalog#service">Service</a>
+            <a href="/catalog#contact">Contact</a>
           </div>
           <div className="nav__actions">
             <button className="icon-button" aria-label="Open menu" title="Menu">

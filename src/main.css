@@ -1644,10 +1644,12 @@ textarea:focus-visible {
   z-index: 30;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
-  width: min(460px, 100vw);
+  width: min(520px, 100vw);
   height: 100vh;
   padding: 20px;
-  background: #fff;
+  background:
+    linear-gradient(180deg, #fff, #fbfaf4),
+    #fff;
   border-left: 1px solid var(--line);
   box-shadow: -28px 0 80px rgba(23, 34, 27, 0.22);
   transform: translateX(105%);
@@ -1665,6 +1667,14 @@ textarea:focus-visible {
   gap: 14px;
   padding-bottom: 14px;
   border-bottom: 1px solid var(--line);
+}
+
+.quote-drawer__header span,
+.quote-drawer__section-title span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
 }
 
 .quote-drawer__header h2,
@@ -1699,15 +1709,50 @@ textarea:focus-visible {
   padding: 14px 0;
 }
 
+.quote-drawer__section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.quote-drawer__section-title button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--leaf-dark);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.quote-drawer__section-title strong {
+  color: var(--ink);
+  font-size: 13px;
+}
+
 .quote-line {
   display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 14px;
+  grid-template-columns: 74px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #f8f9f5;
+  background: rgba(255, 255, 255, 0.86);
   box-shadow: 0 10px 24px rgba(23, 35, 27, 0.04);
+}
+
+.quote-line img {
+  width: 74px;
+  height: 74px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: var(--wash);
+}
+
+.quote-line__body {
+  display: grid;
+  gap: 4px;
 }
 
 .quote-line h3 {
@@ -1717,22 +1762,34 @@ textarea:focus-visible {
 
 .quote-line strong {
   display: inline-block;
-  margin-top: 8px;
+  color: var(--ink);
+  font-size: 14px;
 }
 
 .qty-control {
   display: grid;
-  grid-template-columns: repeat(2, 42px);
+  grid-template-columns: repeat(3, 34px);
   gap: 6px;
   align-items: center;
   justify-items: center;
 }
 
+.qty-control .icon-button {
+  width: 34px;
+  min-height: 34px;
+}
+
+.qty-control .icon-button:last-child {
+  grid-column: 1 / -1;
+  width: 100%;
+  color: #8b3d2f;
+}
+
 .qty-control span {
   display: grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
+  width: 34px;
+  height: 34px;
   border-radius: 8px;
   background: #fff;
   border: 1px solid var(--line);
@@ -1742,8 +1799,12 @@ textarea:focus-visible {
 .quote-form {
   display: grid;
   gap: 10px;
-  padding-top: 14px;
+  padding: 14px;
   border-top: 1px solid var(--line);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 12px 30px rgba(23, 35, 27, 0.08);
 }
 
 .quote-result {
@@ -1756,6 +1817,9 @@ textarea:focus-visible {
 }
 
 .quote-result span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   color: var(--leaf-dark);
   font-size: 12px;
   font-weight: 900;
@@ -1793,11 +1857,32 @@ textarea:focus-visible {
   display: flex;
   justify-content: space-between;
   gap: 16px;
+  padding: 12px 0 2px;
   color: var(--muted);
 }
 
 .quote-total strong {
   color: var(--ink);
+}
+
+.quote-empty {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+  padding: 18px;
+  border: 1px dashed rgba(102, 113, 104, 0.34);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.quote-empty strong {
+  font-size: 18px;
+}
+
+.quote-empty p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
 }
 
 .modal-backdrop {
@@ -2068,12 +2153,33 @@ textarea:focus-visible {
   }
 
   .quote-line {
-    grid-template-columns: 1fr;
+    grid-template-columns: 64px minmax(0, 1fr);
   }
 
   .qty-control {
     grid-template-columns: repeat(4, 42px);
     justify-content: start;
+    grid-column: 1 / -1;
+  }
+
+  .qty-control .icon-button {
+    width: 42px;
+    min-height: 42px;
+  }
+
+  .qty-control .icon-button:last-child {
+    grid-column: auto;
+    width: 42px;
+  }
+
+  .qty-control span {
+    width: 42px;
+    height: 42px;
+  }
+
+  .quote-line img {
+    width: 64px;
+    height: 64px;
   }
 
   .recent-quotes__list article {
