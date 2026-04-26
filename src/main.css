@@ -469,7 +469,8 @@ textarea:focus-visible {
 .hero-slide {
   position: relative;
   display: block;
-  min-height: 540px;
+  aspect-ratio: 1920 / 500;
+  min-height: 300px;
   color: var(--ink);
 }
 
@@ -479,7 +480,9 @@ textarea:focus-visible {
   width: 100%;
   height: 100%;
   display: block;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
+  background: #f6f7f3;
 }
 
 .hero-slide::after {
@@ -497,7 +500,8 @@ textarea:focus-visible {
   display: grid;
   align-content: center;
   gap: 12px;
-  min-height: 540px;
+  min-height: 300px;
+  height: 100%;
   max-width: 360px;
   padding: 36px;
 }
@@ -2703,7 +2707,7 @@ textarea:focus-visible {
 
   .hero-slide,
   .hero-slide__overlay {
-    min-height: 420px;
+    min-height: 320px;
   }
 
   .hero-slide__overlay {
