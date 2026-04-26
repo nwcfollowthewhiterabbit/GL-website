@@ -128,6 +128,34 @@ Fields added:
 | `website_stock_display_override` | Product-level stock display override. |
 | `website_sort_order` | Product ordering override. |
 
+## Featured Product Controls
+
+ERPNext DocType: `Website Featured Product`
+
+This controls the storefront block titled `You may also be interested in`.
+
+| Field | Purpose |
+| --- | --- |
+| `item_code` | ERP Item shown in the recommendation block. |
+| `display_name` | Optional staff-friendly label in ERP. Product data still comes from the Item. |
+| `enabled` | Shows or hides the product from the recommendation block. |
+| `sort_order` | Controls display order. Smaller number appears first. |
+| `note` | Internal note for staff. |
+
+API behavior:
+
+- `GET /api/catalog/featured` first reads enabled rows from `Website Featured Product`.
+- If the DocType/table is missing or empty, the API falls back to `Item.website_featured`.
+- If no item is flagged, the API falls back to latest catalog products so the section is never empty during setup.
+
+Local seed command:
+
+```bash
+npm run erpnext:seed-assets:docker
+```
+
+The seed creates the DocType/table and inserts an initial set of products from the live ERP catalog only when the featured list is empty.
+
 ## Current Website Behavior
 
 - Hidden categories are removed from website facets and return no products unless the API is called with `includeHidden=1`.

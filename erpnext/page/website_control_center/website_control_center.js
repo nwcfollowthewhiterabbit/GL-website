@@ -57,6 +57,20 @@ const CONTROL_SECTIONS = [
     preview_label: (row) => row.title || row.name
   },
   {
+    key: "featured_products",
+    title: __("Featured Products"),
+    plain_title: "Featured Products",
+    doctype: "Website Featured Product",
+    description: __("Products shown in the 'You may also be interested in' block."),
+    help: __("Pick only strong products with good photos. Use Sort Order to control the row. Keep the list short."),
+    actions: [
+      { label: __("Manage Featured"), route: ["List", "Website Featured Product"], primary: true },
+      { label: __("Add Product"), new_doc: "Website Featured Product" }
+    ],
+    fields: ["name", "item_code", "display_name", "enabled", "sort_order"],
+    preview_label: (row) => row.display_name || row.item_code || row.name
+  },
+  {
     key: "manufacturers",
     title: __("Manufacturer Logos"),
     plain_title: "Manufacturer Logos",
@@ -98,9 +112,9 @@ const QUICK_ACTIONS = [
 const PLANNED_CONTROLS = [
   {
     title: __("Featured Products"),
-    status: __("Next"),
-    text: __("A simple selector for products promoted in the recommended products block."),
-    route: ["List", "Item"]
+    status: __("Ready"),
+    text: __("Use Website Featured Product to choose exactly what appears in the recommendation block."),
+    route: ["List", "Website Featured Product"]
   },
   {
     title: __("Customer Portal"),

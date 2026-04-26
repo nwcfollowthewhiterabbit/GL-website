@@ -252,6 +252,11 @@ export async function getCatalogProducts(options = {}) {
 }
 
 export async function getFeaturedCatalogProducts(limit = 8) {
+  const managedProducts = await getManagedFeaturedProducts(limit);
+  if (managedProducts.length) {
+    return { source: "erp_website_featured_product", products: managedProducts };
+  }
+
   const hasItemFields = await availableCustomFields("Item", ["website_featured"]);
   if (hasItemFields.website_featured) {
     const result = await getCatalogProducts({
@@ -267,6 +272,45 @@ export async function getFeaturedCatalogProducts(limit = 8) {
     pageSize: normalizePage(limit, 8, 24)
   });
   return { source: hasItemFields.website_featured ? "fallback_catalog_latest" : "fallback_missing_custom_field", products: result.products };
+}
+
+async function tableExists(tableName) {
+  const [rows] = await getErpPool().execute(
+    `
+      SELECT TABLE_NAME
+      FROM INFORMATION_SCHEMA.TABLES
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = :tableName
+      LIMIT 1
+    `,
+    { tableName }
+  );
+  return Boolean(rows[0]);
+}
+
+async function getManagedFeaturedProducts(limit = 8) {
+  if (!(await tableExists("tabWebsite Featured Product"))) return [];
+
+  const max = normalizePage(limit, 8, 24);
+  const [rows] = await getErpPool().execute(
+    `
+      SELECT item_code
+      FROM \`tabWebsite Featured Product\`
+      WHERE IFNULL(enabled, 1) = 1
+        AND IFNULL(item_code, '') <> ''
+      ORDER BY IFNULL(sort_order, 0), idx, creation
+      LIMIT :limit
+    `,
+    { limit: max }
+  );
+
+  const products = [];
+  for (const row of rows) {
+    const product = await getCatalogProductBySku(row.item_code);
+    if (product) products.push(product);
+  }
+
+  return products;
 }
 
 export async function getCatalogSuggestions(query, limit = 8) {

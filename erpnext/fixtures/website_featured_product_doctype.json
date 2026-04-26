@@ -1,0 +1,79 @@
+[
+  {
+    "doctype": "DocType",
+    "name": "Website Featured Product",
+    "module": "Greenleaf",
+    "custom": 1,
+    "istable": 0,
+    "editable_grid": 1,
+    "autoname": "field:item_code",
+    "title_field": "display_name",
+    "sort_field": "sort_order",
+    "sort_order": "ASC",
+    "allow_import": 1,
+    "fields": [
+      {
+        "fieldname": "item_code",
+        "label": "Product",
+        "fieldtype": "Link",
+        "options": "Item",
+        "reqd": 1,
+        "unique": 1,
+        "in_list_view": 1
+      },
+      {
+        "fieldname": "display_name",
+        "label": "Display Name",
+        "fieldtype": "Data",
+        "description": "Optional friendly name for staff. The website still reads product data from ERP Item.",
+        "in_list_view": 1
+      },
+      {
+        "fieldname": "enabled",
+        "label": "Enabled",
+        "fieldtype": "Check",
+        "default": "1",
+        "in_list_view": 1
+      },
+      {
+        "fieldname": "sort_order",
+        "label": "Sort Order",
+        "fieldtype": "Int",
+        "default": "0",
+        "description": "Smaller number appears first on the website.",
+        "in_list_view": 1
+      },
+      {
+        "fieldname": "note",
+        "label": "Internal Note",
+        "fieldtype": "Small Text"
+      }
+    ],
+    "permissions": [
+      {
+        "role": "System Manager",
+        "read": 1,
+        "write": 1,
+        "create": 1,
+        "delete": 1,
+        "report": 1,
+        "export": 1,
+        "print": 1,
+        "email": 1,
+        "share": 1
+      },
+      {
+        "role": "Item Manager",
+        "read": 1,
+        "write": 1,
+        "create": 1,
+        "delete": 1,
+        "report": 1,
+        "export": 1,
+        "print": 1,
+        "email": 1,
+        "share": 1
+      }
+    ]
+  }
+]

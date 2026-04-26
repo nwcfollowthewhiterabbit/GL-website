@@ -3,12 +3,14 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { getErpPool } from "../api/erpnext-db.mjs";
 import { createDoc, hasErpnextRestCredentials } from "../api/erpnext-rest.mjs";
+import { getCatalogProducts } from "../api/catalog-service.mjs";
 import { websiteCatalogDownloads } from "../src/data/catalogDownloadsSeed.mjs";
 import { websiteManufacturers } from "../src/data/manufacturersSeed.mjs";
 
 const fixturePaths = [
   fileURLToPath(new URL("../erpnext/fixtures/website_catalog_doctype.json", import.meta.url)),
-  fileURLToPath(new URL("../erpnext/fixtures/website_manufacturer_doctype.json", import.meta.url))
+  fileURLToPath(new URL("../erpnext/fixtures/website_manufacturer_doctype.json", import.meta.url)),
+  fileURLToPath(new URL("../erpnext/fixtures/website_featured_product_doctype.json", import.meta.url))
 ];
 
 async function tableExists(tableName) {
@@ -80,6 +82,26 @@ async function ensureRuntimeTables() {
       sort_order int(11) NOT NULL DEFAULT 0,
       PRIMARY KEY (name),
       UNIQUE KEY manufacturer_id (manufacturer_id),
+      KEY sort_order (sort_order)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  await getErpPool().query(`
+    CREATE TABLE IF NOT EXISTS \`tabWebsite Featured Product\` (
+      name varchar(140) NOT NULL,
+      creation datetime(6) DEFAULT NULL,
+      modified datetime(6) DEFAULT NULL,
+      modified_by varchar(140) DEFAULT NULL,
+      owner varchar(140) DEFAULT NULL,
+      docstatus int(1) NOT NULL DEFAULT 0,
+      idx int(8) NOT NULL DEFAULT 0,
+      item_code varchar(140) DEFAULT NULL,
+      display_name varchar(140) DEFAULT NULL,
+      enabled int(1) NOT NULL DEFAULT 1,
+      sort_order int(11) NOT NULL DEFAULT 0,
+      note text,
+      PRIMARY KEY (name),
+      UNIQUE KEY item_code (item_code),
       KEY sort_order (sort_order)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
@@ -172,7 +194,7 @@ async function ensureDoctypeMetadata(fixtures) {
           uniqueValue: Number(field.unique || 0),
           defaultValue: field.default === undefined ? "" : String(field.default),
           description: field.description || "",
-          inListView: ["title", "manufacturer_name", "enabled", "sort_order"].includes(field.fieldname) ? 1 : 0
+          inListView: ["title", "manufacturer_name", "item_code", "display_name", "enabled", "sort_order"].includes(field.fieldname) ? 1 : 0
         }
       );
     }
@@ -280,6 +302,45 @@ async function seedManufacturers() {
   console.log(`Website manufacturers seeded. Manufacturers: ${websiteManufacturers.length}.`);
 }
 
+async function seedFeaturedProducts() {
+  const [existing] = await getErpPool().execute("SELECT COUNT(*) AS total FROM `tabWebsite Featured Product`");
+  if (Number(existing[0]?.total || 0) > 0) {
+    console.log("Website featured products already exist. Seed skipped.");
+    return;
+  }
+
+  const now = new Date().toISOString().slice(0, 19).replace("T", " ");
+  const result = await getCatalogProducts({ pageSize: 8 });
+  const products = result.products.slice(0, 8);
+
+  for (const [index, product] of products.entries()) {
+    await getErpPool().execute(
+      `
+        INSERT INTO \`tabWebsite Featured Product\`
+          (name, creation, modified, modified_by, owner, docstatus, idx, item_code, display_name, enabled, sort_order, note)
+        VALUES
+          (:name, :now, :now, 'Administrator', 'Administrator', 0, :idx, :itemCode, :displayName, 1, :sortOrder, :note)
+        ON DUPLICATE KEY UPDATE
+          modified = VALUES(modified),
+          display_name = VALUES(display_name),
+          enabled = VALUES(enabled),
+          sort_order = VALUES(sort_order)
+      `,
+      {
+        name: product.sku,
+        now,
+        idx: index + 1,
+        itemCode: product.sku,
+        displayName: product.name,
+        sortOrder: (index + 1) * 10,
+        note: "Initial seed from live ERP catalog"
+      }
+    );
+  }
+
+  console.log(`Website featured products seeded. Products: ${products.length}.`);
+}
+
 async function main() {
   const fixtures = await loadFixtures();
   await tryCreateDoctypes(fixtures);
@@ -287,6 +348,7 @@ async function main() {
   await ensureDoctypeMetadata(fixtures);
   await seedCatalogs();
   await seedManufacturers();
+  await seedFeaturedProducts();
 }
 
 main()
