@@ -54,7 +54,6 @@ export function SiteHeader({ quoteCount, onOpenQuote }: SiteHeaderProps) {
             </button>
             <a href="/catalog#brands">Brands</a>
             <a href="/catalog#service">Service</a>
-            <a href="/catalog#about">About</a>
             <a href="/account">Account</a>
             <a href="/catalog#contact">Contact</a>
           </div>
@@ -99,7 +98,6 @@ export function SiteHeader({ quoteCount, onOpenQuote }: SiteHeaderProps) {
           <div className="nav-menu__links">
             <a href="/catalog#brands" onClick={closeMenu}>Brands</a>
             <a href="/catalog#service" onClick={closeMenu}>Service</a>
-            <a href="/catalog#about" onClick={closeMenu}>About</a>
             <a href="/catalog#contact" onClick={closeMenu}>Contact</a>
             <a href="/account" onClick={closeMenu}>Account</a>
             <button type="button" onClick={() => { closeMenu(); onOpenQuote(); }}>Request quote</button>

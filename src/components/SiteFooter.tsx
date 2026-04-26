@@ -19,7 +19,6 @@ export function SiteFooter() {
         </div>
         <div>
           <span>Company</span>
-          <a href="/catalog#about">About</a>
           <a href="/catalog#brands">Brands</a>
           <a href="/catalog#service">Service</a>
           <a href="/account">Account</a>
