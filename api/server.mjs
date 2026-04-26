@@ -21,6 +21,8 @@ import {
 } from "./storefront-control-service.mjs";
 import {
   endAccountSession,
+  getAccountOrderDetailByEmail,
+  getAccountQuotationDetailByEmail,
   getAccountSession,
   getCustomerOrdersByEmail,
   getCustomerProfileByEmail,
@@ -365,6 +367,50 @@ app.get("/api/account/session", async (req, res) => {
     res.status(503).json({
       error: "erpnext_account_unavailable",
       message: error instanceof Error ? error.message : "Unknown ERPNext account error"
+    });
+  }
+});
+
+app.get("/api/account/quotes/:name", async (req, res) => {
+  const session = getAccountSession(req);
+  if (!session) {
+    res.status(401).json({ error: "not_authenticated" });
+    return;
+  }
+
+  try {
+    const quote = await getAccountQuotationDetailByEmail(session.email, req.params.name);
+    if (!quote) {
+      res.status(404).json({ error: "quote_not_found" });
+      return;
+    }
+    res.json({ quote });
+  } catch (error) {
+    res.status(503).json({
+      error: "erpnext_account_quote_detail_unavailable",
+      message: error instanceof Error ? error.message : "Unknown ERPNext quote detail error"
+    });
+  }
+});
+
+app.get("/api/account/orders/:name", async (req, res) => {
+  const session = getAccountSession(req);
+  if (!session) {
+    res.status(401).json({ error: "not_authenticated" });
+    return;
+  }
+
+  try {
+    const order = await getAccountOrderDetailByEmail(session.email, req.params.name);
+    if (!order) {
+      res.status(404).json({ error: "order_not_found" });
+      return;
+    }
+    res.json({ order });
+  } catch (error) {
+    res.status(503).json({
+      error: "erpnext_account_order_detail_unavailable",
+      message: error instanceof Error ? error.message : "Unknown ERPNext order detail error"
     });
   }
 });

@@ -175,3 +175,155 @@ export async function getCustomerOrdersByEmail(emailValue, limit = 20) {
     creation: row.creation
   }));
 }
+
+function documentLine(row) {
+  return {
+    itemCode: row.item_code,
+    itemName: row.item_name || row.item_code,
+    description: row.description || "",
+    qty: Number(row.qty || 0),
+    uom: row.uom || row.stock_uom || "",
+    rate: Number(row.rate || 0),
+    amount: Number(row.amount || 0),
+    image: row.image || null,
+    deliveryDate: row.delivery_date,
+    deliveredQty: row.delivered_qty === undefined ? undefined : Number(row.delivered_qty || 0),
+    billedAmount: row.billed_amt === undefined ? undefined : Number(row.billed_amt || 0)
+  };
+}
+
+export async function getAccountQuotationDetailByEmail(emailValue, quotationName) {
+  const email = normalizeEmail(emailValue);
+  const name = clean(quotationName);
+  if (!email || !name) return null;
+
+  const [rows] = await getErpPool().execute(
+    `
+      SELECT
+        q.name,
+        q.owner,
+        q.party_name,
+        q.transaction_date,
+        q.valid_till,
+        q.grand_total,
+        q.status,
+        q.order_type,
+        q.creation,
+        q.enq_det,
+        q.contact_email,
+        q.contact_mobile,
+        q.terms
+      FROM \`tabQuotation\` q
+      LEFT JOIN \`tabCustomer\` c ON c.name = q.party_name OR c.name = q.customer
+      WHERE q.name = :name
+        AND (
+          LOWER(IFNULL(q.website_customer_email, '')) = :email
+          OR LOWER(IFNULL(q.enq_det, '')) LIKE :emailMarker
+          OR LOWER(IFNULL(c.email_id, '')) = :email
+        )
+      LIMIT 1
+    `,
+    { name, email, emailMarker: `%email: ${email}%` }
+  );
+
+  const row = rows[0];
+  if (!row) return null;
+
+  const [lineRows] = await getErpPool().execute(
+    `
+      SELECT item_code, item_name, description, qty, uom, stock_uom, rate, amount, image
+      FROM \`tabQuotation Item\`
+      WHERE parent = :name
+      ORDER BY idx
+    `,
+    { name }
+  );
+
+  return {
+    type: "quote",
+    name: row.name,
+    owner: row.owner,
+    customer: row.party_name,
+    transactionDate: row.transaction_date,
+    validTill: row.valid_till,
+    grandTotal: Number(row.grand_total || 0),
+    status: row.status,
+    orderType: row.order_type || "",
+    creation: row.creation,
+    marker: String(row.enq_det || "").split("\n")[0] || "",
+    contactEmail: row.contact_email || email,
+    contactMobile: row.contact_mobile || "",
+    notes: row.enq_det || "",
+    terms: row.terms || "",
+    lines: lineRows.map(documentLine)
+  };
+}
+
+export async function getAccountOrderDetailByEmail(emailValue, orderName) {
+  const email = normalizeEmail(emailValue);
+  const name = clean(orderName);
+  if (!email || !name) return null;
+
+  const [rows] = await getErpPool().execute(
+    `
+      SELECT
+        so.name,
+        so.customer,
+        so.customer_name,
+        so.transaction_date,
+        so.delivery_date,
+        so.grand_total,
+        so.status,
+        so.delivery_status,
+        so.billing_status,
+        so.per_delivered,
+        so.per_billed,
+        so.contact_email,
+        so.contact_phone,
+        so.po_no,
+        so.po_date,
+        so.terms,
+        so.creation
+      FROM \`tabSales Order\` so
+      JOIN \`tabCustomer\` c ON c.name = so.customer
+      WHERE so.name = :name
+        AND LOWER(c.email_id) = :email
+      LIMIT 1
+    `,
+    { name, email }
+  );
+
+  const row = rows[0];
+  if (!row) return null;
+
+  const [lineRows] = await getErpPool().execute(
+    `
+      SELECT item_code, item_name, description, qty, uom, stock_uom, rate, amount, image, delivery_date, delivered_qty, billed_amt
+      FROM \`tabSales Order Item\`
+      WHERE parent = :name
+      ORDER BY idx
+    `,
+    { name }
+  );
+
+  return {
+    type: "order",
+    name: row.name,
+    customer: row.customer_name || row.customer,
+    transactionDate: row.transaction_date,
+    deliveryDate: row.delivery_date,
+    grandTotal: Number(row.grand_total || 0),
+    status: row.status,
+    deliveryStatus: row.delivery_status || "",
+    billingStatus: row.billing_status || "",
+    perDelivered: Number(row.per_delivered || 0),
+    perBilled: Number(row.per_billed || 0),
+    contactEmail: row.contact_email || email,
+    contactPhone: row.contact_phone || "",
+    poNo: row.po_no || "",
+    poDate: row.po_date,
+    terms: row.terms || "",
+    creation: row.creation,
+    lines: lineRows.map(documentLine)
+  };
+}

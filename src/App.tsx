@@ -23,6 +23,8 @@ import {
 } from "./data/websiteCategories";
 import {
   createQuoteRequest,
+  fetchAccountOrderDetail,
+  fetchAccountQuoteDetail,
   fetchAccountSession,
   fetchAccountQuotes,
   fetchCatalogDiagnostics,
@@ -50,6 +52,7 @@ import type {
   CatalogProduct,
   CatalogSuggestion,
   AccountSession,
+  AccountDocumentDetail,
   CustomerCornerSettings,
   ItemGroup,
   QuoteLine,
@@ -158,6 +161,8 @@ function App() {
   const [accountQuotes, setAccountQuotes] = useState<RecentQuote[]>([]);
   const [accountStatus, setAccountStatus] = useState("");
   const [accountLoading, setAccountLoading] = useState(false);
+  const [accountDetail, setAccountDetail] = useState<AccountDocumentDetail | null>(null);
+  const [accountDetailLoading, setAccountDetailLoading] = useState(false);
   const websiteNavigationCategories = websiteDepartments.length ? websiteDepartments : fallbackWebsiteCategories;
   const heroBanners = websiteBanners.length ? websiteBanners : (fallbackHeroBanners as WebsiteBanner[]);
   const catalogDownloads = websiteCatalogs.length
@@ -748,12 +753,47 @@ function App() {
       .finally(() => setAccountLoading(false));
   }
 
+  async function viewAccountQuote(name: string) {
+    if (!accountToken) {
+      setAccountStatus("Sign in to view quotation details.");
+      return;
+    }
+    setAccountDetailLoading(true);
+    setAccountStatus("Loading quotation details...");
+    try {
+      setAccountDetail(await fetchAccountQuoteDetail(accountToken, name));
+      setAccountStatus("");
+    } catch {
+      setAccountStatus("Quotation details could not be loaded.");
+    } finally {
+      setAccountDetailLoading(false);
+    }
+  }
+
+  async function viewAccountOrder(name: string) {
+    if (!accountToken) {
+      setAccountStatus("Sign in to view order details.");
+      return;
+    }
+    setAccountDetailLoading(true);
+    setAccountStatus("Loading order details...");
+    try {
+      setAccountDetail(await fetchAccountOrderDetail(accountToken, name));
+      setAccountStatus("");
+    } catch {
+      setAccountStatus("Order details could not be loaded.");
+    } finally {
+      setAccountDetailLoading(false);
+    }
+  }
+
   async function signOutAccount() {
     if (accountToken) await logoutAccount(accountToken).catch(() => undefined);
     window.localStorage.removeItem("greenleaf.accountToken");
     setAccountToken("");
     setAccountSession(null);
     setAccountQuotes([]);
+    setAccountDetail(null);
     setAccountCode("");
     setAccountDevCode("");
     setAccountStatus("Signed out.");
@@ -784,6 +824,11 @@ function App() {
           onRefreshAccount={refreshAccount}
           onLogout={signOutAccount}
           onOpenQuote={() => setQuoteOpen(true)}
+          detail={accountDetail}
+          isDetailLoading={accountDetailLoading}
+          onViewQuote={viewAccountQuote}
+          onViewOrder={viewAccountOrder}
+          onCloseDetail={() => setAccountDetail(null)}
         />
       ) : route.view === "product" ? (
         <ProductDetailPage

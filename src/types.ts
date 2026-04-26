@@ -140,6 +140,44 @@ export type CustomerOrder = {
   creation?: string;
 };
 
+export type AccountDocumentLine = {
+  itemCode: string;
+  itemName: string;
+  description?: string;
+  qty: number;
+  uom?: string;
+  rate: number;
+  amount: number;
+  image?: string | null;
+  deliveryDate?: string;
+  deliveredQty?: number;
+  billedAmount?: number;
+};
+
+export type AccountQuoteDetail = RecentQuote & {
+  type: "quote";
+  validTill?: string;
+  contactEmail?: string;
+  contactMobile?: string;
+  notes?: string;
+  terms?: string;
+  lines: AccountDocumentLine[];
+};
+
+export type AccountOrderDetail = CustomerOrder & {
+  type: "order";
+  billingStatus?: string;
+  deliveryStatus?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  poNo?: string;
+  poDate?: string;
+  terms?: string;
+  lines: AccountDocumentLine[];
+};
+
+export type AccountDocumentDetail = AccountQuoteDetail | AccountOrderDetail;
+
 export type CustomerProfile = {
   name: string;
   customerName: string;

@@ -1746,7 +1746,7 @@ textarea:focus-visible {
 
 .account-quotes article {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 130px 120px 150px;
+  grid-template-columns: minmax(0, 1fr) 130px 150px 150px 126px;
   gap: 16px;
   align-items: center;
   padding: 14px;
@@ -1828,6 +1828,84 @@ textarea:focus-visible {
   margin: 0;
   color: var(--muted);
   line-height: 1.55;
+}
+
+.account-detail {
+  display: grid;
+  gap: 14px;
+}
+
+.account-detail .account-panel__head {
+  margin-bottom: 0;
+}
+
+.account-detail__meta {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.account-detail__meta article {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcf8;
+}
+
+.account-detail__meta span,
+.account-detail__lines span,
+.account-detail__progress span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.account-detail__meta strong,
+.account-detail__lines strong {
+  color: var(--ink);
+}
+
+.account-detail__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.account-detail__lines {
+  display: grid;
+  gap: 8px;
+}
+
+.account-detail__lines article {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 90px 120px 130px;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.account-detail__lines div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.account-detail__progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.account-detail__progress span {
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: #eef3ec;
+  color: #33483a;
 }
 
 .pagination {
@@ -3524,5 +3602,10 @@ textarea:focus-visible {
   .account-quotes article {
     grid-template-columns: 1fr;
     justify-items: start;
+  }
+
+  .account-detail__meta,
+  .account-detail__lines article {
+    grid-template-columns: 1fr;
   }
 }

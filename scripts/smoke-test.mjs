@@ -15,6 +15,21 @@ async function readJson(path) {
   }
 }
 
+async function readJsonWithHeaders(path, headers = {}) {
+  const response = await fetch(`${baseUrl}${path}`, { headers });
+  const text = await response.text();
+
+  if (!response.ok) {
+    throw new Error(`${path} returned ${response.status}: ${text.slice(0, 240)}`);
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(`${path} did not return JSON: ${text.slice(0, 240)}`);
+  }
+}
+
 async function readText(path) {
   const response = await fetch(`${baseUrl}${path}`);
   const text = await response.text();
@@ -121,6 +136,18 @@ async function main() {
   assert(accountSessionResponse.ok, "Authenticated account session failed");
   const accountSession = await accountSessionResponse.json();
   assert(accountSession.account?.email === "patch.fields@example.com", "Account session returned wrong email");
+  if (accountSession.account.quotes?.length) {
+    const quoteDetail = await readJsonWithHeaders(`/api/account/quotes/${encodeURIComponent(accountSession.account.quotes[0].name)}`, {
+      Authorization: `Bearer ${loginVerify.token}`
+    });
+    assert(quoteDetail.quote?.lines && Array.isArray(quoteDetail.quote.lines), "Quote detail response is invalid");
+  }
+  if (accountSession.account.orders?.length) {
+    const orderDetail = await readJsonWithHeaders(`/api/account/orders/${encodeURIComponent(accountSession.account.orders[0].name)}`, {
+      Authorization: `Bearer ${loginVerify.token}`
+    });
+    assert(orderDetail.order?.lines && Array.isArray(orderDetail.order.lines), "Order detail response is invalid");
+  }
 
   const quotes = await readJson("/api/admin/recent-quotes?limit=2");
   assert(Array.isArray(quotes.quotes), "Recent quotes response is invalid");
@@ -140,6 +167,7 @@ async function main() {
   console.log("- Category route shell: ok");
   console.log(`- Account quotes: ${accountQuotes.quotes.length}`);
   console.log(`- Account auth: ${accountSession.account.email}`);
+  console.log(`- Account detail endpoints: checked`);
   console.log(`- Recent website quotations: ${quotes.quotes.length}`);
 }
 

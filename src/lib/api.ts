@@ -1,6 +1,8 @@
 import type {
   AccountLoginStartResponse,
   AccountLoginVerifyResponse,
+  AccountOrderDetail,
+  AccountQuoteDetail,
   AccountSession,
   CatalogDiagnostics,
   CatalogFacets,
@@ -139,6 +141,24 @@ export async function fetchAccountSession(token: string) {
   if (!response.ok) throw new Error("account_session_failed");
   const data = (await response.json()) as { account: AccountSession };
   return data.account;
+}
+
+export async function fetchAccountQuoteDetail(token: string, name: string) {
+  const response = await fetch(`/api/account/quotes/${encodeURIComponent(name)}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!response.ok) throw new Error("account_quote_detail_failed");
+  const data = (await response.json()) as { quote: AccountQuoteDetail };
+  return data.quote;
+}
+
+export async function fetchAccountOrderDetail(token: string, name: string) {
+  const response = await fetch(`/api/account/orders/${encodeURIComponent(name)}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!response.ok) throw new Error("account_order_detail_failed");
+  const data = (await response.json()) as { order: AccountOrderDetail };
+  return data.order;
 }
 
 export async function logoutAccount(token: string) {

@@ -14,7 +14,7 @@ import {
   ShoppingCart,
   UserRound
 } from "lucide-react";
-import type { AccountSession, CustomerCornerSettings, RecentQuote } from "../types";
+import type { AccountDocumentDetail, AccountSession, CustomerCornerSettings, RecentQuote } from "../types";
 
 type AccountPageProps = {
   email: string;
@@ -26,6 +26,8 @@ type AccountPageProps = {
   isLoading: boolean;
   isAuthenticated: boolean;
   settings: CustomerCornerSettings;
+  detail: AccountDocumentDetail | null;
+  isDetailLoading: boolean;
   onEmailChange: (value: string) => void;
   onCodeChange: (value: string) => void;
   onStartLogin: () => void;
@@ -34,6 +36,9 @@ type AccountPageProps = {
   onRefreshAccount: () => void;
   onLogout: () => void;
   onOpenQuote: () => void;
+  onViewQuote: (name: string) => void;
+  onViewOrder: (name: string) => void;
+  onCloseDetail: () => void;
 };
 
 function money(value: number) {
@@ -65,6 +70,8 @@ export function AccountPage({
   isLoading,
   isAuthenticated,
   settings,
+  detail,
+  isDetailLoading,
   onEmailChange,
   onCodeChange,
   onStartLogin,
@@ -72,7 +79,10 @@ export function AccountPage({
   onLoadQuotes,
   onRefreshAccount,
   onLogout,
-  onOpenQuote
+  onOpenQuote,
+  onViewQuote,
+  onViewOrder,
+  onCloseDetail
 }: AccountPageProps) {
   const accountQuotes = account?.quotes || quotes;
   const orders = account?.orders || [];
@@ -259,6 +269,9 @@ export function AccountPage({
                   <span className={statusClass(quote.status)}>{quote.status}</span>
                   <span>Valid until {shortDate(quote.validTill)}</span>
                   <strong>{money(quote.grandTotal)} FJD</strong>
+                  <button className="secondary-button" type="button" onClick={() => onViewQuote(quote.name)} disabled={!isAuthenticated || isDetailLoading}>
+                    View details
+                  </button>
                 </article>
               ))
             ) : (
@@ -297,6 +310,9 @@ export function AccountPage({
                   <span className={statusClass(order.status)}>{order.status}</span>
                   <span>Delivered {percent(order.perDelivered)} / Billed {percent(order.perBilled)}</span>
                   <strong>{money(order.grandTotal)} FJD</strong>
+                  <button className="secondary-button" type="button" onClick={() => onViewOrder(order.name)} disabled={!isAuthenticated || isDetailLoading}>
+                    View details
+                  </button>
                 </article>
               ))
             ) : (
@@ -308,6 +324,72 @@ export function AccountPage({
             )}
           </div>
         </section>
+        ) : null}
+
+        {detail ? (
+          <section className="account-panel account-panel--wide account-detail">
+            <div className="account-panel__head">
+              <div>
+                <span>{detail.type === "quote" ? "Quotation details" : "Sales order details"}</span>
+                <h3>{detail.name}</h3>
+              </div>
+              <button className="secondary-button" type="button" onClick={onCloseDetail}>
+                Close
+              </button>
+            </div>
+            <div className="account-detail__meta">
+              <article>
+                <span>Status</span>
+                <strong>{detail.status}</strong>
+              </article>
+              <article>
+                <span>Customer</span>
+                <strong>{detail.customer}</strong>
+              </article>
+              <article>
+                <span>{detail.type === "quote" ? "Valid until" : "Delivery date"}</span>
+                <strong>{detail.type === "quote" ? shortDate(detail.validTill) : shortDate(detail.deliveryDate)}</strong>
+              </article>
+              <article>
+                <span>Total</span>
+                <strong>{money(detail.grandTotal)} FJD</strong>
+              </article>
+            </div>
+            <div className="account-detail__actions">
+              <a className="secondary-button" href={`mailto:${settings.salesEmail}?subject=${encodeURIComponent(`Update request for ${detail.name}`)}`}>
+                <Mail size={16} /> Request update
+              </a>
+              <button className="secondary-button" type="button" disabled>
+                PDF download
+              </button>
+              <button className="secondary-button" type="button" disabled>
+                Pay now
+              </button>
+            </div>
+            <div className="account-detail__lines">
+              {detail.lines.length ? (
+                detail.lines.map((line) => (
+                  <article key={`${detail.name}-${line.itemCode}-${line.qty}`}>
+                    <div>
+                      <strong>{line.itemName}</strong>
+                      <span>{line.itemCode}</span>
+                    </div>
+                    <span>{line.qty} {line.uom}</span>
+                    <span>{money(line.rate)} FJD</span>
+                    <strong>{money(line.amount)} FJD</strong>
+                  </article>
+                ))
+              ) : (
+                <p className="empty-state">No item lines available for this document.</p>
+              )}
+            </div>
+            {detail.type === "order" ? (
+              <div className="account-detail__progress">
+                <span>Delivered {percent(detail.perDelivered)}</span>
+                <span>Billed {percent(detail.perBilled)}</span>
+              </div>
+            ) : null}
+          </section>
         ) : null}
 
         <section className="account-panel account-panel--wide">
