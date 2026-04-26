@@ -9,6 +9,7 @@ export type CatalogProduct = {
   status?: string;
   availability?: string;
   quantity?: number;
+  uom?: string;
   image?: string | null;
   description?: string;
 };

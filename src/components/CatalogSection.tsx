@@ -1,5 +1,5 @@
 import { ChevronRight, Clock3, Layers3, Search, ShoppingCart } from "lucide-react";
-import { availabilityLabel, plainTextDescription, priceLabel, productImage } from "../lib/catalog";
+import { availabilityLabel, availabilityTone, plainTextDescription, priceLabel, productImage, productPlaceholder } from "../lib/catalog";
 import type { CatalogDiagnostics, CatalogFacets, CatalogProduct, ItemGroup, WebsiteCategory } from "../types";
 
 type WebsiteCategoryView = WebsiteCategory & {
@@ -186,19 +186,29 @@ export function CatalogSection({
             {products.map((product) => (
               <article className="product-card" key={product.name}>
                 <div className="product-card__image">
-                  <img src={productImage(product)} alt="" />
+                  <img
+                    src={productImage(product)}
+                    alt=""
+                    onError={(event) => {
+                      event.currentTarget.src = productPlaceholder;
+                    }}
+                  />
                   <span className="tag">{activeItemGroupNames.has(product.category) ? activeDepartment?.label : product.category}</span>
                 </div>
                 <div className="product-card__body">
-                  <h3>{product.name}</h3>
-                  <div className="meta-row">
-                    <span>{availabilityLabel(product)}</span>
-                    <span>{product.sku}</span>
-                    <Clock3 size={16} />
+                  <div className="product-card__badges">
+                    <span className={`availability-badge is-${availabilityTone(product)}`}>{availabilityLabel(product)}</span>
+                    <span className="sku-chip">{product.sku}</span>
                   </div>
+                  <h3>{product.name}</h3>
                   <p>{plainTextDescription(product, "ERP-ready product detail with variants, UOM, tax handling, and buying notes.")}</p>
-                  <div className="meta-row">
-                    <span className="price">{priceLabel(product)}</span>
+                  <div className="product-card__footer">
+                    <div>
+                      <span className="price">{priceLabel(product)}</span>
+                      <small>
+                        <Clock3 size={14} /> Lead time confirmed by sales
+                      </small>
+                    </div>
                     <div className="product-card__actions">
                       <button className="secondary-button" onClick={() => onSelectProduct(product)}>
                         Details

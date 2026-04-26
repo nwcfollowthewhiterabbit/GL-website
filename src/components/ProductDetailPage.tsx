@@ -1,5 +1,13 @@
-import { ArrowLeft, PackageCheck, ShoppingCart } from "lucide-react";
-import { availabilityLabel, plainTextDescription, priceLabel, productImage } from "../lib/catalog";
+import { ArrowLeft, CheckCircle2, Clock3, PackageCheck, ShoppingCart } from "lucide-react";
+import {
+  availabilityLabel,
+  availabilityTone,
+  plainTextDescription,
+  priceLabel,
+  productImage,
+  productPlaceholder,
+  productSpecs
+} from "../lib/catalog";
 import type { CatalogProduct } from "../types";
 
 type ProductDetailPageProps = {
@@ -29,33 +37,58 @@ export function ProductDetailPage({
         <div className="product-page__empty">Loading product from ERPNext...</div>
       ) : product ? (
         <>
+          <div className="breadcrumbs" aria-label="Breadcrumb">
+            <button onClick={onBackToCatalog}>Catalog</button>
+            <span>/</span>
+            <span>{product.category}</span>
+            <span>/</span>
+            <strong>{product.name}</strong>
+          </div>
           <div className="product-page__layout">
             <div className="product-page__media">
-              <img src={productImage(product)} alt="" />
+              <img
+                src={productImage(product)}
+                alt=""
+                onError={(event) => {
+                  event.currentTarget.src = productPlaceholder;
+                }}
+              />
             </div>
             <div className="product-page__body">
-              <span className="tag product-page__tag">{product.category}</span>
-              <h1>{product.name}</h1>
-              <div className="product-page__summary">
-                <div>
-                  <span>SKU</span>
-                  <strong>{product.sku}</strong>
-                </div>
-                <div>
-                  <span>Availability</span>
-                  <strong>{availabilityLabel(product)}</strong>
-                </div>
-                <div>
-                  <span>Price</span>
-                  <strong>{priceLabel(product)}</strong>
-                </div>
+              <div className="product-page__kicker">
+                <span className="tag product-page__tag">{product.category}</span>
+                <span className={`availability-badge is-${availabilityTone(product)}`}>{availabilityLabel(product)}</span>
               </div>
+              <h1>{product.name}</h1>
               <p>{plainTextDescription(product, "No product description available.", 1200)}</p>
+
+              <div className="product-page__specs">
+                {productSpecs(product).map((spec) => (
+                  <div key={spec.label}>
+                    <span>{spec.label}</span>
+                    <strong>{spec.value}</strong>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <aside className="product-quote-panel" aria-label="Request quote for this product">
+              <span className="product-quote-panel__label">Trade quote</span>
+              <strong>{priceLabel(product)}</strong>
+              <p>Final price, stock and delivery timing are confirmed by Green Leaf sales.</p>
               <button className="quote-button product-page__quote" onClick={() => onAddToQuote(product)}>
                 <ShoppingCart size={18} /> Add to quote
               </button>
+              <div className="product-quote-panel__notes">
+                <span>
+                  <CheckCircle2 size={16} /> ERP SKU validated
+                </span>
+                <span>
+                  <Clock3 size={16} /> Lead time confirmed after request
+                </span>
+              </div>
+            </aside>
             </div>
-          </div>
 
           <div className="related-products">
             <div className="section-heading">
@@ -68,7 +101,13 @@ export function ProductDetailPage({
               <div className="related-products__grid">
                 {relatedProducts.map((item) => (
                   <button className="related-product" key={item.sku} onClick={() => onSelectRelated(item)}>
-                    <img src={productImage(item)} alt="" />
+                    <img
+                      src={productImage(item)}
+                      alt=""
+                      onError={(event) => {
+                        event.currentTarget.src = productPlaceholder;
+                      }}
+                    />
                     <span>{item.name}</span>
                     <strong>{priceLabel(item)}</strong>
                   </button>

@@ -442,16 +442,18 @@ function App() {
   return (
     <main className="app">
       <SiteHeader quoteCount={quoteCount} onOpenQuote={() => setQuoteOpen(true)} />
-      <HeroSection
-        catalogTotal={catalogTotal}
-        quoteCompany={quoteCompany}
-        quoteEmail={quoteEmail}
-        quoteStatus={quoteStatus}
-        isSubmitting={quoteSubmitting}
-        onCompanyChange={setQuoteCompany}
-        onEmailChange={setQuoteEmail}
-        onSubmitQuickQuote={submitQuickQuote}
-      />
+      {route.view !== "product" ? (
+        <HeroSection
+          catalogTotal={catalogTotal}
+          quoteCompany={quoteCompany}
+          quoteEmail={quoteEmail}
+          quoteStatus={quoteStatus}
+          isSubmitting={quoteSubmitting}
+          onCompanyChange={setQuoteCompany}
+          onEmailChange={setQuoteEmail}
+          onSubmitQuickQuote={submitQuickQuote}
+        />
+      ) : null}
       {route.view === "account" ? (
         <AccountPage
           email={accountEmail}

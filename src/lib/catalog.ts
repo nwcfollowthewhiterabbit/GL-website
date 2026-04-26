@@ -2,6 +2,8 @@ import type { CatalogProduct } from "../types";
 
 const productPlaceholder = "/product-placeholder.svg";
 
+export { productPlaceholder };
+
 export function productImage(product: CatalogProduct) {
   if (product.image?.startsWith("http")) {
     return product.image;
@@ -38,5 +40,28 @@ export function availabilityLabel(product: CatalogProduct) {
 }
 
 export function plainTextDescription(product: CatalogProduct, fallback: string, maxLength = 112) {
-  return (product.description || fallback).replace(/<[^>]*>/g, "").slice(0, maxLength);
+  return (product.description || fallback)
+    .replace(/<br\s*\/?>/gi, " ")
+    .replace(/<\/p>/gi, " ")
+    .replace(/<[^>]*>/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxLength);
+}
+
+export function availabilityTone(product: CatalogProduct) {
+  const label = availabilityLabel(product).toLowerCase();
+  if (label.includes("available") || label.includes("stock")) return "available";
+  if (label.includes("quote") || label.includes("contact")) return "quote";
+  return "special";
+}
+
+export function productSpecs(product: CatalogProduct) {
+  return [
+    { label: "SKU", value: product.sku },
+    { label: "Category", value: product.category },
+    { label: "UOM", value: product.uom || "Each" },
+    { label: "Availability", value: availabilityLabel(product) },
+    { label: "Price", value: priceLabel(product) }
+  ];
 }
