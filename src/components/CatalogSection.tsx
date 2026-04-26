@@ -17,6 +17,9 @@ type CatalogSectionProps = {
   activeCategory: string;
   activeWebsiteCategory: string;
   searchTerm: string;
+  sort: string;
+  minPrice: string;
+  maxPrice: string;
   page: number;
   pageSize: number;
   productCount: number;
@@ -30,6 +33,8 @@ type CatalogSectionProps = {
   onDepartmentChange: (categoryId: string) => void;
   onCategoryChange: (category: string) => void;
   onSearchChange: (value: string) => void;
+  onSortChange: (value: string) => void;
+  onPriceFilterChange: (kind: "min" | "max", value: string) => void;
   onSelectSuggestion: (suggestion: CatalogSuggestion) => void;
   onPageChange: (page: number) => void;
   onSelectProduct: (product: CatalogProduct) => void;
@@ -45,6 +50,9 @@ export function CatalogSection({
   activeCategory,
   activeWebsiteCategory,
   searchTerm,
+  sort,
+  minPrice,
+  maxPrice,
   page,
   pageSize,
   productCount,
@@ -58,6 +66,8 @@ export function CatalogSection({
   onDepartmentChange,
   onCategoryChange,
   onSearchChange,
+  onSortChange,
+  onPriceFilterChange,
   onSelectSuggestion,
   onPageChange,
   onSelectProduct,
@@ -67,7 +77,7 @@ export function CatalogSection({
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const activeDepartment = visibleCategories.find((category) => category.id === activeWebsiteCategory);
   const activeLabel = activeCategory || activeDepartment?.label || "All products";
-  const hasActiveFilters = Boolean(activeCategory || activeWebsiteCategory || searchTerm);
+  const hasActiveFilters = Boolean(activeCategory || activeWebsiteCategory || searchTerm || sort !== "featured" || minPrice || maxPrice);
   const activeItemGroupNames = new Set(activeDepartment?.availableItemGroups || []);
   const itemGroupByName = new Map(itemGroups.map((group) => [group.name, group]));
   const sidebarGroups = activeDepartment
@@ -101,6 +111,14 @@ export function CatalogSection({
     setSuggestionsOpen(false);
     searchInputRef.current?.blur();
     onSelectSuggestion(suggestion);
+  }
+
+  function clearFilters() {
+    onSearchChange("");
+    onSortChange("featured");
+    onPriceFilterChange("min", "");
+    onPriceFilterChange("max", "");
+    onDepartmentChange("");
   }
 
   return (
@@ -218,6 +236,26 @@ export function CatalogSection({
                 </div>
               ) : null}
             </div>
+            <div className="catalog-sort-panel" aria-label="Catalog sorting and price filters">
+              <label>
+                <span>Sort</span>
+                <select value={sort} onChange={(event) => onSortChange(event.target.value)}>
+                  <option value="featured">Featured first</option>
+                  <option value="name_asc">Name A-Z</option>
+                  <option value="name_desc">Name Z-A</option>
+                  <option value="price_asc">Price low-high</option>
+                  <option value="price_desc">Price high-low</option>
+                </select>
+              </label>
+              <label>
+                <span>Min price</span>
+                <input inputMode="decimal" placeholder="0" value={minPrice} onChange={(event) => onPriceFilterChange("min", event.target.value)} />
+              </label>
+              <label>
+                <span>Max price</span>
+                <input inputMode="decimal" placeholder="Any" value={maxPrice} onChange={(event) => onPriceFilterChange("max", event.target.value)} />
+              </label>
+            </div>
             <div className="catalog-tools__actions">
               <button type="button" className="secondary-button catalog-filter-button" onClick={onToggleFilters}>
                 <Layers3 size={18} /> Categories
@@ -226,10 +264,7 @@ export function CatalogSection({
                 <button
                   type="button"
                   className="secondary-button catalog-clear-button"
-                  onClick={() => {
-                    onSearchChange("");
-                    onDepartmentChange("");
-                  }}
+                  onClick={clearFilters}
                 >
                   <X size={18} /> Clear
                 </button>
@@ -324,10 +359,7 @@ export function CatalogSection({
                 <button
                   type="button"
                   className="secondary-button"
-                  onClick={() => {
-                    onSearchChange("");
-                    onDepartmentChange("");
-                  }}
+                  onClick={clearFilters}
                 >
                   <X size={18} /> Clear filters
                 </button>
@@ -337,7 +369,7 @@ export function CatalogSection({
 
           <div className="pagination">
             <button className="pagination__arrow" disabled={page <= 1} onClick={() => onPageChange(Math.max(1, page - 1))} aria-label="Previous page">
-              Previous
+              Prev
             </button>
             <div className="pagination__pages" aria-label="Catalog pages">
               {pageWindow.map((item, index) =>
@@ -370,21 +402,17 @@ export function CatalogSection({
 }
 
 function paginationWindow(current: number, total: number): Array<number | "ellipsis"> {
-  if (total <= 7) return Array.from({ length: total }, (_, index) => index + 1);
+  if (total <= 11) return Array.from({ length: total }, (_, index) => index + 1);
 
   const pages = new Set<number>([1, total]);
-  for (let page = current - 1; page <= current + 1; page += 1) {
+  for (let page = current - 3; page <= current + 3; page += 1) {
     if (page > 1 && page < total) pages.add(page);
   }
-  if (current <= 3) {
-    pages.add(2);
-    pages.add(3);
-    pages.add(4);
+  if (current <= 5) {
+    for (let page = 2; page <= 8; page += 1) pages.add(page);
   }
-  if (current >= total - 2) {
-    pages.add(total - 3);
-    pages.add(total - 2);
-    pages.add(total - 1);
+  if (current >= total - 4) {
+    for (let page = total - 7; page < total; page += 1) pages.add(page);
   }
 
   const sorted = [...pages].filter((page) => page >= 1 && page <= total).sort((a, b) => a - b);

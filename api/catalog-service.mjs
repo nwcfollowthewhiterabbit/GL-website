@@ -31,7 +31,12 @@ function parseCategoryList(value) {
     .filter(Boolean);
 }
 
-function itemWhere({ q, category, categoryNames, categories, featured, includeHidden, includeWeakGroups, categoryRule, hasItemFields }) {
+function numericOption(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function itemWhere({ q, category, categoryNames, categories, featured, includeHidden, includeWeakGroups, categoryRule, hasItemFields, minPrice, maxPrice }) {
   const clauses = [
     "IFNULL(i.disabled, 0) = 0",
     "IFNULL(i.is_sales_item, 1) = 1",
@@ -64,6 +69,16 @@ function itemWhere({ q, category, categoryNames, categories, featured, includeHi
   if (q) {
     params.q = `%${q}%`;
     clauses.push("(i.name LIKE :q OR i.item_name LIKE :q OR i.item_group LIKE :q OR i.description LIKE :q)");
+  }
+
+  if (minPrice !== null) {
+    params.minPrice = minPrice;
+    clauses.push("IFNULL(price.price_list_rate, 0) >= :minPrice");
+  }
+
+  if (maxPrice !== null) {
+    params.maxPrice = maxPrice;
+    clauses.push("IFNULL(price.price_list_rate, 0) <= :maxPrice");
   }
 
   if (category) {
@@ -153,6 +168,9 @@ export async function getCatalogProducts(options = {}) {
   const categories = parseCategoryList(options.categories).filter((item) => item !== category);
   const includeHidden = String(options.includeHidden || "") === "1";
   const includeWeakGroups = String(options.includeWeakGroups || "") === "1";
+  const sort = String(options.sort || "featured").trim();
+  const minPrice = numericOption(options.minPrice);
+  const maxPrice = numericOption(options.maxPrice);
   const categoryRule = await getCategoryRule(category);
   if (category && !includeHidden && !categoryRule.showOnStorefront) {
     return {
@@ -176,7 +194,7 @@ export async function getCatalogProducts(options = {}) {
 
   const base = itemBaseSql(priceList);
   const categoryNames = category ? await getItemGroupBranchNames(category) : [];
-  const where = itemWhere({ q, category, categoryNames, categories, featured, includeHidden, includeWeakGroups, categoryRule, hasItemFields });
+  const where = itemWhere({ q, category, categoryNames, categories, featured, includeHidden, includeWeakGroups, categoryRule, hasItemFields, minPrice, maxPrice });
   const params = {
     ...baseParams(priceList),
     ...where.params,
@@ -210,7 +228,7 @@ export async function getCatalogProducts(options = {}) {
         END AS availability
       ${base}
       WHERE ${where.sql}
-      ORDER BY website_sort_order, i.modified DESC
+      ORDER BY ${catalogOrderBy(sort)}
       LIMIT :limit OFFSET :offset
     `,
     { ...params, defaultCurrency: process.env.DEFAULT_CURRENCY || "FJD" }
@@ -249,6 +267,21 @@ export async function getCatalogProducts(options = {}) {
       };
     })
   };
+}
+
+function catalogOrderBy(sort) {
+  switch (sort) {
+    case "name_asc":
+      return "i.item_name ASC, i.name ASC";
+    case "name_desc":
+      return "i.item_name DESC, i.name DESC";
+    case "price_asc":
+      return "IFNULL(price.price_list_rate, 0) ASC, i.item_name ASC";
+    case "price_desc":
+      return "IFNULL(price.price_list_rate, 0) DESC, i.item_name ASC";
+    default:
+      return "website_sort_order, i.modified DESC";
+  }
 }
 
 export async function getFeaturedCatalogProducts(limit = 8) {

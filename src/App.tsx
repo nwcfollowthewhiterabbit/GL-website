@@ -138,6 +138,9 @@ function App() {
   const [websiteManufacturers, setWebsiteManufacturers] = useState<WebsiteManufacturer[]>([]);
   const [customerCornerSettings, setCustomerCornerSettings] = useState<CustomerCornerSettings>(fallbackCustomerCornerSettings);
   const [searchTerm, setSearchTerm] = useState("");
+  const [catalogSort, setCatalogSort] = useState("featured");
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
   const [activeCategory, setActiveCategory] = useState("");
   const [activeWebsiteCategory, setActiveWebsiteCategory] = useState("");
   const [page, setPage] = useState(1);
@@ -204,6 +207,9 @@ function App() {
       pageSize: PAGE_SIZE,
       q: searchTerm,
       category: activeCategory,
+      sort: catalogSort,
+      minPrice,
+      maxPrice,
       categories:
         !activeCategory && activeWebsiteDepartment ? matchedItemGroups(activeWebsiteDepartment, itemGroups) : undefined
     })
@@ -222,7 +228,7 @@ function App() {
     return () => {
       ignore = true;
     };
-  }, [activeCategory, activeWebsiteCategory, itemGroups, page, searchTerm, websiteDepartments]);
+  }, [activeCategory, activeWebsiteCategory, catalogSort, itemGroups, maxPrice, minPrice, page, searchTerm, websiteDepartments]);
 
   useEffect(() => {
     fetchCatalogFacets()
@@ -504,6 +510,18 @@ function App() {
     if (route.view !== "catalog") {
       navigate(activeWebsiteCategory ? `/catalog/${activeWebsiteCategory}` : catalogPath(activeCategory));
     }
+  }
+
+  function setSort(value: string) {
+    setCatalogSort(value);
+    setPage(1);
+  }
+
+  function setPriceFilter(kind: "min" | "max", value: string) {
+    const normalized = value.replace(/[^\d.]/g, "");
+    if (kind === "min") setMinPrice(normalized);
+    else setMaxPrice(normalized);
+    setPage(1);
   }
 
   function openProductPreview(product: CatalogProduct) {
@@ -855,6 +873,9 @@ function App() {
           activeCategory={activeCategory}
           activeWebsiteCategory={activeWebsiteCategory}
           searchTerm={searchTerm}
+          sort={catalogSort}
+          minPrice={minPrice}
+          maxPrice={maxPrice}
           page={page}
           pageSize={PAGE_SIZE}
           productCount={catalogTotal || products.length}
@@ -868,6 +889,8 @@ function App() {
           onDepartmentChange={setDepartment}
           onCategoryChange={setCategory}
           onSearchChange={setSearch}
+          onSortChange={setSort}
+          onPriceFilterChange={setPriceFilter}
           onSelectSuggestion={selectCatalogSuggestion}
           onPageChange={setPage}
           onSelectProduct={openProductPreview}

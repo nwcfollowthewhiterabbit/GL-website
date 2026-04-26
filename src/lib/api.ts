@@ -32,6 +32,9 @@ export function fetchCatalogProducts(params: {
   q?: string;
   category?: string;
   categories?: string[];
+  sort?: string;
+  minPrice?: string;
+  maxPrice?: string;
 }) {
   const search = new URLSearchParams({
     page: String(params.page),
@@ -40,6 +43,9 @@ export function fetchCatalogProducts(params: {
   if (params.q) search.set("q", params.q);
   if (params.category) search.set("category", params.category);
   if (params.categories?.length) search.set("categories", params.categories.join(","));
+  if (params.sort) search.set("sort", params.sort);
+  if (params.minPrice) search.set("minPrice", params.minPrice);
+  if (params.maxPrice) search.set("maxPrice", params.maxPrice);
   return getJson<CatalogProductsResponse>(`/api/catalog/products?${search.toString()}`);
 }
 

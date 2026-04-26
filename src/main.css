@@ -1028,7 +1028,7 @@ textarea:focus-visible {
 
 .catalog-tools {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.72fr) auto;
   align-items: center;
   gap: 12px;
   margin-bottom: 12px;
@@ -1038,6 +1038,43 @@ textarea:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+}
+
+.catalog-sort-panel {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) minmax(86px, 0.55fr) minmax(86px, 0.55fr);
+  gap: 8px;
+}
+
+.catalog-sort-panel label {
+  display: grid;
+  gap: 4px;
+}
+
+.catalog-sort-panel span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.catalog-sort-panel select,
+.catalog-sort-panel input {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.84);
+  color: var(--ink);
+  font-weight: 800;
+  outline: 0;
+}
+
+.catalog-sort-panel select:focus,
+.catalog-sort-panel input:focus {
+  border-color: rgba(46, 111, 74, 0.42);
+  box-shadow: 0 0 0 3px rgba(46, 111, 74, 0.12);
 }
 
 .catalog-filter-button {
@@ -1960,14 +1997,18 @@ textarea:focus-visible {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 42px;
-  min-width: 42px;
-  padding: 0 12px;
+  min-height: 38px;
+  min-width: 38px;
+  padding: 0 9px;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.72);
   border: 1px solid var(--line);
   color: var(--ink);
   font-weight: 900;
+}
+
+.pagination__arrow {
+  min-width: 74px;
 }
 
 .pagination__page,
