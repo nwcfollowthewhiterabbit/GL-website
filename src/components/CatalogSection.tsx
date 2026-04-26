@@ -91,6 +91,7 @@ export function CatalogSection({
     </div>
   ) : null;
   const shouldShowSuggestions = suggestionsOpen && searchTerm.trim().length >= 1;
+  const pageWindow = paginationWindow(page, totalPages);
 
   useEffect(() => {
     if (!searchTerm.trim()) setSuggestionsOpen(false);
@@ -335,13 +336,30 @@ export function CatalogSection({
           )}
 
           <div className="pagination">
-            <button className="secondary-button" disabled={page <= 1} onClick={() => onPageChange(Math.max(1, page - 1))}>
+            <button className="pagination__arrow" disabled={page <= 1} onClick={() => onPageChange(Math.max(1, page - 1))} aria-label="Previous page">
               Previous
             </button>
-            <span>
+            <div className="pagination__pages" aria-label="Catalog pages">
+              {pageWindow.map((item, index) =>
+                item === "ellipsis" ? (
+                  <span className="pagination__ellipsis" key={`ellipsis-${index}`}>...</span>
+                ) : (
+                  <button
+                    type="button"
+                    className={`pagination__page ${item === page ? "is-active" : ""}`}
+                    key={item}
+                    onClick={() => onPageChange(item)}
+                    aria-current={item === page ? "page" : undefined}
+                  >
+                    {item.toLocaleString()}
+                  </button>
+                )
+              )}
+            </div>
+            <span className="pagination__summary">
               Page {page} of {totalPages.toLocaleString()}
             </span>
-            <button className="secondary-button" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>
+            <button className="pagination__arrow" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)} aria-label="Next page">
               Next
             </button>
           </div>
@@ -349,4 +367,30 @@ export function CatalogSection({
       </div>
     </section>
   );
+}
+
+function paginationWindow(current: number, total: number): Array<number | "ellipsis"> {
+  if (total <= 7) return Array.from({ length: total }, (_, index) => index + 1);
+
+  const pages = new Set<number>([1, total]);
+  for (let page = current - 1; page <= current + 1; page += 1) {
+    if (page > 1 && page < total) pages.add(page);
+  }
+  if (current <= 3) {
+    pages.add(2);
+    pages.add(3);
+    pages.add(4);
+  }
+  if (current >= total - 2) {
+    pages.add(total - 3);
+    pages.add(total - 2);
+    pages.add(total - 1);
+  }
+
+  const sorted = [...pages].filter((page) => page >= 1 && page <= total).sort((a, b) => a - b);
+  return sorted.flatMap((page, index) => {
+    const previous = sorted[index - 1];
+    if (index > 0 && previous !== undefined && page - previous > 1) return ["ellipsis", page];
+    return [page];
+  });
 }

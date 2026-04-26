@@ -100,7 +100,7 @@ async function captureViewport(send, name, viewport) {
 }
 
 async function main() {
-  await rm(profileDir, { force: true, recursive: true });
+  await rm(profileDir, { force: true, recursive: true, maxRetries: 3, retryDelay: 120 });
   await mkdir(outputDir, { recursive: true });
 
   const chrome = spawn(
@@ -154,7 +154,7 @@ async function main() {
     console.log(`- Screenshots written to ${outputDir}/`);
   } finally {
     chrome.kill("SIGTERM");
-    await rm(profileDir, { force: true, recursive: true });
+    await rm(profileDir, { force: true, recursive: true, maxRetries: 3, retryDelay: 120 }).catch(() => undefined);
   }
 }
 
