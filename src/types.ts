@@ -32,6 +32,14 @@ export type ItemGroup = {
   categoryNote?: string;
 };
 
+export type WebsiteCategory = {
+  id: string;
+  label: string;
+  description: string;
+  itemGroups: string[];
+  featured?: boolean;
+};
+
 export type CatalogDiagnostics = {
   priceList?: string;
   storefrontRules?: StorefrontRules;

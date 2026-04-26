@@ -12,6 +12,7 @@ import { ServiceContactSection } from "./components/ServiceContactSection";
 import { SiteFooter } from "./components/SiteFooter";
 import { SiteHeader } from "./components/SiteHeader";
 import { featuredProducts as fallbackProducts } from "./data/catalog";
+import { findWebsiteCategory, matchedItemGroups, websiteCategories, websiteCategoryCount } from "./data/websiteCategories";
 import {
   createQuoteRequest,
   fetchAccountQuotes,
@@ -62,6 +63,7 @@ function App() {
   const [itemGroups, setItemGroups] = useState<ItemGroup[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState("");
+  const [activeWebsiteCategory, setActiveWebsiteCategory] = useState("");
   const [page, setPage] = useState(1);
   const [diagnostics, setDiagnostics] = useState<CatalogDiagnostics | null>(null);
   const [route, setRoute] = useState<StorefrontRoute>(() => parseStorefrontRoute());
@@ -91,7 +93,11 @@ function App() {
       page,
       pageSize: PAGE_SIZE,
       q: searchTerm,
-      category: activeCategory
+      category: activeCategory,
+      categories:
+        !activeCategory && activeWebsiteCategory
+          ? matchedItemGroups(findWebsiteCategory(activeWebsiteCategory)!, itemGroups)
+          : undefined
     })
       .then((data) => {
         if (ignore) return;
@@ -108,7 +114,7 @@ function App() {
     return () => {
       ignore = true;
     };
-  }, [activeCategory, page, searchTerm]);
+  }, [activeCategory, activeWebsiteCategory, itemGroups, page, searchTerm]);
 
   useEffect(() => {
     fetchCatalogFacets()
@@ -126,10 +132,19 @@ function App() {
 
   useEffect(() => {
     if (route.view !== "catalog" || !route.categorySlug || !itemGroups.length) return;
+    const department = websiteCategories.find((category) => category.id === route.categorySlug);
+    if (department) {
+      setActiveWebsiteCategory(department.id);
+      setActiveCategory("");
+      setPage(1);
+      return;
+    }
+
     const category = findCategoryBySlug(
       itemGroups.map((group) => group.name),
       route.categorySlug
     );
+    setActiveWebsiteCategory("");
     setActiveCategory(category);
     setPage(1);
   }, [itemGroups, route]);
@@ -217,20 +232,23 @@ function App() {
   }, 0);
 
   const visibleCategories = useMemo(() => {
-    const preferred = itemGroups
-      .filter((group) => !["All Item Groups", "Expences", "Products"].includes(group.name))
-      .sort((a, b) => b.itemCount - a.itemCount)
-      .slice(0, 8)
-      .map((group) => group.name);
-    return preferred.length ? preferred : ["Kitchen", "Housekeeping & Cleaning", "Furniture and fitouts", "Buffetware"];
+    return websiteCategories.map((category) => ({
+      ...category,
+      itemCount: websiteCategoryCount(category, itemGroups),
+      availableItemGroups: matchedItemGroups(category, itemGroups)
+    }));
   }, [itemGroups]);
 
   const topFacetGroups = useMemo(() => {
-    return itemGroups
-      .filter((group) => !group.isGroup && group.itemCount > 0)
-      .sort((a, b) => b.itemCount - a.itemCount)
-      .slice(0, 12);
-  }, [itemGroups]);
+    const activeDepartment = findWebsiteCategory(activeWebsiteCategory);
+    if (activeDepartment) {
+      const allowed = new Set(matchedItemGroups(activeDepartment, itemGroups));
+      return itemGroups
+        .filter((group) => allowed.has(group.name) && group.itemCount > 0)
+        .sort((a, b) => b.itemCount - a.itemCount);
+    }
+    return itemGroups.filter((group) => !group.isGroup && group.itemCount > 0).sort((a, b) => b.itemCount - a.itemCount);
+  }, [activeWebsiteCategory, itemGroups]);
 
   const totalPages = Math.max(1, Math.ceil((catalogTotal || products.length) / PAGE_SIZE));
 
@@ -240,16 +258,24 @@ function App() {
   }
 
   function setCategory(category: string) {
+    setActiveWebsiteCategory("");
     setActiveCategory(category);
     setPage(1);
     navigate(catalogPath(category), { view: "catalog", categorySlug: category ? undefined : undefined });
+  }
+
+  function setDepartment(categoryId: string) {
+    setActiveWebsiteCategory(categoryId);
+    setActiveCategory("");
+    setPage(1);
+    navigate(categoryId ? `/catalog/${categoryId}` : "/catalog", { view: "catalog", categorySlug: categoryId || undefined });
   }
 
   function setSearch(value: string) {
     setSearchTerm(value);
     setPage(1);
     if (route.view !== "catalog") {
-      navigate(catalogPath(activeCategory));
+      navigate(activeWebsiteCategory ? `/catalog/${activeWebsiteCategory}` : catalogPath(activeCategory));
     }
   }
 
@@ -259,7 +285,10 @@ function App() {
   }
 
   function backToCatalog() {
-    navigate(catalogPath(activeCategory), { view: "catalog", categorySlug: activeCategory ? undefined : undefined });
+    navigate(activeWebsiteCategory ? `/catalog/${activeWebsiteCategory}` : catalogPath(activeCategory), {
+      view: "catalog",
+      categorySlug: activeWebsiteCategory || undefined
+    });
   }
 
   function addToQuote(product: CatalogProduct) {
@@ -449,6 +478,7 @@ function App() {
           visibleCategories={visibleCategories}
           topFacetGroups={topFacetGroups}
           activeCategory={activeCategory}
+          activeWebsiteCategory={activeWebsiteCategory}
           searchTerm={searchTerm}
           page={page}
           totalPages={totalPages}
@@ -456,6 +486,7 @@ function App() {
           diagnostics={diagnostics}
           catalogFacets={catalogFacets}
           onToggleFilters={() => setFiltersOpen((value) => !value)}
+          onDepartmentChange={setDepartment}
           onCategoryChange={setCategory}
           onSearchChange={setSearch}
           onPageChange={setPage}

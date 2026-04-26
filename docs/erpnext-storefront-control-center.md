@@ -19,6 +19,33 @@ Fields added by `erpnext/fixtures/custom_fields.json`:
 | `website_show_products_without_price` | Allow products without a selling price in this category. |
 | `website_category_note` | Optional category note for storefront display. |
 
+## Website Navigation Mapping
+
+ERPNext `Item Group` is not the same thing as a customer-facing website category.
+
+The old OpenCart site had hundreds of storefront categories, while ERPNext has a smaller operational `Item Group` tree with names such as `Gas Equipment AU/NZ`, `Crockery SG`, and `Karcher AU`. The storefront should therefore use a separate navigation layer:
+
+| Website department | Mapped ERPNext item groups |
+| --- | --- |
+| Kitchen & Equipment | `Kitchen`, `Gas Equipment AU/NZ`, `Countertop AU/NZ`, `Refrigeration AU/NZ`, etc. |
+| Front of House | `Crockery SG`, `Crockery AU/NZ`, `Glassware AU/NZ`, `Cutlery AU/NZ`, `Table Accessories`, etc. |
+| Buffet & Table Service | `Buffetware`, `Buffet Display Ware`, `Buffet Serving Ware`, etc. |
+| Housekeeping & Cleaning | `House Keeping Items AU/NZ`, `Karcher AU`, `Bedding`, `Chemicals AU/NZ`, etc. |
+| Furniture & Fitouts | `Joinery`, `Non-Wooden Furniture`, `Mattresses`, `Trex Decking`, etc. |
+
+Current implementation note: this mapping is temporarily stored in `src/data/websiteCategories.ts` so the new UX can be tested immediately. The production version should move this into ERPNext as a controlled DocType or child table.
+
+Recommended ERPNext control fields / DocTypes:
+
+| Control | Purpose |
+| --- | --- |
+| `Website Department` DocType | Customer-facing catalog department such as `Kitchen & Equipment`. |
+| Department label/description/order | Controls menu text, sidebar order, and landing copy. |
+| Department enabled flag | Hides an entire department without deleting mappings. |
+| Department child table: `ERP Item Group` | Maps one website department to many ERP item groups. |
+| Show in main menu / show in catalog sidebar | Controls where the department appears. |
+| Featured flag | Controls whether the department appears in `Shop by department`. |
+
 ## Product Overrides
 
 ERPNext DocType: `Item`

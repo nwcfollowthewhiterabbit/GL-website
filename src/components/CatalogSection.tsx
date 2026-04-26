@@ -1,14 +1,20 @@
-import { Clock3, Search, ShoppingCart, SlidersHorizontal } from "lucide-react";
+import { ChevronRight, Clock3, Layers3, Search, ShoppingCart } from "lucide-react";
 import { availabilityLabel, plainTextDescription, priceLabel, productImage } from "../lib/catalog";
-import type { CatalogDiagnostics, CatalogFacets, CatalogProduct, ItemGroup } from "../types";
+import type { CatalogDiagnostics, CatalogFacets, CatalogProduct, ItemGroup, WebsiteCategory } from "../types";
+
+type WebsiteCategoryView = WebsiteCategory & {
+  itemCount: number;
+  availableItemGroups: string[];
+};
 
 type CatalogSectionProps = {
   catalogState: "loading" | "ready" | "fallback";
   products: CatalogProduct[];
   itemGroups: ItemGroup[];
-  visibleCategories: string[];
+  visibleCategories: WebsiteCategoryView[];
   topFacetGroups: ItemGroup[];
   activeCategory: string;
+  activeWebsiteCategory: string;
   searchTerm: string;
   page: number;
   totalPages: number;
@@ -16,6 +22,7 @@ type CatalogSectionProps = {
   diagnostics: CatalogDiagnostics | null;
   catalogFacets: CatalogFacets | null;
   onToggleFilters: () => void;
+  onDepartmentChange: (categoryId: string) => void;
   onCategoryChange: (category: string) => void;
   onSearchChange: (value: string) => void;
   onPageChange: (page: number) => void;
@@ -30,6 +37,7 @@ export function CatalogSection({
   visibleCategories,
   topFacetGroups,
   activeCategory,
+  activeWebsiteCategory,
   searchTerm,
   page,
   totalPages,
@@ -37,12 +45,24 @@ export function CatalogSection({
   diagnostics,
   catalogFacets,
   onToggleFilters,
+  onDepartmentChange,
   onCategoryChange,
   onSearchChange,
   onPageChange,
   onSelectProduct,
   onAddToQuote
 }: CatalogSectionProps) {
+  const activeDepartment = visibleCategories.find((category) => category.id === activeWebsiteCategory);
+  const activeLabel = activeCategory || activeDepartment?.label || "All products";
+  const activeItemGroupNames = new Set(activeDepartment?.availableItemGroups || []);
+  const itemGroupByName = new Map(itemGroups.map((group) => [group.name, group]));
+  const sidebarGroups = activeDepartment
+    ? activeDepartment.availableItemGroups
+        .map((name) => itemGroupByName.get(name))
+        .filter((group): group is ItemGroup => Boolean(group))
+        .sort((a, b) => b.itemCount - a.itemCount)
+    : topFacetGroups.slice(0, 18);
+
   return (
     <section className="shell section" id="catalog">
       <div className="section-heading">
@@ -55,120 +75,156 @@ export function CatalogSection({
           </p>
         </div>
         <button className="secondary-button" onClick={onToggleFilters}>
-          <SlidersHorizontal size={18} /> Advanced filters
+          <Layers3 size={18} /> Categories
         </button>
       </div>
 
-      <div className="category-row" aria-label="Catalog categories">
-        <button className={`category-button ${!activeCategory ? "is-active" : ""}`} onClick={() => onCategoryChange("")}>
-          All products
-        </button>
+      <div className="department-grid" aria-label="Shop by department">
         {visibleCategories.map((category) => (
           <button
-            className={`category-button ${activeCategory === category ? "is-active" : ""}`}
-            key={category}
-            onClick={() => onCategoryChange(category)}
+            className={`department-card ${activeWebsiteCategory === category.id ? "is-active" : ""}`}
+            key={category.id}
+            onClick={() => onDepartmentChange(category.id)}
           >
-            {category}
+            <span>{category.label}</span>
+            <strong>{category.itemCount.toLocaleString()} items</strong>
+            <small>{category.description}</small>
           </button>
         ))}
       </div>
 
-      <div className="catalog-tools">
-        <label className="search">
-          <Search size={18} />
-          <input
-            placeholder="Search product name, SKU, dimensions"
-            value={searchTerm}
-            onChange={(event) => onSearchChange(event.target.value)}
-          />
-        </label>
-        <label className="field">
-          <select value={activeCategory} onChange={(event) => onCategoryChange(event.target.value)}>
-            <option value="">All item groups</option>
-            {itemGroups.slice(0, 80).map((group) => (
-              <option key={group.name} value={group.name}>
-                {group.name}
-              </option>
+      <div className="catalog-layout">
+        <aside className={`catalog-sidebar ${filtersOpen ? "is-open" : ""}`} aria-label="Catalog navigation">
+          <div className="catalog-sidebar__head">
+            <span>Departments</span>
+            <strong>{activeLabel}</strong>
+          </div>
+          <button className={`catalog-nav-button ${!activeCategory && !activeWebsiteCategory ? "is-active" : ""}`} onClick={() => onDepartmentChange("")}>
+            <span>All products</span>
+            <ChevronRight size={16} />
+          </button>
+          {visibleCategories.map((category) => (
+            <button
+              className={`catalog-nav-button ${activeWebsiteCategory === category.id ? "is-active" : ""}`}
+              key={category.id}
+              onClick={() => onDepartmentChange(category.id)}
+            >
+              <span>{category.label}</span>
+              <strong>{category.itemCount.toLocaleString()}</strong>
+            </button>
+          ))}
+
+          <div className="catalog-sidebar__groups">
+            <span>{activeDepartment ? "Subcategories" : "Popular ERP groups"}</span>
+            {sidebarGroups.map((group) => (
+              <button
+                className={`catalog-subcategory ${activeCategory === group.name ? "is-active" : ""}`}
+                key={group.name}
+                onClick={() => onCategoryChange(group.name)}
+              >
+                <span>{group.name}</span>
+                <strong>{group.itemCount.toLocaleString()}</strong>
+              </button>
             ))}
-          </select>
-        </label>
-      </div>
-
-      {filtersOpen ? (
-        <div className="filter-panel">
-          <div className="filter-panel__section">
-            <span className="filter-panel__label">Popular ERP groups</span>
-            <div className="facet-chip-row">
-              {topFacetGroups.map((group) => (
-                <button
-                  className={`facet-chip ${activeCategory === group.name ? "is-active" : ""}`}
-                  key={group.name}
-                  onClick={() => onCategoryChange(group.name)}
-                >
-                  <span>{group.name}</span>
-                  <strong>{group.itemCount.toLocaleString()}</strong>
-                </button>
-              ))}
-            </div>
           </div>
-          <div className="filter-panel__section filter-panel__section--rules">
-            <div>
-              <span className="filter-panel__label">Storefront rules</span>
-              <p>
-                Price list: <strong>{diagnostics?.priceList || "Standard Selling"}</strong>. Currency:{" "}
-                <strong>{catalogFacets?.rules.defaultCurrency || "FJD"}</strong>.
-              </p>
-            </div>
-            <div>
-              <span className="filter-panel__label">Excluded warehouses</span>
-              <p>{catalogFacets?.rules.excludedWarehouses.join(", ") || "Showroom warehouses excluded"}</p>
-            </div>
-          </div>
-        </div>
-      ) : null}
+        </aside>
 
-      <div className="product-grid">
-        {products.map((product) => (
-          <article className="product-card" key={product.name}>
-            <div className="product-card__image">
-              <img src={productImage(product)} alt="" />
-              <span className="tag">{product.category}</span>
+        <div className="catalog-main">
+          <div className="catalog-current">
+            <div>
+              <span>{activeDepartment ? "Department" : activeCategory ? "ERP item group" : "Catalog"}</span>
+              <strong>{activeLabel}</strong>
             </div>
-            <div className="product-card__body">
-              <h3>{product.name}</h3>
-              <div className="meta-row">
-                <span>{availabilityLabel(product)}</span>
-                <span>{product.sku}</span>
-                <Clock3 size={16} />
+            {activeDepartment ? <p>{activeDepartment.description}</p> : null}
+          </div>
+
+          <div className="catalog-tools">
+            <label className="search">
+              <Search size={18} />
+              <input
+                placeholder="Search product name, SKU, dimensions"
+                value={searchTerm}
+                onChange={(event) => onSearchChange(event.target.value)}
+              />
+            </label>
+          </div>
+
+          {filtersOpen ? (
+            <div className="filter-panel">
+              <div className="filter-panel__section">
+                <span className="filter-panel__label">Available ERP item groups</span>
+                <div className="facet-chip-row">
+                  {(activeDepartment ? sidebarGroups : topFacetGroups.slice(0, 24)).map((group) => (
+                    <button
+                      className={`facet-chip ${activeCategory === group.name ? "is-active" : ""}`}
+                      key={group.name}
+                      onClick={() => onCategoryChange(group.name)}
+                    >
+                      <span>{group.name}</span>
+                      <strong>{group.itemCount.toLocaleString()}</strong>
+                    </button>
+                  ))}
+                </div>
               </div>
-              <p>{plainTextDescription(product, "ERP-ready product detail with variants, UOM, tax handling, and buying notes.")}</p>
-              <div className="meta-row">
-                <span className="price">{priceLabel(product)}</span>
-                <div className="product-card__actions">
-                  <button className="secondary-button" onClick={() => onSelectProduct(product)}>
-                    Details
-                  </button>
-                  <button className="icon-button" aria-label="Add to quote" onClick={() => onAddToQuote(product)}>
-                    <ShoppingCart />
-                  </button>
+              <div className="filter-panel__section filter-panel__section--rules">
+                <div>
+                  <span className="filter-panel__label">Storefront rules</span>
+                  <p>
+                    Price list: <strong>{diagnostics?.priceList || "Standard Selling"}</strong>. Currency:{" "}
+                    <strong>{catalogFacets?.rules.defaultCurrency || "FJD"}</strong>.
+                  </p>
+                </div>
+                <div>
+                  <span className="filter-panel__label">Excluded warehouses</span>
+                  <p>{catalogFacets?.rules.excludedWarehouses.join(", ") || "Showroom warehouses excluded"}</p>
                 </div>
               </div>
             </div>
-          </article>
-        ))}
-      </div>
+          ) : null}
 
-      <div className="pagination">
-        <button className="secondary-button" disabled={page <= 1} onClick={() => onPageChange(Math.max(1, page - 1))}>
-          Previous
-        </button>
-        <span>
-          Page {page} of {totalPages.toLocaleString()}
-        </span>
-        <button className="secondary-button" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>
-          Next
-        </button>
+          <div className="product-grid">
+            {products.map((product) => (
+              <article className="product-card" key={product.name}>
+                <div className="product-card__image">
+                  <img src={productImage(product)} alt="" />
+                  <span className="tag">{activeItemGroupNames.has(product.category) ? activeDepartment?.label : product.category}</span>
+                </div>
+                <div className="product-card__body">
+                  <h3>{product.name}</h3>
+                  <div className="meta-row">
+                    <span>{availabilityLabel(product)}</span>
+                    <span>{product.sku}</span>
+                    <Clock3 size={16} />
+                  </div>
+                  <p>{plainTextDescription(product, "ERP-ready product detail with variants, UOM, tax handling, and buying notes.")}</p>
+                  <div className="meta-row">
+                    <span className="price">{priceLabel(product)}</span>
+                    <div className="product-card__actions">
+                      <button className="secondary-button" onClick={() => onSelectProduct(product)}>
+                        Details
+                      </button>
+                      <button className="icon-button" aria-label="Add to quote" onClick={() => onAddToQuote(product)}>
+                        <ShoppingCart />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          <div className="pagination">
+            <button className="secondary-button" disabled={page <= 1} onClick={() => onPageChange(Math.max(1, page - 1))}>
+              Previous
+            </button>
+            <span>
+              Page {page} of {totalPages.toLocaleString()}
+            </span>
+            <button className="secondary-button" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>
+              Next
+            </button>
+          </div>
+        </div>
       </div>
     </section>
   );

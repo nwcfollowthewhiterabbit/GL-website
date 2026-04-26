@@ -20,6 +20,7 @@ export function fetchCatalogProducts(params: {
   pageSize: number;
   q?: string;
   category?: string;
+  categories?: string[];
 }) {
   const search = new URLSearchParams({
     page: String(params.page),
@@ -27,6 +28,7 @@ export function fetchCatalogProducts(params: {
   });
   if (params.q) search.set("q", params.q);
   if (params.category) search.set("category", params.category);
+  if (params.categories?.length) search.set("categories", params.categories.join(","));
   return getJson<CatalogProductsResponse>(`/api/catalog/products?${search.toString()}`);
 }
 

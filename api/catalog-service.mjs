@@ -21,7 +21,17 @@ function normalizePage(value, fallback, max) {
   return Math.min(parsed, max);
 }
 
-function itemWhere({ q, category, includeHidden, includeWeakGroups, categoryRule, hasItemFields }) {
+function parseCategoryList(value) {
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => parseCategoryList(item));
+  }
+  return String(value || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function itemWhere({ q, category, categories, includeHidden, includeWeakGroups, categoryRule, hasItemFields }) {
   const clauses = [
     "IFNULL(i.disabled, 0) = 0",
     "IFNULL(i.is_sales_item, 1) = 1",
@@ -55,6 +65,12 @@ function itemWhere({ q, category, includeHidden, includeWeakGroups, categoryRule
   if (category) {
     params.category = category;
     clauses.push("i.item_group = :category");
+  } else if (categories.length) {
+    const categoryPlaceholders = categories.map((_, index) => `:category${index}`).join(", ");
+    categories.forEach((itemGroup, index) => {
+      params[`category${index}`] = itemGroup;
+    });
+    clauses.push(`i.item_group IN (${categoryPlaceholders})`);
   }
 
   return { sql: clauses.join(" AND "), params };
@@ -105,6 +121,7 @@ export async function getCatalogProducts(options = {}) {
   const offset = (page - 1) * pageSize;
   const q = String(options.q || "").trim();
   const category = String(options.category || "").trim();
+  const categories = parseCategoryList(options.categories).filter((item) => item !== category);
   const includeHidden = String(options.includeHidden || "") === "1";
   const includeWeakGroups = String(options.includeWeakGroups || "") === "1";
   const categoryRule = await getCategoryRule(category);
@@ -129,7 +146,7 @@ export async function getCatalogProducts(options = {}) {
   ]);
 
   const base = itemBaseSql(priceList);
-  const where = itemWhere({ q, category, includeHidden, includeWeakGroups, categoryRule, hasItemFields });
+  const where = itemWhere({ q, category, categories, includeHidden, includeWeakGroups, categoryRule, hasItemFields });
   const params = {
     ...baseParams(priceList),
     ...where.params,
