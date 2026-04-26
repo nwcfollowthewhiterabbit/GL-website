@@ -14,7 +14,9 @@
     "erpnext:validate": "node scripts/erpnext-validate.mjs",
     "erpnext:validate:docker": "docker compose exec api npm run erpnext:validate",
     "erpnext:apply-fixtures": "node scripts/erpnext-apply-fixtures.mjs",
-    "erpnext:apply-fixtures:docker": "docker compose exec api npm run erpnext:apply-fixtures"
+    "erpnext:apply-fixtures:docker": "docker compose exec api npm run erpnext:apply-fixtures",
+    "erpnext:seed-departments": "node scripts/erpnext-seed-website-departments.mjs",
+    "erpnext:seed-departments:docker": "docker compose exec api npm run erpnext:seed-departments"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^5.0.0",

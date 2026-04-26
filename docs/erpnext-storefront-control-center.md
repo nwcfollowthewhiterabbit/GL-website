@@ -52,6 +52,14 @@ API behavior:
 - If the DocTypes are not installed yet, the endpoint reports `source: fallback_static_storefront_mapping` and the React app uses the local fallback mapping.
 - This keeps the current site stable while the ERP control center is introduced.
 
+Local seed command:
+
+```bash
+npm run erpnext:seed-departments:docker
+```
+
+This creates the runtime tables, registers the ERPNext DocType metadata, and loads the initial department mapping from the current storefront category map.
+
 ## Product Overrides
 
 ERPNext DocType: `Item`

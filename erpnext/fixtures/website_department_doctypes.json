@@ -2,7 +2,7 @@
   {
     "doctype": "DocType",
     "name": "Website Department",
-    "module": "Green Leaf",
+    "module": "Greenleaf",
     "custom": 1,
     "istable": 0,
     "autoname": "field:department_id",
@@ -58,7 +58,7 @@
   {
     "doctype": "DocType",
     "name": "Website Department Item Group",
-    "module": "Green Leaf",
+    "module": "Greenleaf",
     "custom": 1,
     "istable": 1,
     "fields": [
