@@ -7,6 +7,7 @@ import { CatalogSection } from "./components/CatalogSection";
 import { HeroSection } from "./components/HeroSection";
 import { LegacyContentSection } from "./components/LegacyContentSection";
 import { ProductDetailPage } from "./components/ProductDetailPage";
+import { ProductModal } from "./components/ProductModal";
 import { QuoteDrawer } from "./components/QuoteDrawer";
 import { RecommendedProductsSection } from "./components/RecommendedProductsSection";
 import { ServiceContactSection } from "./components/ServiceContactSection";
@@ -143,6 +144,7 @@ function App() {
   const [diagnostics, setDiagnostics] = useState<CatalogDiagnostics | null>(null);
   const [route, setRoute] = useState<StorefrontRoute>(() => parseStorefrontRoute());
   const [activeProduct, setActiveProduct] = useState<CatalogProduct | null>(null);
+  const [previewProduct, setPreviewProduct] = useState<CatalogProduct | null>(null);
   const [productLoading, setProductLoading] = useState(false);
   const [relatedProducts, setRelatedProducts] = useState<CatalogProduct[]>([]);
   const [recommendedProducts, setRecommendedProducts] = useState<CatalogProduct[]>([]);
@@ -504,7 +506,11 @@ function App() {
     }
   }
 
-  function openProduct(product: CatalogProduct) {
+  function openProductPreview(product: CatalogProduct) {
+    setPreviewProduct(product);
+  }
+
+  function openProductPage(product: CatalogProduct) {
     setActiveProduct(product);
     navigate(productPath(product.sku), { view: "product", sku: product.sku });
   }
@@ -837,7 +843,7 @@ function App() {
           relatedProducts={relatedProducts}
           onBackToCatalog={backToCatalog}
           onAddToQuote={addToQuote}
-          onSelectRelated={openProduct}
+          onSelectRelated={openProductPage}
         />
       ) : (
         <CatalogSection
@@ -864,17 +870,18 @@ function App() {
           onSearchChange={setSearch}
           onSelectSuggestion={selectCatalogSuggestion}
           onPageChange={setPage}
-          onSelectProduct={openProduct}
+          onSelectProduct={openProductPreview}
           onAddToQuote={addToQuote}
         />
       )}
       {route.view !== "product" ? (
-        <RecommendedProductsSection products={recommendedProducts} onSelectProduct={openProduct} />
+        <RecommendedProductsSection products={recommendedProducts} onSelectProduct={openProductPreview} />
       ) : null}
       {route.view !== "product" ? <CatalogDownloadsSection catalogs={catalogDownloads} /> : null}
       {route.view !== "product" ? <LegacyContentSection manufacturers={manufacturerLogos} /> : null}
       <ServiceContactSection onOpenQuote={() => setQuoteOpen(true)} />
       <SiteFooter departments={websiteNavigationCategories} />
+      <ProductModal product={previewProduct} onClose={() => setPreviewProduct(null)} onAddToQuote={addToQuote} />
       <QuoteDrawer
         isOpen={quoteOpen}
         quoteLines={quoteLines}
