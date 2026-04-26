@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { AccountPage } from "./components/AccountPage";
 import { CatalogSection } from "./components/CatalogSection";
@@ -46,6 +47,21 @@ function quotationName(data: QuoteRequestResponse) {
   return data.quotation?.name || "";
 }
 
+function scrollToPageTopInstantly() {
+  const root = document.documentElement;
+  const body = document.body;
+  const rootScrollBehavior = root.style.scrollBehavior;
+  const bodyScrollBehavior = body.style.scrollBehavior;
+
+  root.style.scrollBehavior = "auto";
+  body.style.scrollBehavior = "auto";
+  root.scrollTop = 0;
+  body.scrollTop = 0;
+  window.scrollTo(0, 0);
+  root.style.scrollBehavior = rootScrollBehavior;
+  body.style.scrollBehavior = bodyScrollBehavior;
+}
+
 function App() {
   const [erpProducts, setErpProducts] = useState<CatalogProduct[]>([]);
   const [catalogTotal, setCatalogTotal] = useState<number | null>(null);
@@ -79,14 +95,15 @@ function App() {
   const [accountLoading, setAccountLoading] = useState(false);
 
   useEffect(() => {
+    window.history.scrollRestoration = "manual";
     const handlePopState = () => setRoute(parseStorefrontRoute());
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (route.view !== "product") return;
-    window.scrollTo({ top: 0, behavior: "auto" });
+    scrollToPageTopInstantly();
   }, [route]);
 
   useEffect(() => {
@@ -257,6 +274,13 @@ function App() {
 
   function navigate(path: string, nextRoute = parseStorefrontRoute(path)) {
     window.history.pushState({}, "", path);
+    if (nextRoute.view === "product") {
+      flushSync(() => {
+        setRoute(nextRoute);
+      });
+      scrollToPageTopInstantly();
+      return;
+    }
     setRoute(nextRoute);
   }
 
