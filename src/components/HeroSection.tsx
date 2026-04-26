@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, ArrowRight, Building2 } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { productPlaceholder } from "../lib/catalog";
 import type { WebsiteBanner } from "../types";
 
@@ -50,14 +50,8 @@ export function HeroSection({ banners }: HeroSectionProps) {
             }}
           />
           <div className="hero-slide__overlay">
-            <span className="eyebrow">
-              <Building2 size={16} /> B2B supply for hotels, restaurants and resorts
-            </span>
             <h1>{slide.title}</h1>
             {slide.copy ? <p className="hero__copy">{slide.copy}</p> : null}
-            <span className="primary-button">
-              Open promotion <ArrowRight size={18} />
-            </span>
           </div>
         </a>
         {banners.length > 1 ? (
