@@ -91,6 +91,28 @@ app.get("/api/catalog/facets", async (_req, res) => {
   }
 });
 
+app.get("/api/catalog/product", async (req, res) => {
+  try {
+    const sku = String(req.query.sku || "").trim();
+    if (!sku) {
+      res.status(400).json({ error: "sku_required" });
+      return;
+    }
+
+    const product = await getCatalogProductBySku(sku);
+    if (!product) {
+      res.status(404).json({ error: "product_not_found" });
+      return;
+    }
+    res.json({ product });
+  } catch (error) {
+    res.status(503).json({
+      error: "erpnext_catalog_unavailable",
+      message: error instanceof Error ? error.message : "Unknown ERPNext catalog error"
+    });
+  }
+});
+
 app.get("/api/catalog/products/:sku", async (req, res) => {
   try {
     const product = await getCatalogProductBySku(req.params.sku);

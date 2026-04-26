@@ -1,6 +1,7 @@
 import type {
   CatalogDiagnostics,
   CatalogFacets,
+  CatalogProduct,
   CatalogProductsResponse,
   ItemGroup,
   QuoteRequestPayload,
@@ -27,6 +28,12 @@ export function fetchCatalogProducts(params: {
   if (params.q) search.set("q", params.q);
   if (params.category) search.set("category", params.category);
   return getJson<CatalogProductsResponse>(`/api/catalog/products?${search.toString()}`);
+}
+
+export async function fetchCatalogProduct(sku: string) {
+  const search = new URLSearchParams({ sku });
+  const data = await getJson<{ product: CatalogProduct }>(`/api/catalog/product?${search.toString()}`);
+  return data.product;
 }
 
 export async function fetchItemGroups() {

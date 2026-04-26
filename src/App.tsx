@@ -4,7 +4,7 @@ import { CatalogSection } from "./components/CatalogSection";
 import { DiagnosticsSection } from "./components/DiagnosticsSection";
 import { HeroSection } from "./components/HeroSection";
 import { IntegrationSection } from "./components/IntegrationSection";
-import { ProductModal } from "./components/ProductModal";
+import { ProductDetailPage } from "./components/ProductDetailPage";
 import { QuoteDrawer } from "./components/QuoteDrawer";
 import { ServiceContactSection } from "./components/ServiceContactSection";
 import { SiteFooter } from "./components/SiteFooter";
@@ -13,11 +13,13 @@ import { featuredProducts as fallbackProducts } from "./data/catalog";
 import {
   createQuoteRequest,
   fetchCatalogDiagnostics,
+  fetchCatalogProduct,
   fetchCatalogFacets,
   fetchCatalogProducts,
   fetchItemGroups,
   fetchRecentQuotes
 } from "./lib/api";
+import { catalogPath, findCategoryBySlug, parseStorefrontRoute, productPath, type StorefrontRoute } from "./lib/routes";
 import type { CatalogDiagnostics, CatalogFacets, CatalogProduct, ItemGroup, QuoteLine, RecentQuote } from "./types";
 import "./main.css";
 
@@ -44,11 +46,19 @@ function App() {
   const [activeCategory, setActiveCategory] = useState("");
   const [page, setPage] = useState(1);
   const [diagnostics, setDiagnostics] = useState<CatalogDiagnostics | null>(null);
-  const [selectedProduct, setSelectedProduct] = useState<CatalogProduct | null>(null);
+  const [route, setRoute] = useState<StorefrontRoute>(() => parseStorefrontRoute());
+  const [activeProduct, setActiveProduct] = useState<CatalogProduct | null>(null);
+  const [productLoading, setProductLoading] = useState(false);
   const [recentQuotes, setRecentQuotes] = useState<RecentQuote[]>([]);
   const [catalogFacets, setCatalogFacets] = useState<CatalogFacets | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [quoteSubmitting, setQuoteSubmitting] = useState(false);
+
+  useEffect(() => {
+    const handlePopState = () => setRoute(parseStorefrontRoute());
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   useEffect(() => {
     let ignore = false;
@@ -89,6 +99,47 @@ function App() {
           .catch(() => setItemGroups([]));
       });
   }, []);
+
+  useEffect(() => {
+    if (route.view !== "catalog" || !route.categorySlug || !itemGroups.length) return;
+    const category = findCategoryBySlug(
+      itemGroups.map((group) => group.name),
+      route.categorySlug
+    );
+    setActiveCategory(category);
+    setPage(1);
+  }, [itemGroups, route]);
+
+  useEffect(() => {
+    if (route.view !== "product") {
+      setProductLoading(false);
+      return;
+    }
+
+    const localProduct = [...erpProducts, ...fallbackProducts].find((product) => product.sku === route.sku);
+    if (localProduct) {
+      setActiveProduct(localProduct);
+    }
+
+    let ignore = false;
+    setProductLoading(true);
+    fetchCatalogProduct(route.sku)
+      .then((product) => {
+        if (ignore) return;
+        setActiveProduct(product);
+      })
+      .catch(() => {
+        if (ignore) return;
+        setActiveProduct(localProduct || null);
+      })
+      .finally(() => {
+        if (!ignore) setProductLoading(false);
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [erpProducts, route]);
 
   useEffect(() => {
     fetchCatalogDiagnostics()
@@ -152,14 +203,39 @@ function App() {
 
   const totalPages = Math.max(1, Math.ceil((catalogTotal || products.length) / PAGE_SIZE));
 
+  const relatedProducts = useMemo(() => {
+    if (!activeProduct) return [];
+    return products
+      .filter((product) => product.category === activeProduct.category && product.sku !== activeProduct.sku)
+      .slice(0, 4);
+  }, [activeProduct, products]);
+
+  function navigate(path: string, nextRoute = parseStorefrontRoute(path)) {
+    window.history.pushState({}, "", path);
+    setRoute(nextRoute);
+  }
+
   function setCategory(category: string) {
     setActiveCategory(category);
     setPage(1);
+    navigate(catalogPath(category), { view: "catalog", categorySlug: category ? undefined : undefined });
   }
 
   function setSearch(value: string) {
     setSearchTerm(value);
     setPage(1);
+    if (route.view !== "catalog") {
+      navigate(catalogPath(activeCategory));
+    }
+  }
+
+  function openProduct(product: CatalogProduct) {
+    setActiveProduct(product);
+    navigate(productPath(product.sku), { view: "product", sku: product.sku });
+  }
+
+  function backToCatalog() {
+    navigate(catalogPath(activeCategory), { view: "catalog", categorySlug: activeCategory ? undefined : undefined });
   }
 
   function addToQuote(product: CatalogProduct) {
@@ -289,26 +365,37 @@ function App() {
         onEmailChange={setQuoteEmail}
         onSubmitQuickQuote={submitQuickQuote}
       />
-      <CatalogSection
-        catalogState={catalogState}
-        products={products}
-        itemGroups={itemGroups}
-        visibleCategories={visibleCategories}
-        topFacetGroups={topFacetGroups}
-        activeCategory={activeCategory}
-        searchTerm={searchTerm}
-        page={page}
-        totalPages={totalPages}
-        filtersOpen={filtersOpen}
-        diagnostics={diagnostics}
-        catalogFacets={catalogFacets}
-        onToggleFilters={() => setFiltersOpen((value) => !value)}
-        onCategoryChange={setCategory}
-        onSearchChange={setSearch}
-        onPageChange={setPage}
-        onSelectProduct={setSelectedProduct}
-        onAddToQuote={addToQuote}
-      />
+      {route.view === "product" ? (
+        <ProductDetailPage
+          product={activeProduct}
+          isLoading={productLoading}
+          relatedProducts={relatedProducts}
+          onBackToCatalog={backToCatalog}
+          onAddToQuote={addToQuote}
+          onSelectRelated={openProduct}
+        />
+      ) : (
+        <CatalogSection
+          catalogState={catalogState}
+          products={products}
+          itemGroups={itemGroups}
+          visibleCategories={visibleCategories}
+          topFacetGroups={topFacetGroups}
+          activeCategory={activeCategory}
+          searchTerm={searchTerm}
+          page={page}
+          totalPages={totalPages}
+          filtersOpen={filtersOpen}
+          diagnostics={diagnostics}
+          catalogFacets={catalogFacets}
+          onToggleFilters={() => setFiltersOpen((value) => !value)}
+          onCategoryChange={setCategory}
+          onSearchChange={setSearch}
+          onPageChange={setPage}
+          onSelectProduct={openProduct}
+          onAddToQuote={addToQuote}
+        />
+      )}
       <IntegrationSection />
       <ServiceContactSection />
       <DiagnosticsSection diagnostics={diagnostics} recentQuotes={recentQuotes} />
@@ -336,7 +423,6 @@ function App() {
         onClear={() => setQuoteLines([])}
         onSubmit={submitQuote}
       />
-      <ProductModal product={selectedProduct} onClose={() => setSelectedProduct(null)} onAddToQuote={addToQuote} />
     </main>
   );
 }

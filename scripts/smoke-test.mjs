@@ -15,6 +15,17 @@ async function readJson(path) {
   }
 }
 
+async function readText(path) {
+  const response = await fetch(`${baseUrl}${path}`);
+  const text = await response.text();
+
+  if (!response.ok) {
+    throw new Error(`${path} returned ${response.status}: ${text.slice(0, 240)}`);
+  }
+
+  return text;
+}
+
 function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
@@ -34,6 +45,15 @@ async function main() {
   assert(Array.isArray(facets.itemGroups), "Catalog facets response is invalid");
   assert(facets.itemGroups.length > 0, "Catalog facets returned no item groups");
 
+  const product = await readJson(`/api/catalog/product?sku=${encodeURIComponent(catalog.products[0].sku)}`);
+  assert(product.product?.sku === catalog.products[0].sku, "Product endpoint returned the wrong SKU");
+
+  const productPage = await readText(`/products/${encodeURIComponent(catalog.products[0].sku)}`);
+  assert(productPage.includes('<div id="root"></div>'), "Product route did not return the SPA shell");
+
+  const categoryPage = await readText("/catalog/karcher-au");
+  assert(categoryPage.includes('<div id="root"></div>'), "Category route did not return the SPA shell");
+
   const quotes = await readJson("/api/admin/recent-quotes?limit=2");
   assert(Array.isArray(quotes.quotes), "Recent quotes response is invalid");
 
@@ -41,6 +61,8 @@ async function main() {
   console.log(`- ERPNext DB reachable: ${health.erpnextDbReachable}`);
   console.log(`- Catalog search products: ${catalog.products.length} of ${catalog.total}`);
   console.log(`- Facet item groups: ${facets.itemGroups.length}`);
+  console.log(`- Product route SKU: ${product.product.sku}`);
+  console.log("- Category route shell: ok");
   console.log(`- Recent website quotations: ${quotes.quotes.length}`);
 }
 
