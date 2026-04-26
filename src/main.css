@@ -1037,14 +1037,14 @@ textarea:focus-visible {
 .catalog-tools {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(300px, 0.72fr) auto;
-  align-items: center;
+  align-items: end;
   gap: 12px;
   margin-bottom: 12px;
 }
 
 .catalog-tools__actions {
   display: inline-flex;
-  align-items: center;
+  align-items: end;
   gap: 8px;
 }
 
@@ -1056,10 +1056,10 @@ textarea:focus-visible {
 
 .catalog-sort-panel label {
   display: grid;
-  gap: 4px;
 }
 
 .catalog-sort-panel span {
+  display: none;
   color: var(--muted);
   font-size: 11px;
   font-weight: 900;
@@ -1069,7 +1069,7 @@ textarea:focus-visible {
 .catalog-sort-panel select,
 .catalog-sort-panel input {
   width: 100%;
-  min-height: 42px;
+  min-height: 46px;
   padding: 0 10px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -1087,6 +1087,11 @@ textarea:focus-visible {
 
 .catalog-filter-button {
   display: none;
+}
+
+.catalog-clear-button,
+.catalog-filter-button {
+  min-height: 46px;
 }
 
 .filter-panel {
