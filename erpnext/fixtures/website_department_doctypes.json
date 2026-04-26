@@ -1,0 +1,80 @@
+[
+  {
+    "doctype": "DocType",
+    "name": "Website Department",
+    "module": "Green Leaf",
+    "custom": 1,
+    "istable": 0,
+    "autoname": "field:department_id",
+    "title_field": "label",
+    "sort_field": "sort_order",
+    "sort_order": "ASC",
+    "fields": [
+      {
+        "fieldname": "department_id",
+        "label": "Department ID",
+        "fieldtype": "Data",
+        "reqd": 1,
+        "unique": 1,
+        "description": "Stable URL slug, for example kitchen-equipment."
+      },
+      {
+        "fieldname": "label",
+        "label": "Label",
+        "fieldtype": "Data",
+        "reqd": 1
+      },
+      {
+        "fieldname": "description",
+        "label": "Description",
+        "fieldtype": "Small Text"
+      },
+      {
+        "fieldname": "enabled",
+        "label": "Enabled on Website",
+        "fieldtype": "Check",
+        "default": "1"
+      },
+      {
+        "fieldname": "featured",
+        "label": "Featured Department",
+        "fieldtype": "Check",
+        "default": "0"
+      },
+      {
+        "fieldname": "sort_order",
+        "label": "Website Sort Order",
+        "fieldtype": "Int",
+        "default": "0"
+      },
+      {
+        "fieldname": "item_groups",
+        "label": "Mapped ERP Item Groups",
+        "fieldtype": "Table",
+        "options": "Website Department Item Group"
+      }
+    ]
+  },
+  {
+    "doctype": "DocType",
+    "name": "Website Department Item Group",
+    "module": "Green Leaf",
+    "custom": 1,
+    "istable": 1,
+    "fields": [
+      {
+        "fieldname": "item_group",
+        "label": "ERP Item Group",
+        "fieldtype": "Link",
+        "options": "Item Group",
+        "reqd": 1
+      },
+      {
+        "fieldname": "sort_order",
+        "label": "Sort Order",
+        "fieldtype": "Int",
+        "default": "0"
+      }
+    ]
+  }
+]

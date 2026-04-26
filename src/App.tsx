@@ -12,7 +12,11 @@ import { ServiceContactSection } from "./components/ServiceContactSection";
 import { SiteFooter } from "./components/SiteFooter";
 import { SiteHeader } from "./components/SiteHeader";
 import { featuredProducts as fallbackProducts } from "./data/catalog";
-import { findWebsiteCategory, matchedItemGroups, websiteCategories, websiteCategoryCount } from "./data/websiteCategories";
+import {
+  matchedItemGroups,
+  websiteCategories as fallbackWebsiteCategories,
+  websiteCategoryCount
+} from "./data/websiteCategories";
 import {
   createQuoteRequest,
   fetchAccountSession,
@@ -25,6 +29,7 @@ import {
   fetchItemGroups,
   fetchRecentQuotes,
   fetchRelatedCatalogProducts,
+  fetchWebsiteDepartments,
   logoutAccount,
   startAccountLogin,
   verifyAccountLogin
@@ -39,7 +44,8 @@ import type {
   QuoteLine,
   QuoteRequestResponse,
   QuoteResult,
-  RecentQuote
+  RecentQuote,
+  WebsiteCategory
 } from "./types";
 import "./main.css";
 
@@ -82,6 +88,7 @@ function App() {
   const [buyerPhone, setBuyerPhone] = useState("");
   const [quoteNotes, setQuoteNotes] = useState("");
   const [itemGroups, setItemGroups] = useState<ItemGroup[]>([]);
+  const [websiteDepartments, setWebsiteDepartments] = useState<WebsiteCategory[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState("");
   const [activeWebsiteCategory, setActiveWebsiteCategory] = useState("");
@@ -105,6 +112,7 @@ function App() {
   const [accountQuotes, setAccountQuotes] = useState<RecentQuote[]>([]);
   const [accountStatus, setAccountStatus] = useState("");
   const [accountLoading, setAccountLoading] = useState(false);
+  const websiteNavigationCategories = websiteDepartments.length ? websiteDepartments : fallbackWebsiteCategories;
 
   useEffect(() => {
     window.history.scrollRestoration = "manual";
@@ -126,6 +134,7 @@ function App() {
 
   useEffect(() => {
     let ignore = false;
+    const activeWebsiteDepartment = websiteNavigationCategories.find((category) => category.id === activeWebsiteCategory);
 
     fetchCatalogProducts({
       page,
@@ -133,9 +142,7 @@ function App() {
       q: searchTerm,
       category: activeCategory,
       categories:
-        !activeCategory && activeWebsiteCategory
-          ? matchedItemGroups(findWebsiteCategory(activeWebsiteCategory)!, itemGroups)
-          : undefined
+        !activeCategory && activeWebsiteDepartment ? matchedItemGroups(activeWebsiteDepartment, itemGroups) : undefined
     })
       .then((data) => {
         if (ignore) return;
@@ -152,7 +159,7 @@ function App() {
     return () => {
       ignore = true;
     };
-  }, [activeCategory, activeWebsiteCategory, itemGroups, page, searchTerm]);
+  }, [activeCategory, activeWebsiteCategory, itemGroups, page, searchTerm, websiteDepartments]);
 
   useEffect(() => {
     fetchCatalogFacets()
@@ -169,8 +176,14 @@ function App() {
   }, []);
 
   useEffect(() => {
+    fetchWebsiteDepartments()
+      .then((departments) => setWebsiteDepartments(departments.filter((department) => department.itemGroups.length)))
+      .catch(() => setWebsiteDepartments([]));
+  }, []);
+
+  useEffect(() => {
     if (route.view !== "catalog" || !route.categorySlug || !itemGroups.length) return;
-    const department = websiteCategories.find((category) => category.id === route.categorySlug);
+    const department = websiteNavigationCategories.find((category) => category.id === route.categorySlug);
     if (department) {
       setActiveWebsiteCategory(department.id);
       setActiveCategory("");
@@ -185,7 +198,7 @@ function App() {
     setActiveWebsiteCategory("");
     setActiveCategory(category);
     setPage(1);
-  }, [itemGroups, route]);
+  }, [itemGroups, route, websiteDepartments]);
 
   useEffect(() => {
     if (route.view !== "product") {
@@ -300,15 +313,15 @@ function App() {
   }, 0);
 
   const visibleCategories = useMemo(() => {
-    return websiteCategories.map((category) => ({
+    return websiteNavigationCategories.map((category) => ({
       ...category,
       itemCount: websiteCategoryCount(category, itemGroups),
       availableItemGroups: matchedItemGroups(category, itemGroups)
     }));
-  }, [itemGroups]);
+  }, [itemGroups, websiteNavigationCategories]);
 
   const topFacetGroups = useMemo(() => {
-    const activeDepartment = findWebsiteCategory(activeWebsiteCategory);
+    const activeDepartment = websiteNavigationCategories.find((category) => category.id === activeWebsiteCategory);
     if (activeDepartment) {
       const allowed = new Set(matchedItemGroups(activeDepartment, itemGroups));
       return itemGroups
@@ -316,7 +329,7 @@ function App() {
         .sort((a, b) => b.itemCount - a.itemCount);
     }
     return itemGroups.filter((group) => !group.isGroup && group.itemCount > 0).sort((a, b) => b.itemCount - a.itemCount);
-  }, [activeWebsiteCategory, itemGroups]);
+  }, [activeWebsiteCategory, itemGroups, websiteNavigationCategories]);
 
   const totalPages = Math.max(1, Math.ceil((catalogTotal || products.length) / PAGE_SIZE));
 
@@ -595,7 +608,7 @@ function App() {
 
   return (
     <main className="app">
-      <SiteHeader quoteCount={quoteCount} onOpenQuote={() => setQuoteOpen(true)} />
+      <SiteHeader departments={websiteNavigationCategories} quoteCount={quoteCount} onOpenQuote={() => setQuoteOpen(true)} />
       {route.view !== "product" ? (
         <HeroSection />
       ) : null}
@@ -657,7 +670,7 @@ function App() {
       ) : null}
       <LegacyContentSection />
       <ServiceContactSection onOpenQuote={() => setQuoteOpen(true)} />
-      <SiteFooter />
+      <SiteFooter departments={websiteNavigationCategories} />
       <QuoteDrawer
         isOpen={quoteOpen}
         quoteLines={quoteLines}

@@ -33,7 +33,7 @@ The old OpenCart site had hundreds of storefront categories, while ERPNext has a
 | Housekeeping & Cleaning | `House Keeping Items AU/NZ`, `Karcher AU`, `Bedding`, `Chemicals AU/NZ`, etc. |
 | Furniture & Fitouts | `Joinery`, `Non-Wooden Furniture`, `Mattresses`, `Trex Decking`, etc. |
 
-Current implementation note: this mapping is temporarily stored in `src/data/websiteCategories.ts` so the new UX can be tested immediately. The production version should move this into ERPNext as a controlled DocType or child table.
+Current implementation note: this mapping is stored in `src/data/websiteCategories.ts` as a safe fallback. The storefront API now checks ERPNext for `Website Department` records first. If the DocTypes from `erpnext/fixtures/website_department_doctypes.json` are installed and populated, ERPNext becomes the source of truth for website navigation.
 
 Recommended ERPNext control fields / DocTypes:
 
@@ -45,6 +45,12 @@ Recommended ERPNext control fields / DocTypes:
 | Department child table: `ERP Item Group` | Maps one website department to many ERP item groups. |
 | Show in main menu / show in catalog sidebar | Controls where the department appears. |
 | Featured flag | Controls whether the department appears in `Shop by department`. |
+
+API behavior:
+
+- `GET /api/storefront/departments` returns ERP-managed departments when the DocTypes exist.
+- If the DocTypes are not installed yet, the endpoint reports `source: fallback_static_storefront_mapping` and the React app uses the local fallback mapping.
+- This keeps the current site stable while the ERP control center is introduced.
 
 ## Product Overrides
 

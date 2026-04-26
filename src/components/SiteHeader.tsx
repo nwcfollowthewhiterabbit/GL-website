@@ -1,14 +1,15 @@
 import { useState } from "react";
 import { ArrowRight, Mail, MapPin, Menu, Phone, ShoppingCart } from "lucide-react";
 import { legacyBrand } from "../data/legacyContent";
-import { websiteCategories } from "../data/websiteCategories";
+import type { WebsiteCategory } from "../types";
 
 type SiteHeaderProps = {
+  departments: WebsiteCategory[];
   quoteCount: number;
   onOpenQuote: () => void;
 };
 
-export function SiteHeader({ quoteCount, onOpenQuote }: SiteHeaderProps) {
+export function SiteHeader({ departments, quoteCount, onOpenQuote }: SiteHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   function closeMenu() {
@@ -88,7 +89,7 @@ export function SiteHeader({ quoteCount, onOpenQuote }: SiteHeaderProps) {
             </a>
           </div>
           <div className="nav-menu__departments">
-            {websiteCategories.map((category) => (
+            {departments.map((category) => (
               <a href={`/catalog/${category.id}`} key={category.id} onClick={closeMenu}>
                 <span>{category.label}</span>
                 <small>{category.description}</small>

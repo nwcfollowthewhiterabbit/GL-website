@@ -1,7 +1,11 @@
 import { legacyBrand } from "../data/legacyContent";
-import { websiteCategories } from "../data/websiteCategories";
+import type { WebsiteCategory } from "../types";
 
-export function SiteFooter() {
+type SiteFooterProps = {
+  departments: WebsiteCategory[];
+};
+
+export function SiteFooter({ departments }: SiteFooterProps) {
   return (
     <footer className="footer">
       <div className="shell footer-layout">
@@ -11,7 +15,7 @@ export function SiteFooter() {
         </div>
         <div>
           <span>Departments</span>
-          {websiteCategories.slice(0, 5).map((category) => (
+          {departments.slice(0, 5).map((category) => (
             <a href={`/catalog/${category.id}`} key={category.id}>
               {category.label}
             </a>

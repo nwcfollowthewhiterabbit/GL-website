@@ -11,6 +11,7 @@ import {
 import { pingErpDb } from "./erpnext-db.mjs";
 import { legacySyncRules } from "./legacy-sync-rules.mjs";
 import { createQuoteRequest, getRecentWebsiteQuotes, getWebsiteQuotesByEmail } from "./quote-service.mjs";
+import { getWebsiteDepartments } from "./storefront-control-service.mjs";
 import {
   endAccountSession,
   getAccountSession,
@@ -102,6 +103,17 @@ app.get("/api/catalog/facets", async (_req, res) => {
     res.status(503).json({
       error: "erpnext_catalog_facets_unavailable",
       message: error instanceof Error ? error.message : "Unknown ERPNext facets error"
+    });
+  }
+});
+
+app.get("/api/storefront/departments", async (_req, res) => {
+  try {
+    res.json(await getWebsiteDepartments());
+  } catch (error) {
+    res.status(503).json({
+      error: "erpnext_website_departments_unavailable",
+      message: error instanceof Error ? error.message : "Unknown ERPNext website department error"
     });
   }
 });

@@ -9,7 +9,8 @@ import type {
   ItemGroup,
   QuoteRequestPayload,
   QuoteRequestResponse,
-  RecentQuote
+  RecentQuote,
+  WebsiteCategory
 } from "../types";
 
 async function getJson<T>(path: string): Promise<T> {
@@ -64,6 +65,11 @@ export function fetchCatalogDiagnostics() {
 
 export function fetchCatalogFacets() {
   return getJson<CatalogFacets>("/api/catalog/facets");
+}
+
+export async function fetchWebsiteDepartments() {
+  const data = await getJson<{ source: string; departments: WebsiteCategory[] }>("/api/storefront/departments");
+  return data.departments || [];
 }
 
 export async function fetchRecentQuotes(limit = 5) {
