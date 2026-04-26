@@ -236,24 +236,6 @@ export function CatalogSection({
             </div>
           </div>
 
-          <div className="catalog-status">
-            <div>
-              <span>Showing</span>
-              <strong>
-                {products.length ? (page - 1) * pageSize + 1 : 0}-{Math.min(page * pageSize, productCount).toLocaleString()} of{" "}
-                {productCount.toLocaleString()}
-              </strong>
-            </div>
-            <div>
-              <span>Price mode</span>
-              <strong>{diagnostics?.priceList || "Standard Selling"}</strong>
-            </div>
-            <div>
-              <span>Stock rule</span>
-              <strong>Showroom excluded</strong>
-            </div>
-          </div>
-
           {filtersOpen ? (
             <div className="filter-panel">
               <div className="filter-panel__section">
