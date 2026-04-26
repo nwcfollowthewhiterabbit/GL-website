@@ -63,5 +63,131 @@
     "insert_after": "website_origin",
     "read_only": 1,
     "no_copy": 1
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Item Group",
+    "fieldname": "website_show_on_storefront",
+    "label": "Show on Website",
+    "fieldtype": "Check",
+    "insert_after": "is_group",
+    "default": "1",
+    "description": "Controls whether this ERPNext item group appears in the Green Leaf storefront."
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Item Group",
+    "fieldname": "website_sort_order",
+    "label": "Website Sort Order",
+    "fieldtype": "Int",
+    "insert_after": "website_show_on_storefront",
+    "default": "0"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Item Group",
+    "fieldname": "website_price_mode",
+    "label": "Website Price Mode",
+    "fieldtype": "Select",
+    "insert_after": "website_sort_order",
+    "options": "Price List\nQuote Only\nHide Price",
+    "default": "Price List",
+    "description": "Price List shows ERP price; Quote Only displays request pricing; Hide Price hides product price in UI."
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Item Group",
+    "fieldname": "website_price_list",
+    "label": "Website Price List",
+    "fieldtype": "Link",
+    "options": "Price List",
+    "insert_after": "website_price_mode",
+    "description": "Optional price list override for this storefront category."
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Item Group",
+    "fieldname": "website_stock_display",
+    "label": "Website Stock Display",
+    "fieldtype": "Select",
+    "insert_after": "website_price_list",
+    "options": "Availability\nQuantity\nSpecial Order\nHidden",
+    "default": "Availability",
+    "description": "Controls whether the storefront shows exact quantity, simple availability, special order, or hides stock signal."
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Item Group",
+    "fieldname": "website_show_products_without_images",
+    "label": "Show Products Without Images",
+    "fieldtype": "Check",
+    "insert_after": "website_stock_display",
+    "default": "1"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Item Group",
+    "fieldname": "website_show_products_without_price",
+    "label": "Show Products Without Price",
+    "fieldtype": "Check",
+    "insert_after": "website_show_products_without_images",
+    "default": "0"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Item Group",
+    "fieldname": "website_category_note",
+    "label": "Website Category Note",
+    "fieldtype": "Small Text",
+    "insert_after": "website_show_products_without_price",
+    "description": "Optional text shown by the storefront for this category."
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Item",
+    "fieldname": "website_show_on_storefront",
+    "label": "Show on Website",
+    "fieldtype": "Check",
+    "insert_after": "item_group",
+    "default": "1",
+    "description": "Controls whether this item can appear in the Green Leaf storefront."
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Item",
+    "fieldname": "website_featured",
+    "label": "Website Featured",
+    "fieldtype": "Check",
+    "insert_after": "website_show_on_storefront",
+    "default": "0"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Item",
+    "fieldname": "website_price_mode_override",
+    "label": "Website Price Mode Override",
+    "fieldtype": "Select",
+    "insert_after": "website_featured",
+    "options": "\nPrice List\nQuote Only\nHide Price",
+    "description": "Optional product-level override for the category price mode."
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Item",
+    "fieldname": "website_stock_display_override",
+    "label": "Website Stock Display Override",
+    "fieldtype": "Select",
+    "insert_after": "website_price_mode_override",
+    "options": "\nAvailability\nQuantity\nSpecial Order\nHidden",
+    "description": "Optional product-level override for the category stock display mode."
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Item",
+    "fieldname": "website_sort_order",
+    "label": "Website Sort Order",
+    "fieldtype": "Int",
+    "insert_after": "website_stock_display_override",
+    "default": "0"
   }
 ]

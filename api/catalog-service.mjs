@@ -1,4 +1,5 @@
 import { getErpPool } from "./erpnext-db.mjs";
+import { availableCustomFields, getCategoryRule, getCategoryRules } from "./storefront-rules.mjs";
 
 const DEFAULT_PRICE_LIST = process.env.DEFAULT_PRICE_LIST || "Standard Selling";
 const EXCLUDED_WAREHOUSES = ["Showroom - GL", "Furniture Showroom (Upstairs) - GL"];
@@ -20,7 +21,7 @@ function normalizePage(value, fallback, max) {
   return Math.min(parsed, max);
 }
 
-function itemWhere({ q, category, includeHidden, includeWeakGroups }) {
+function itemWhere({ q, category, includeHidden, includeWeakGroups, categoryRule, hasItemFields }) {
   const clauses = [
     "IFNULL(i.disabled, 0) = 0",
     "IFNULL(i.is_sales_item, 1) = 1",
@@ -29,8 +30,16 @@ function itemWhere({ q, category, includeHidden, includeWeakGroups }) {
   ];
   const params = {};
 
-  if (!includeHidden) {
+  if (hasItemFields.website_show_on_storefront) {
+    clauses.push("IFNULL(i.website_show_on_storefront, 1) = 1");
+  }
+
+  if (!includeHidden && !categoryRule.showProductsWithoutPrice && categoryRule.priceMode === "Price List") {
     clauses.push("price.price_list_rate > 0");
+  }
+
+  if (!includeHidden && !categoryRule.showProductsWithoutImages) {
+    clauses.push("IFNULL(i.image, '') <> ''");
   }
 
   if (!includeWeakGroups) {
@@ -98,10 +107,29 @@ export async function getCatalogProducts(options = {}) {
   const category = String(options.category || "").trim();
   const includeHidden = String(options.includeHidden || "") === "1";
   const includeWeakGroups = String(options.includeWeakGroups || "") === "1";
-  const priceList = String(options.priceList || DEFAULT_PRICE_LIST).trim() || DEFAULT_PRICE_LIST;
+  const categoryRule = await getCategoryRule(category);
+  if (category && !includeHidden && !categoryRule.showOnStorefront) {
+    return {
+      page,
+      pageSize,
+      total: 0,
+      priceList: categoryRule.priceList || DEFAULT_PRICE_LIST,
+      categoryRule,
+      products: []
+    };
+  }
+
+  const priceList = String(options.priceList || categoryRule.priceList || DEFAULT_PRICE_LIST).trim() || DEFAULT_PRICE_LIST;
+  const hasItemFields = await availableCustomFields("Item", [
+    "website_show_on_storefront",
+    "website_price_mode_override",
+    "website_stock_display_override",
+    "website_sort_order",
+    "website_featured"
+  ]);
 
   const base = itemBaseSql(priceList);
-  const where = itemWhere({ q, category, includeHidden, includeWeakGroups });
+  const where = itemWhere({ q, category, includeHidden, includeWeakGroups, categoryRule, hasItemFields });
   const params = {
     ...baseParams(priceList),
     ...where.params,
@@ -125,6 +153,9 @@ export async function getCatalogProducts(options = {}) {
         IFNULL(price.price_list_rate, 0) AS price,
         IFNULL(price.currency, :defaultCurrency) AS currency,
         GREATEST(FLOOR(IFNULL(stock.actual_qty, 0)), 0) AS quantity,
+        ${hasItemFields.website_price_mode_override ? "i.website_price_mode_override" : "NULL"} AS price_mode_override,
+        ${hasItemFields.website_stock_display_override ? "i.website_stock_display_override" : "NULL"} AS stock_display_override,
+        ${hasItemFields.website_sort_order ? "IFNULL(i.website_sort_order, 0)" : "0"} AS website_sort_order,
         CASE
           WHEN IFNULL(price.price_list_rate, 0) <= 0 THEN 'hidden_no_price'
           WHEN IFNULL(stock.actual_qty, 0) <= 0 THEN 'special_order'
@@ -132,7 +163,7 @@ export async function getCatalogProducts(options = {}) {
         END AS availability
       ${base}
       WHERE ${where.sql}
-      ORDER BY i.modified DESC
+      ORDER BY website_sort_order, i.modified DESC
       LIMIT :limit OFFSET :offset
     `,
     { ...params, defaultCurrency: process.env.DEFAULT_CURRENCY || "FJD" }
@@ -152,41 +183,29 @@ export async function getCatalogProducts(options = {}) {
     pageSize,
     total: Number(countRows[0]?.total || 0),
     priceList,
-    products: rows.map((row) => ({
-      sku: row.sku,
-      name: row.name || row.sku,
-      category: row.category || "All Item Groups",
-      uom: row.uom || "Nos",
-      image: row.image || null,
-      description: row.description || "",
-      price: Number(row.price || 0),
-      currency: row.currency || process.env.DEFAULT_CURRENCY || "FJD",
-      quantity: Number(row.quantity || 0),
-      availability: row.availability
-    }))
+    categoryRule,
+    products: rows.map((row) => {
+      const priceMode = row.price_mode_override || categoryRule.priceMode;
+      return {
+        priceMode,
+        stockDisplay: row.stock_display_override || categoryRule.stockDisplay,
+        sku: row.sku,
+        name: row.name || row.sku,
+        category: row.category || "All Item Groups",
+        uom: row.uom || "Nos",
+        image: row.image || null,
+        description: row.description || "",
+        price: priceMode === "Price List" ? Number(row.price || 0) : priceMode,
+        currency: row.currency || process.env.DEFAULT_CURRENCY || "FJD",
+        quantity: Number(row.quantity || 0),
+        availability: row.availability
+      };
+    })
   };
 }
 
 export async function getCatalogItemGroups() {
-  const [rows] = await getErpPool().execute(
-    `
-      SELECT ig.name, ig.parent_item_group AS parent, ig.is_group, COUNT(i.name) AS item_count
-      FROM \`tabItem Group\` ig
-      LEFT JOIN \`tabItem\` i
-        ON i.item_group = ig.name
-       AND IFNULL(i.disabled, 0) = 0
-       AND IFNULL(i.is_sales_item, 1) = 1
-      GROUP BY ig.name, ig.parent_item_group, ig.is_group, ig.lft
-      ORDER BY ig.lft
-    `
-  );
-
-  return rows.map((row) => ({
-    name: row.name,
-    parent: row.parent || null,
-    isGroup: Boolean(row.is_group),
-    itemCount: Number(row.item_count || 0)
-  }));
+  return getCategoryRules();
 }
 
 export async function getCatalogProductBySku(sku) {
@@ -236,7 +255,8 @@ export async function getCatalogDiagnostics() {
     storefrontRules: {
       excludedGroups: EXCLUDED_STOREFRONT_GROUPS,
       excludedWarehouses: EXCLUDED_WAREHOUSES,
-      defaultCurrency: process.env.DEFAULT_CURRENCY || "FJD"
+      defaultCurrency: process.env.DEFAULT_CURRENCY || "FJD",
+      source: "ERPNext Item Group website fields when present"
     },
     totals: rows[0],
     topGroups: groups

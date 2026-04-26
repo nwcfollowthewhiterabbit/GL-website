@@ -76,6 +76,7 @@ app.get("/api/catalog/facets", async (_req, res) => {
       itemGroups: itemGroups.filter(
         (group) =>
           group.itemCount > 0 &&
+          group.showOnStorefront !== false &&
           !excluded.has(group.name) &&
           !excluded.has(group.parent || "") &&
           !weakFacetNames.has(group.name)

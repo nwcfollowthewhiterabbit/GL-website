@@ -3,9 +3,12 @@ export type CatalogProduct = {
   name: string;
   category: string;
   price: number | string;
+  priceMode?: string;
+  stockDisplay?: string;
   currency?: string;
   status?: string;
   availability?: string;
+  quantity?: number;
   image?: string | null;
   description?: string;
 };
@@ -19,6 +22,14 @@ export type ItemGroup = {
   parent: string | null;
   isGroup: boolean;
   itemCount: number;
+  showOnStorefront?: boolean;
+  sortOrder?: number;
+  priceMode?: string;
+  priceList?: string;
+  stockDisplay?: string;
+  showProductsWithoutImages?: boolean;
+  showProductsWithoutPrice?: boolean;
+  categoryNote?: string;
 };
 
 export type CatalogDiagnostics = {
@@ -62,6 +73,7 @@ export type CatalogProductsResponse = {
   pageSize: number;
   total: number;
   priceList: string;
+  categoryRule?: ItemGroup;
   products: CatalogProduct[];
 };
 
