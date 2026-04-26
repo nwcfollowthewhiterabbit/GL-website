@@ -7,6 +7,7 @@ import { HeroSection } from "./components/HeroSection";
 import { LegacyContentSection } from "./components/LegacyContentSection";
 import { ProductDetailPage } from "./components/ProductDetailPage";
 import { QuoteDrawer } from "./components/QuoteDrawer";
+import { RecommendedProductsSection } from "./components/RecommendedProductsSection";
 import { ServiceContactSection } from "./components/ServiceContactSection";
 import { SiteFooter } from "./components/SiteFooter";
 import { SiteHeader } from "./components/SiteHeader";
@@ -20,6 +21,7 @@ import {
   fetchCatalogProduct,
   fetchCatalogFacets,
   fetchCatalogProducts,
+  fetchFeaturedCatalogProducts,
   fetchItemGroups,
   fetchRecentQuotes,
   fetchRelatedCatalogProducts,
@@ -89,6 +91,7 @@ function App() {
   const [activeProduct, setActiveProduct] = useState<CatalogProduct | null>(null);
   const [productLoading, setProductLoading] = useState(false);
   const [relatedProducts, setRelatedProducts] = useState<CatalogProduct[]>([]);
+  const [recommendedProducts, setRecommendedProducts] = useState<CatalogProduct[]>([]);
   const [recentQuotes, setRecentQuotes] = useState<RecentQuote[]>([]);
   const [catalogFacets, setCatalogFacets] = useState<CatalogFacets | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -226,6 +229,12 @@ function App() {
     fetchCatalogDiagnostics()
       .then(setDiagnostics)
       .catch(() => setDiagnostics(null));
+  }, []);
+
+  useEffect(() => {
+    fetchFeaturedCatalogProducts(8)
+      .then(setRecommendedProducts)
+      .catch(() => setRecommendedProducts([]));
   }, []);
 
   useEffect(() => {
@@ -643,6 +652,9 @@ function App() {
           onAddToQuote={addToQuote}
         />
       )}
+      {route.view !== "product" ? (
+        <RecommendedProductsSection products={recommendedProducts} onSelectProduct={openProduct} />
+      ) : null}
       <LegacyContentSection />
       <ServiceContactSection onOpenQuote={() => setQuoteOpen(true)} />
       <SiteFooter />

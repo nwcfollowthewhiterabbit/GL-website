@@ -31,7 +31,7 @@ function parseCategoryList(value) {
     .filter(Boolean);
 }
 
-function itemWhere({ q, category, categories, includeHidden, includeWeakGroups, categoryRule, hasItemFields }) {
+function itemWhere({ q, category, categories, featured, includeHidden, includeWeakGroups, categoryRule, hasItemFields }) {
   const clauses = [
     "IFNULL(i.disabled, 0) = 0",
     "IFNULL(i.is_sales_item, 1) = 1",
@@ -42,6 +42,10 @@ function itemWhere({ q, category, categories, includeHidden, includeWeakGroups, 
 
   if (hasItemFields.website_show_on_storefront) {
     clauses.push("IFNULL(i.website_show_on_storefront, 1) = 1");
+  }
+
+  if (featured && hasItemFields.website_featured) {
+    clauses.push("IFNULL(i.website_featured, 0) = 1");
   }
 
   if (!includeHidden && !categoryRule.showProductsWithoutPrice && categoryRule.priceMode === "Price List") {
@@ -121,6 +125,7 @@ export async function getCatalogProducts(options = {}) {
   const offset = (page - 1) * pageSize;
   const q = String(options.q || "").trim();
   const category = String(options.category || "").trim();
+  const featured = String(options.featured || "") === "1";
   const categories = parseCategoryList(options.categories).filter((item) => item !== category);
   const includeHidden = String(options.includeHidden || "") === "1";
   const includeWeakGroups = String(options.includeWeakGroups || "") === "1";
@@ -146,7 +151,7 @@ export async function getCatalogProducts(options = {}) {
   ]);
 
   const base = itemBaseSql(priceList);
-  const where = itemWhere({ q, category, categories, includeHidden, includeWeakGroups, categoryRule, hasItemFields });
+  const where = itemWhere({ q, category, categories, featured, includeHidden, includeWeakGroups, categoryRule, hasItemFields });
   const params = {
     ...baseParams(priceList),
     ...where.params,
@@ -219,6 +224,24 @@ export async function getCatalogProducts(options = {}) {
       };
     })
   };
+}
+
+export async function getFeaturedCatalogProducts(limit = 8) {
+  const hasItemFields = await availableCustomFields("Item", ["website_featured"]);
+  if (hasItemFields.website_featured) {
+    const result = await getCatalogProducts({
+      featured: "1",
+      pageSize: normalizePage(limit, 8, 24)
+    });
+    if (result.products.length) {
+      return { source: "erp_item_website_featured", products: result.products };
+    }
+  }
+
+  const result = await getCatalogProducts({
+    pageSize: normalizePage(limit, 8, 24)
+  });
+  return { source: hasItemFields.website_featured ? "fallback_catalog_latest" : "fallback_missing_custom_field", products: result.products };
 }
 
 export async function getCatalogItemGroups() {

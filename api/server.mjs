@@ -1,7 +1,13 @@
 import cors from "cors";
 import "dotenv/config";
 import express from "express";
-import { getCatalogDiagnostics, getCatalogItemGroups, getCatalogProductBySku, getCatalogProducts } from "./catalog-service.mjs";
+import {
+  getCatalogDiagnostics,
+  getCatalogItemGroups,
+  getCatalogProductBySku,
+  getCatalogProducts,
+  getFeaturedCatalogProducts
+} from "./catalog-service.mjs";
 import { pingErpDb } from "./erpnext-db.mjs";
 import { legacySyncRules } from "./legacy-sync-rules.mjs";
 import { createQuoteRequest, getRecentWebsiteQuotes, getWebsiteQuotesByEmail } from "./quote-service.mjs";
@@ -148,6 +154,18 @@ app.get("/api/catalog/related", async (req, res) => {
     res.status(503).json({
       error: "erpnext_related_products_unavailable",
       message: error instanceof Error ? error.message : "Unknown ERPNext related products error"
+    });
+  }
+});
+
+app.get("/api/catalog/featured", async (req, res) => {
+  try {
+    const limit = Math.min(Math.max(Number.parseInt(String(req.query.limit || "8"), 10) || 8, 1), 24);
+    res.json(await getFeaturedCatalogProducts(limit));
+  } catch (error) {
+    res.status(503).json({
+      error: "erpnext_featured_products_unavailable",
+      message: error instanceof Error ? error.message : "Unknown ERPNext featured product error"
     });
   }
 });

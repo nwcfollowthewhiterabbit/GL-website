@@ -21,5 +21,6 @@ The site already works without these custom fields by storing the idempotency ma
 - `Quotation.website_payload`
 - `Customer.website_origin`
 - `Customer.website_last_quote_request`
+- `Item.website_featured` / label `Recommended on Website` controls the product recommendation strip on the storefront.
 
 Until these fields are applied to ERPNext, the API remains backward-compatible with `enq_det`.

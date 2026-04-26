@@ -156,10 +156,11 @@
     "doctype": "Custom Field",
     "dt": "Item",
     "fieldname": "website_featured",
-    "label": "Website Featured",
+    "label": "Recommended on Website",
     "fieldtype": "Check",
     "insert_after": "website_show_on_storefront",
-    "default": "0"
+    "default": "0",
+    "description": "Promotes this exact product in the storefront recommendations section."
   },
   {
     "doctype": "Custom Field",
