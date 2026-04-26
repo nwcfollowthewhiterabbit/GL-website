@@ -132,11 +132,25 @@ async function main() {
       height: 1200,
       mobile: false
     });
+    await page.send("Page.navigate", { url: `${baseUrl}/account?visual-smoke=1` });
+    await wait(1800);
+    const accountMobile = await captureViewport(page.send, "account-mobile", {
+      width: 390,
+      height: 1200,
+      mobile: true
+    });
+    const accountDesktop = await captureViewport(page.send, "account-desktop", {
+      width: 1440,
+      height: 1200,
+      mobile: false
+    });
 
     page.close();
     console.log("Visual smoke checks passed");
     console.log(`- Mobile width: ${mobile.innerWidth}, scroll width: ${mobile.scrollWidth}`);
     console.log(`- Desktop width: ${desktop.innerWidth}, scroll width: ${desktop.scrollWidth}`);
+    console.log(`- Account mobile width: ${accountMobile.innerWidth}, scroll width: ${accountMobile.scrollWidth}`);
+    console.log(`- Account desktop width: ${accountDesktop.innerWidth}, scroll width: ${accountDesktop.scrollWidth}`);
     console.log(`- Screenshots written to ${outputDir}/`);
   } finally {
     chrome.kill("SIGTERM");

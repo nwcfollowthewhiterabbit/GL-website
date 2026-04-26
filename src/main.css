@@ -508,6 +508,7 @@ textarea:focus-visible {
 
 .hero-slide h1 {
   margin: 0;
+  max-width: 100%;
   color: var(--ink);
   font-size: 30px;
   line-height: 1.08;
@@ -516,6 +517,7 @@ textarea:focus-visible {
 
 .hero__copy {
   margin: 0;
+  max-width: 100%;
   color: #314239;
   font-size: 15px;
   line-height: 1.55;
@@ -1520,6 +1522,20 @@ textarea:focus-visible {
   line-height: 1.7;
 }
 
+.account-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.account-hero__actions .quote-button,
+.account-hero__actions .secondary-button {
+  width: auto;
+  min-height: 44px;
+  padding: 0 16px;
+}
+
 .account-auth {
   display: grid;
   gap: 12px;
@@ -1581,6 +1597,13 @@ textarea:focus-visible {
   line-height: 1.15;
 }
 
+.account-summary small,
+.account-quotes small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .account-content {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1592,6 +1615,10 @@ textarea:focus-visible {
 }
 
 .account-panel--wide {
+  grid-column: 1 / -1;
+}
+
+.account-panel--profile {
   grid-column: 1 / -1;
 }
 
@@ -1616,12 +1643,60 @@ textarea:focus-visible {
 }
 
 .account-roadmap span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fbfcf8;
   color: #33443a;
   font-weight: 800;
+}
+
+.account-roadmap svg {
+  flex: 0 0 auto;
+  color: var(--leaf-dark);
+}
+
+.account-profile {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.account-profile article {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcf8;
+}
+
+.account-profile svg {
+  flex: 0 0 auto;
+  color: var(--leaf-dark);
+}
+
+.account-profile div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.account-profile span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.account-profile strong {
+  color: var(--ink);
+  overflow-wrap: anywhere;
 }
 
 .account-lookup {
@@ -1639,7 +1714,7 @@ textarea:focus-visible {
 
 .account-quotes article {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 120px 150px;
+  grid-template-columns: minmax(0, 1fr) 130px 120px 150px;
   gap: 16px;
   align-items: center;
   padding: 14px;
@@ -1657,11 +1732,70 @@ textarea:focus-visible {
 .account-quotes div {
   display: grid;
   gap: 4px;
+  min-width: 0;
 }
 
 .account-quotes span {
   color: var(--muted);
   font-weight: 800;
+}
+
+.account-quotes strong {
+  color: var(--ink);
+}
+
+.account-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: max-content;
+  min-height: 28px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #eef3ec;
+  color: #33483a;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.account-status--ordered,
+.account-status--completed,
+.account-status--submitted,
+.account-status--to-deliver-and-bill {
+  background: #eaf5ee;
+  color: var(--leaf-dark);
+}
+
+.account-status--cancelled,
+.account-status--expired {
+  background: #f8ece8;
+  color: #8b3d2f;
+}
+
+.account-empty {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+  padding: 20px;
+  border: 1px dashed rgba(102, 113, 104, 0.34);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.account-empty svg {
+  color: var(--leaf-dark);
+}
+
+.account-empty strong {
+  color: var(--ink);
+  font-size: 18px;
+}
+
+.account-empty p {
+  max-width: 560px;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
 }
 
 .pagination {
@@ -3172,11 +3306,13 @@ textarea:focus-visible {
   }
 
   .hero-slide h1 {
+    max-width: calc(100vw - 68px);
     font-size: 28px;
     line-height: 1.08;
   }
 
   .hero__copy {
+    max-width: calc(100vw - 68px);
     font-size: 16px;
   }
 
@@ -3188,6 +3324,7 @@ textarea:focus-visible {
 
   .catalog-tools,
   .account-lookup,
+  .account-profile,
   .filter-panel,
   .product-grid,
   .nav-menu__departments,
@@ -3354,5 +3491,6 @@ textarea:focus-visible {
 
   .account-quotes article {
     grid-template-columns: 1fr;
+    justify-items: start;
   }
 }

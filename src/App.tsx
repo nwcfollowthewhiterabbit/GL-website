@@ -761,6 +761,7 @@ function App() {
           onLoadQuotes={loadAccountQuotes}
           onRefreshAccount={refreshAccount}
           onLogout={signOutAccount}
+          onOpenQuote={() => setQuoteOpen(true)}
         />
       ) : route.view === "product" ? (
         <ProductDetailPage
