@@ -85,6 +85,11 @@ function App() {
   }, []);
 
   useEffect(() => {
+    if (route.view !== "product") return;
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, [route]);
+
+  useEffect(() => {
     let ignore = false;
 
     fetchCatalogProducts({
