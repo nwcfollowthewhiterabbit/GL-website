@@ -360,47 +360,47 @@ export function CatalogSection({
           {products.length ? (
             <div className="product-grid">
               {products.map((product) => (
-              <article className="product-card" key={product.sku}>
-                <button
-                  type="button"
-                  className="product-card__image"
-                  onClick={() => onSelectProduct(product)}
-                  aria-label={`Open details for ${product.name}`}
-                >
-                  <img
-                    src={productImage(product)}
-                    alt=""
-                    onError={(event) => {
-                      event.currentTarget.src = productPlaceholder;
-                    }}
-                  />
-                  <span className="tag">{activeCategory ? product.category : activeItemGroupNames.has(product.category) ? activeDepartment?.label : product.category}</span>
-                </button>
-                <div className="product-card__body">
-                  <div className="product-card__badges">
-                    <span className={`availability-badge is-${availabilityTone(product)}`}>{availabilityLabel(product)}</span>
-                    <span className="sku-chip">{product.sku}</span>
-                  </div>
-                  <h3>{product.name}</h3>
-                  <p>{plainTextDescription(product, "ERP-ready product detail with variants, UOM, tax handling, and buying notes.")}</p>
-                  <div className="product-card__footer">
-                    <div>
-                      <span className="price">{priceLabel(product)}</span>
-                      <small>
-                        <Clock3 size={14} /> Lead time confirmed by sales
-                      </small>
+                <article className="product-card" key={product.sku}>
+                  <button
+                    type="button"
+                    className="product-card__image"
+                    onClick={() => onSelectProduct(product)}
+                    aria-label={`Open details for ${product.name}`}
+                  >
+                    <img
+                      src={productImage(product)}
+                      alt=""
+                      onError={(event) => {
+                        event.currentTarget.src = productPlaceholder;
+                      }}
+                    />
+                    <span className="tag">{activeCategory ? product.category : activeItemGroupNames.has(product.category) ? activeDepartment?.label : product.category}</span>
+                  </button>
+                  <div className="product-card__body">
+                    <div className="product-card__badges">
+                      <span className={`availability-badge is-${availabilityTone(product)}`}>{availabilityLabel(product)}</span>
+                      <span className="sku-chip">{product.sku}</span>
                     </div>
-                    <div className="product-card__actions">
-                      <button type="button" className="secondary-button" onClick={() => onSelectProduct(product)}>
-                        Details
-                      </button>
-                      <button type="button" className="primary-button" onClick={() => onAddToQuote(product)}>
-                        <ShoppingCart size={18} /> Add
-                      </button>
+                    <h3>{product.name}</h3>
+                    <p>{plainTextDescription(product, "ERP-ready product detail with variants, UOM, tax handling, and buying notes.")}</p>
+                    <div className="product-card__footer">
+                      <div>
+                        <span className="price">{priceLabel(product)}</span>
+                        <small>
+                          <Clock3 size={14} /> Lead time confirmed by sales
+                        </small>
+                      </div>
+                      <div className="product-card__actions">
+                        <button type="button" className="secondary-button" onClick={() => onSelectProduct(product)}>
+                          Details
+                        </button>
+                        <button type="button" className="primary-button" onClick={() => onAddToQuote(product)}>
+                          <ShoppingCart size={18} /> Add
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </article>
+                </article>
               ))}
             </div>
           ) : (

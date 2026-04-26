@@ -3,8 +3,8 @@ import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { AccountPage } from "./components/AccountPage";
 import { CatalogDownloadsSection } from "./components/CatalogDownloadsSection";
+import { CatalogServiceBand } from "./components/CatalogServiceBand";
 import { CatalogSection } from "./components/CatalogSection";
-import { EditorialImageBand } from "./components/EditorialImageBand";
 import { HeroSection } from "./components/HeroSection";
 import { LegacyContentSection } from "./components/LegacyContentSection";
 import { ProductDetailPage } from "./components/ProductDetailPage";
@@ -858,7 +858,6 @@ function App() {
       {route.view !== "product" ? (
         <HeroSection banners={heroBanners} />
       ) : null}
-      {route.view !== "product" && route.view !== "account" ? <EditorialImageBand /> : null}
       {route.view === "account" ? (
         <AccountPage
           email={accountEmail}
@@ -894,38 +893,41 @@ function App() {
           onSelectRelated={openProductPage}
         />
       ) : (
-        <CatalogSection
-          catalogState={catalogState}
-          products={products}
-          itemGroups={itemGroups}
-          visibleCategories={visibleCategories}
-          topFacetGroups={topFacetGroups}
-          activeCategory={activeCategory}
-          activeWebsiteCategory={activeWebsiteCategory}
-          searchTerm={searchTerm}
-          sort={catalogSort}
-          minPrice={minPrice}
-          maxPrice={maxPrice}
-          page={page}
-          pageSize={PAGE_SIZE}
-          productCount={catalogTotal || products.length}
-          totalPages={totalPages}
-          filtersOpen={filtersOpen}
-          diagnostics={diagnostics}
-          catalogFacets={catalogFacets}
-          searchSuggestions={catalogSuggestions}
-          suggestionsLoading={catalogSuggestionsLoading}
-          onToggleFilters={() => setFiltersOpen((value) => !value)}
-          onDepartmentChange={setDepartment}
-          onCategoryChange={setCategory}
-          onSearchChange={setSearch}
-          onSortChange={setSort}
-          onPriceFilterChange={setPriceFilter}
-          onSelectSuggestion={selectCatalogSuggestion}
-          onPageChange={setPage}
-          onSelectProduct={openProductPreview}
-          onAddToQuote={addToQuote}
-        />
+        <>
+          <CatalogSection
+            catalogState={catalogState}
+            products={products}
+            itemGroups={itemGroups}
+            visibleCategories={visibleCategories}
+            topFacetGroups={topFacetGroups}
+            activeCategory={activeCategory}
+            activeWebsiteCategory={activeWebsiteCategory}
+            searchTerm={searchTerm}
+            sort={catalogSort}
+            minPrice={minPrice}
+            maxPrice={maxPrice}
+            page={page}
+            pageSize={PAGE_SIZE}
+            productCount={catalogTotal || products.length}
+            totalPages={totalPages}
+            filtersOpen={filtersOpen}
+            diagnostics={diagnostics}
+            catalogFacets={catalogFacets}
+            searchSuggestions={catalogSuggestions}
+            suggestionsLoading={catalogSuggestionsLoading}
+            onToggleFilters={() => setFiltersOpen((value) => !value)}
+            onDepartmentChange={setDepartment}
+            onCategoryChange={setCategory}
+            onSearchChange={setSearch}
+            onSortChange={setSort}
+            onPriceFilterChange={setPriceFilter}
+            onSelectSuggestion={selectCatalogSuggestion}
+            onPageChange={setPage}
+            onSelectProduct={openProductPreview}
+            onAddToQuote={addToQuote}
+          />
+          <CatalogServiceBand onOpenQuote={() => setQuoteOpen(true)} />
+        </>
       )}
       {route.view !== "product" ? (
         <RecommendedProductsSection products={recommendedProducts} onSelectProduct={openProductPreview} />
