@@ -441,7 +441,7 @@ textarea:focus-visible {
 .hero > *,
 .section-heading > *,
 .catalog-tools > *,
-.product-page__layout > *,
+.product-page__hero > *,
 .erp-layout > *,
 .legacy-layout > *,
 .contact > * {
@@ -968,13 +968,14 @@ textarea:focus-visible {
   margin-bottom: 18px;
 }
 
-.product-page__layout {
+.product-page__hero {
   display: grid;
-  grid-template-columns: minmax(320px, 0.85fr) minmax(0, 1fr) 310px;
+  grid-template-columns: minmax(340px, 0.9fr) minmax(0, 1fr) 320px;
   gap: 18px;
   align-items: start;
 }
 
+.product-page__media-panel,
 .product-page__media,
 .product-page__body,
 .product-quote-panel,
@@ -986,10 +987,17 @@ textarea:focus-visible {
   box-shadow: var(--shadow);
 }
 
+.product-page__media-panel {
+  overflow: hidden;
+}
+
 .product-page__media {
+  border: 0;
+  border-radius: 0;
   height: 560px;
   min-height: 560px;
   overflow: hidden;
+  box-shadow: none;
 }
 
 .product-page__media img {
@@ -997,6 +1005,30 @@ textarea:focus-visible {
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+.product-page__media-meta {
+  display: grid;
+  grid-template-columns: 1fr 0.55fr;
+  gap: 1px;
+  border-top: 1px solid var(--line);
+  background: var(--line);
+}
+
+.product-page__media-meta span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 48px;
+  padding: 0 14px;
+  background: #fff;
+  color: #33443a;
+  font-size: 13px;
+  font-weight: 900;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .product-page__body {
@@ -1034,7 +1066,7 @@ textarea:focus-visible {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
-  margin: 20px 0;
+  margin: 22px 0 0;
 }
 
 .product-page__specs div {
@@ -1055,6 +1087,32 @@ textarea:focus-visible {
 
 .product-page__specs strong {
   overflow-wrap: anywhere;
+}
+
+.product-page__technical {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.product-page__technical span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.product-page__technical strong {
+  color: var(--ink);
 }
 
 .product-page__quote {
@@ -2277,7 +2335,7 @@ textarea:focus-visible {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
-  .product-page__layout,
+  .product-page__hero,
   .related-products__grid {
     grid-template-columns: 1fr;
   }
