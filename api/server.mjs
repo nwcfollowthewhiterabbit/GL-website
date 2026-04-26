@@ -15,6 +15,7 @@ import { createQuoteRequest, getRecentWebsiteQuotes, getWebsiteQuotesByEmail } f
 import {
   getWebsiteBanners,
   getWebsiteCatalogs,
+  getWebsiteCustomerCornerSettings,
   getWebsiteDepartments,
   getWebsiteManufacturers
 } from "./storefront-control-service.mjs";
@@ -166,6 +167,17 @@ app.get("/api/storefront/manufacturers", async (_req, res) => {
     res.status(503).json({
       error: "erpnext_website_manufacturers_unavailable",
       message: error instanceof Error ? error.message : "Unknown ERPNext website manufacturer error"
+    });
+  }
+});
+
+app.get("/api/storefront/customer-corner", async (_req, res) => {
+  try {
+    res.json(await getWebsiteCustomerCornerSettings());
+  } catch (error) {
+    res.status(503).json({
+      error: "erpnext_customer_corner_settings_unavailable",
+      message: error instanceof Error ? error.message : "Unknown ERPNext customer corner settings error"
     });
   }
 });

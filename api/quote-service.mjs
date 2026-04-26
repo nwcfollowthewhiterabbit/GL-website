@@ -326,7 +326,7 @@ export async function getWebsiteQuotesByEmail(email, limit = 20) {
   const [rows] = hasWebsiteEmail
     ? await getErpPool().execute(
         `
-          SELECT name, owner, party_name, transaction_date, grand_total, status, creation, enq_det, website_customer_email
+          SELECT name, owner, party_name, transaction_date, valid_till, grand_total, status, order_type, creation, enq_det, website_customer_email
           FROM \`tabQuotation\`
           WHERE website_customer_email = :email
              OR enq_det LIKE :emailMarker
@@ -337,7 +337,7 @@ export async function getWebsiteQuotesByEmail(email, limit = 20) {
       )
     : await getErpPool().execute(
         `
-          SELECT name, owner, party_name, transaction_date, grand_total, status, creation, enq_det
+          SELECT name, owner, party_name, transaction_date, valid_till, grand_total, status, order_type, creation, enq_det
           FROM \`tabQuotation\`
           WHERE enq_det LIKE :emailMarker
           ORDER BY creation DESC
@@ -351,8 +351,10 @@ export async function getWebsiteQuotesByEmail(email, limit = 20) {
     owner: row.owner,
     customer: row.party_name,
     transactionDate: row.transaction_date,
+    validTill: row.valid_till,
     grandTotal: Number(row.grand_total || 0),
     status: row.status,
+    orderType: row.order_type || "",
     creation: row.creation,
     marker: String(row.enq_det || "").split("\n")[0] || ""
   }));

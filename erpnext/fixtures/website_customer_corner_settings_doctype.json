@@ -1,0 +1,78 @@
+[
+  {
+    "doctype": "DocType",
+    "name": "Website Customer Corner Settings",
+    "module": "Greenleaf",
+    "custom": 1,
+    "istable": 0,
+    "autoname": "field:settings_id",
+    "title_field": "title",
+    "sort_field": "modified",
+    "sort_order": "DESC",
+    "fields": [
+      {
+        "fieldname": "settings_id",
+        "label": "Settings ID",
+        "fieldtype": "Data",
+        "reqd": 1,
+        "unique": 1,
+        "default": "customer-corner"
+      },
+      {
+        "fieldname": "title",
+        "label": "Title",
+        "fieldtype": "Data",
+        "reqd": 1,
+        "default": "Customer account for trade buyers."
+      },
+      {
+        "fieldname": "intro_copy",
+        "label": "Intro Copy",
+        "fieldtype": "Small Text",
+        "default": "Use one email login to track website quotations, ERP purchase history and the next action from Green Leaf sales."
+      },
+      {
+        "fieldname": "enabled",
+        "label": "Customer Corner Enabled",
+        "fieldtype": "Check",
+        "default": "1"
+      },
+      {
+        "fieldname": "login_enabled",
+        "label": "Email Login Enabled",
+        "fieldtype": "Check",
+        "default": "1"
+      },
+      {
+        "fieldname": "show_quote_history",
+        "label": "Show Quote History",
+        "fieldtype": "Check",
+        "default": "1"
+      },
+      {
+        "fieldname": "show_purchase_history",
+        "label": "Show Purchase History",
+        "fieldtype": "Check",
+        "default": "1"
+      },
+      {
+        "fieldname": "sales_email",
+        "label": "Sales Email",
+        "fieldtype": "Data",
+        "default": "buy@greenleafpacific.com"
+      },
+      {
+        "fieldname": "sales_phone",
+        "label": "Sales Phone",
+        "fieldtype": "Data",
+        "default": "+679 670 2222"
+      },
+      {
+        "fieldname": "payment_note",
+        "label": "Payment Note",
+        "fieldtype": "Small Text",
+        "default": "Payment link will be added after Windcave approval."
+      }
+    ]
+  }
+]

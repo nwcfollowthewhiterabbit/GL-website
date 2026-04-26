@@ -144,7 +144,16 @@ export async function getCustomerOrdersByEmail(emailValue, limit = 20) {
 
   const [rows] = await getErpPool().execute(
     `
-      SELECT so.name, so.customer, so.transaction_date, so.grand_total, so.status, so.creation
+      SELECT
+        so.name,
+        so.customer,
+        so.transaction_date,
+        so.delivery_date,
+        so.grand_total,
+        so.status,
+        so.per_delivered,
+        so.per_billed,
+        so.creation
       FROM \`tabSales Order\` so
       JOIN \`tabCustomer\` c ON c.name = so.customer
       WHERE LOWER(c.email_id) = :email
@@ -158,8 +167,11 @@ export async function getCustomerOrdersByEmail(emailValue, limit = 20) {
     name: row.name,
     customer: row.customer,
     transactionDate: row.transaction_date,
+    deliveryDate: row.delivery_date,
     grandTotal: Number(row.grand_total || 0),
     status: row.status,
+    perDelivered: Number(row.per_delivered || 0),
+    perBilled: Number(row.per_billed || 0),
     creation: row.creation
   }));
 }

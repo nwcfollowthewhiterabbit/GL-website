@@ -14,6 +14,7 @@ import type {
   WebsiteBanner,
   WebsiteCatalogDownload,
   WebsiteCategory,
+  CustomerCornerSettings,
   WebsiteManufacturer
 } from "../types";
 
@@ -95,6 +96,11 @@ export async function fetchWebsiteCatalogs() {
 export async function fetchWebsiteManufacturers() {
   const data = await getJson<{ source: string; manufacturers: WebsiteManufacturer[] }>("/api/storefront/manufacturers");
   return data.manufacturers || [];
+}
+
+export async function fetchCustomerCornerSettings() {
+  const data = await getJson<{ source: string; settings: CustomerCornerSettings }>("/api/storefront/customer-corner");
+  return data.settings;
 }
 
 export async function fetchRecentQuotes(limit = 5) {

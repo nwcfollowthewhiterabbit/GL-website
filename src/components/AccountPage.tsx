@@ -14,7 +14,7 @@ import {
   ShoppingCart,
   UserRound
 } from "lucide-react";
-import type { AccountSession, RecentQuote } from "../types";
+import type { AccountSession, CustomerCornerSettings, RecentQuote } from "../types";
 
 type AccountPageProps = {
   email: string;
@@ -25,6 +25,7 @@ type AccountPageProps = {
   devCode: string;
   isLoading: boolean;
   isAuthenticated: boolean;
+  settings: CustomerCornerSettings;
   onEmailChange: (value: string) => void;
   onCodeChange: (value: string) => void;
   onStartLogin: () => void;
@@ -50,6 +51,10 @@ function statusClass(status?: string) {
   return `account-status account-status--${String(status || "open").toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
 }
 
+function percent(value?: number) {
+  return `${Math.max(0, Math.min(100, Math.round(Number(value || 0))))}%`;
+}
+
 export function AccountPage({
   email,
   code,
@@ -59,6 +64,7 @@ export function AccountPage({
   devCode,
   isLoading,
   isAuthenticated,
+  settings,
   onEmailChange,
   onCodeChange,
   onStartLogin,
@@ -73,6 +79,28 @@ export function AccountPage({
   const profile = account?.profile;
   const latestQuote = accountQuotes[0];
   const latestOrder = orders[0];
+  const quotesVisible = settings.showQuoteHistory;
+  const ordersVisible = settings.showPurchaseHistory;
+
+  if (!settings.enabled) {
+    return (
+      <section className="shell section account-page">
+        <div className="account-disabled">
+          <ShieldCheck size={28} />
+          <h2>Customer corner is temporarily unavailable.</h2>
+          <p>Contact Green Leaf sales for quotation and order updates.</p>
+          <div>
+            <a className="secondary-button" href={`mailto:${settings.salesEmail}`}>
+              <Mail size={18} /> {settings.salesEmail}
+            </a>
+            <a className="secondary-button" href={`tel:${settings.salesPhone.replace(/\s+/g, "")}`}>
+              {settings.salesPhone}
+            </a>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="shell section account-page">
@@ -81,8 +109,8 @@ export function AccountPage({
           <span className="eyebrow">
             <ShieldCheck size={16} /> Customer corner
           </span>
-          <h2>Customer account for trade buyers.</h2>
-          <p>Use one email login to track website quotations, ERP purchase history and the next action from Green Leaf sales.</p>
+          <h2>{settings.title}</h2>
+          <p>{settings.introCopy}</p>
           <div className="account-hero__actions">
             <a className="quote-button" href="/catalog">
               <ShoppingCart size={18} /> Browse catalog
@@ -94,7 +122,15 @@ export function AccountPage({
         </div>
 
         <aside className="account-auth" aria-label="Customer login">
-          {isAuthenticated ? (
+          {!settings.loginEnabled ? (
+            <div className="account-auth__state">
+              <Mail size={18} />
+              <div>
+                <strong>Email login is disabled</strong>
+                <span>Contact {settings.salesEmail} for account history.</span>
+              </div>
+            </div>
+          ) : isAuthenticated ? (
             <>
               <div className="account-auth__state">
                 <CheckCircle2 size={18} />
@@ -151,13 +187,13 @@ export function AccountPage({
         </article>
         <article>
           <span>Website quotes</span>
-          <strong>{accountQuotes.length}</strong>
-          <small>{latestQuote ? `Latest ${shortDate(latestQuote.creation || latestQuote.transactionDate)}` : "No quotes loaded"}</small>
+          <strong>{quotesVisible ? accountQuotes.length : "Off"}</strong>
+          <small>{quotesVisible && latestQuote ? `Latest ${shortDate(latestQuote.creation || latestQuote.transactionDate)}` : "Managed in ERP"}</small>
         </article>
         <article>
           <span>Purchase orders</span>
-          <strong>{orders.length}</strong>
-          <small>{latestOrder ? `Latest ${shortDate(latestOrder.creation || latestOrder.transactionDate)}` : "No orders loaded"}</small>
+          <strong>{ordersVisible ? orders.length : "Off"}</strong>
+          <small>{ordersVisible && latestOrder ? `Latest ${shortDate(latestOrder.creation || latestOrder.transactionDate)}` : "Managed in ERP"}</small>
         </article>
       </div>
 
@@ -197,6 +233,7 @@ export function AccountPage({
           </section>
         ) : null}
 
+        {quotesVisible ? (
         <section className="account-panel account-panel--wide">
           <div className="account-panel__head">
             <div>
@@ -217,10 +254,10 @@ export function AccountPage({
                   <div>
                     <strong>{quote.name}</strong>
                     <span>{quote.customer}</span>
-                    <small>{quote.marker || shortDate(quote.creation || quote.transactionDate)}</small>
+                    <small>{quote.marker || quote.orderType || "Website quotation"}</small>
                   </div>
                   <span className={statusClass(quote.status)}>{quote.status}</span>
-                  <span>{shortDate(quote.creation || quote.transactionDate)}</span>
+                  <span>Valid until {shortDate(quote.validTill)}</span>
                   <strong>{money(quote.grandTotal)} FJD</strong>
                 </article>
               ))
@@ -236,7 +273,9 @@ export function AccountPage({
             )}
           </div>
         </section>
+        ) : null}
 
+        {ordersVisible ? (
         <section className="account-panel account-panel--wide">
           <div className="account-panel__head">
             <div>
@@ -253,10 +292,10 @@ export function AccountPage({
                   <div>
                     <strong>{order.name}</strong>
                     <span>{order.customer}</span>
-                    <small>{shortDate(order.creation || order.transactionDate)}</small>
+                    <small>Delivery {shortDate(order.deliveryDate)}</small>
                   </div>
                   <span className={statusClass(order.status)}>{order.status}</span>
-                  <span>{shortDate(order.creation || order.transactionDate)}</span>
+                  <span>Delivered {percent(order.perDelivered)} / Billed {percent(order.perBilled)}</span>
                   <strong>{money(order.grandTotal)} FJD</strong>
                 </article>
               ))
@@ -269,6 +308,7 @@ export function AccountPage({
             )}
           </div>
         </section>
+        ) : null}
 
         <section className="account-panel account-panel--wide">
           <div className="account-panel__head">
@@ -282,7 +322,7 @@ export function AccountPage({
             <span><ShoppingCart size={18} /> Select products in catalog</span>
             <span><FileText size={18} /> Send quote request to ERPNext</span>
             <span><Clock3 size={18} /> Sales confirms stock and lead time</span>
-            <span><PackageCheck size={18} /> Orders appear after approval</span>
+            <span><PackageCheck size={18} /> {settings.paymentNote}</span>
           </div>
         </section>
       </div>

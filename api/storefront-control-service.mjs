@@ -196,3 +196,60 @@ export async function getWebsiteManufacturers() {
     }))
   };
 }
+
+export async function getWebsiteCustomerCornerSettings() {
+  const settingsTable = "tabWebsite Customer Corner Settings";
+  const fallback = {
+    source: "fallback_static_customer_corner",
+    settings: {
+      enabled: true,
+      loginEnabled: true,
+      showQuoteHistory: true,
+      showPurchaseHistory: true,
+      title: "Customer account for trade buyers.",
+      introCopy: "Use one email login to track website quotations, ERP purchase history and the next action from Green Leaf sales.",
+      salesEmail: "buy@greenleafpacific.com",
+      salesPhone: "+679 670 2222",
+      paymentNote: "Payment link will be added after Windcave approval."
+    }
+  };
+
+  if (!(await tableExists(settingsTable))) {
+    return fallback;
+  }
+
+  const [rows] = await getErpPool().execute(
+    `
+      SELECT
+        IFNULL(enabled, 1) AS enabled,
+        IFNULL(login_enabled, 1) AS login_enabled,
+        IFNULL(show_quote_history, 1) AS show_quote_history,
+        IFNULL(show_purchase_history, 1) AS show_purchase_history,
+        IFNULL(NULLIF(title, ''), 'Customer account for trade buyers.') AS title,
+        IFNULL(NULLIF(intro_copy, ''), 'Use one email login to track website quotations, ERP purchase history and the next action from Green Leaf sales.') AS intro_copy,
+        IFNULL(NULLIF(sales_email, ''), 'buy@greenleafpacific.com') AS sales_email,
+        IFNULL(NULLIF(sales_phone, ''), '+679 670 2222') AS sales_phone,
+        IFNULL(NULLIF(payment_note, ''), 'Payment link will be added after Windcave approval.') AS payment_note
+      FROM \`${settingsTable}\`
+      ORDER BY modified DESC, creation DESC
+      LIMIT 1
+    `
+  );
+
+  if (!rows[0]) return fallback;
+
+  return {
+    source: "erp_website_customer_corner_settings",
+    settings: {
+      enabled: Boolean(Number(rows[0].enabled || 0)),
+      loginEnabled: Boolean(Number(rows[0].login_enabled || 0)),
+      showQuoteHistory: Boolean(Number(rows[0].show_quote_history || 0)),
+      showPurchaseHistory: Boolean(Number(rows[0].show_purchase_history || 0)),
+      title: rows[0].title,
+      introCopy: rows[0].intro_copy,
+      salesEmail: rows[0].sales_email,
+      salesPhone: rows[0].sales_phone,
+      paymentNote: rows[0].payment_note
+    }
+  };
+}

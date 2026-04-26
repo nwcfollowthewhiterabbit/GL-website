@@ -71,6 +71,20 @@ const CONTROL_SECTIONS = [
     preview_label: (row) => row.display_name || row.item_code || row.name
   },
   {
+    key: "customer_corner",
+    title: __("Customer Corner"),
+    plain_title: "Customer Corner",
+    doctype: "Website Customer Corner Settings",
+    description: __("Customer account page controls: login, quote history, purchase history and customer-facing help text."),
+    help: __("Keep one settings record enabled. Use it to hide sensitive account sections without changing website code."),
+    actions: [
+      { label: __("Open Settings"), route: ["List", "Website Customer Corner Settings"], primary: true },
+      { label: __("Add Settings"), new_doc: "Website Customer Corner Settings" }
+    ],
+    fields: ["name", "title", "enabled", "login_enabled", "show_quote_history", "show_purchase_history"],
+    preview_label: (row) => row.title || row.name
+  },
+  {
     key: "manufacturers",
     title: __("Manufacturer Logos"),
     plain_title: "Manufacturer Logos",
@@ -118,9 +132,9 @@ const PLANNED_CONTROLS = [
   },
   {
     title: __("Customer Portal"),
-    status: __("In progress"),
-    text: __("Customer quote/order history is started. Needs final rules for what customers can see."),
-    route: ["List", "Customer"]
+    status: __("Ready"),
+    text: __("Use Customer Corner settings to control login, quote history and purchase history visibility."),
+    route: ["List", "Website Customer Corner Settings"]
   },
   {
     title: __("Windcave Payments"),

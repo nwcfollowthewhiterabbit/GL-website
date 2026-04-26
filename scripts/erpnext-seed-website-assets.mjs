@@ -10,7 +10,8 @@ import { websiteManufacturers } from "../src/data/manufacturersSeed.mjs";
 const fixturePaths = [
   fileURLToPath(new URL("../erpnext/fixtures/website_catalog_doctype.json", import.meta.url)),
   fileURLToPath(new URL("../erpnext/fixtures/website_manufacturer_doctype.json", import.meta.url)),
-  fileURLToPath(new URL("../erpnext/fixtures/website_featured_product_doctype.json", import.meta.url))
+  fileURLToPath(new URL("../erpnext/fixtures/website_featured_product_doctype.json", import.meta.url)),
+  fileURLToPath(new URL("../erpnext/fixtures/website_customer_corner_settings_doctype.json", import.meta.url))
 ];
 
 async function tableExists(tableName) {
@@ -103,6 +104,30 @@ async function ensureRuntimeTables() {
       PRIMARY KEY (name),
       UNIQUE KEY item_code (item_code),
       KEY sort_order (sort_order)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  await getErpPool().query(`
+    CREATE TABLE IF NOT EXISTS \`tabWebsite Customer Corner Settings\` (
+      name varchar(140) NOT NULL,
+      creation datetime(6) DEFAULT NULL,
+      modified datetime(6) DEFAULT NULL,
+      modified_by varchar(140) DEFAULT NULL,
+      owner varchar(140) DEFAULT NULL,
+      docstatus int(1) NOT NULL DEFAULT 0,
+      idx int(8) NOT NULL DEFAULT 0,
+      settings_id varchar(140) DEFAULT NULL,
+      title varchar(140) DEFAULT NULL,
+      intro_copy text,
+      enabled int(1) NOT NULL DEFAULT 1,
+      login_enabled int(1) NOT NULL DEFAULT 1,
+      show_quote_history int(1) NOT NULL DEFAULT 1,
+      show_purchase_history int(1) NOT NULL DEFAULT 1,
+      sales_email varchar(140) DEFAULT NULL,
+      sales_phone varchar(140) DEFAULT NULL,
+      payment_note text,
+      PRIMARY KEY (name),
+      UNIQUE KEY settings_id (settings_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
 }
@@ -341,6 +366,34 @@ async function seedFeaturedProducts() {
   console.log(`Website featured products seeded. Products: ${products.length}.`);
 }
 
+async function seedCustomerCornerSettings() {
+  const now = new Date().toISOString().slice(0, 19).replace("T", " ");
+  await getErpPool().execute(
+    `
+      INSERT INTO \`tabWebsite Customer Corner Settings\`
+        (name, creation, modified, modified_by, owner, docstatus, idx, settings_id, title, intro_copy,
+         enabled, login_enabled, show_quote_history, show_purchase_history, sales_email, sales_phone, payment_note)
+      VALUES
+        ('customer-corner', :now, :now, 'Administrator', 'Administrator', 0, 1, 'customer-corner',
+         'Customer account for trade buyers.',
+         'Use one email login to track website quotations, ERP purchase history and the next action from Green Leaf sales.',
+         1, 1, 1, 1, 'buy@greenleafpacific.com', '+679 670 2222',
+         'Payment link will be added after Windcave approval.')
+      ON DUPLICATE KEY UPDATE
+        modified = VALUES(modified),
+        settings_id = VALUES(settings_id),
+        title = IFNULL(NULLIF(title, ''), VALUES(title)),
+        intro_copy = IFNULL(NULLIF(intro_copy, ''), VALUES(intro_copy)),
+        sales_email = IFNULL(NULLIF(sales_email, ''), VALUES(sales_email)),
+        sales_phone = IFNULL(NULLIF(sales_phone, ''), VALUES(sales_phone)),
+        payment_note = IFNULL(NULLIF(payment_note, ''), VALUES(payment_note))
+    `,
+    { now }
+  );
+
+  console.log("Website customer corner settings ensured.");
+}
+
 async function main() {
   const fixtures = await loadFixtures();
   await tryCreateDoctypes(fixtures);
@@ -349,6 +402,7 @@ async function main() {
   await seedCatalogs();
   await seedManufacturers();
   await seedFeaturedProducts();
+  await seedCustomerCornerSettings();
 }
 
 main()

@@ -79,6 +79,8 @@ async function main() {
 
   const websiteManufacturers = await readJson("/api/storefront/manufacturers");
   assert(Array.isArray(websiteManufacturers.manufacturers), "Website manufacturers response is invalid");
+  const customerCorner = await readJson("/api/storefront/customer-corner");
+  assert(customerCorner.settings?.title, "Customer corner settings response is invalid");
   assert(websiteManufacturers.manufacturers.length > 0, "Website manufacturers returned no logos");
   assert(typeof websiteManufacturers.source === "string", "Website manufacturers source is missing");
 
@@ -131,6 +133,7 @@ async function main() {
   console.log(`- Website banners source: ${banners.source}`);
   console.log(`- Website catalogs source: ${websiteCatalogs.source}, ${websiteCatalogs.catalogs.length} downloads`);
   console.log(`- Website manufacturers source: ${websiteManufacturers.source}, ${websiteManufacturers.manufacturers.length} logos`);
+  console.log(`- Customer corner source: ${customerCorner.source}`);
   console.log(`- Product route SKU: ${product.product.sku}`);
   console.log(`- Related products: ${related.products.length}`);
   console.log(`- Featured products: ${featured.products.length} from ${featured.source}`);

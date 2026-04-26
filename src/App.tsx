@@ -30,6 +30,7 @@ import {
   fetchCatalogFacets,
   fetchCatalogProducts,
   fetchCatalogSuggestions,
+  fetchCustomerCornerSettings,
   fetchFeaturedCatalogProducts,
   fetchItemGroups,
   fetchRecentQuotes,
@@ -49,6 +50,7 @@ import type {
   CatalogProduct,
   CatalogSuggestion,
   AccountSession,
+  CustomerCornerSettings,
   ItemGroup,
   QuoteLine,
   QuoteRequestResponse,
@@ -62,6 +64,18 @@ import type {
 import "./main.css";
 
 const PAGE_SIZE = 12;
+
+const fallbackCustomerCornerSettings: CustomerCornerSettings = {
+  enabled: true,
+  loginEnabled: true,
+  showQuoteHistory: true,
+  showPurchaseHistory: true,
+  title: "Customer account for trade buyers.",
+  introCopy: "Use one email login to track website quotations, ERP purchase history and the next action from Green Leaf sales.",
+  salesEmail: "buy@greenleafpacific.com",
+  salesPhone: "+679 670 2222",
+  paymentNote: "Payment link will be added after Windcave approval."
+};
 
 function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
@@ -118,6 +132,7 @@ function App() {
   const [websiteBanners, setWebsiteBanners] = useState<WebsiteBanner[]>([]);
   const [websiteCatalogs, setWebsiteCatalogs] = useState<WebsiteCatalogDownload[]>([]);
   const [websiteManufacturers, setWebsiteManufacturers] = useState<WebsiteManufacturer[]>([]);
+  const [customerCornerSettings, setCustomerCornerSettings] = useState<CustomerCornerSettings>(fallbackCustomerCornerSettings);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState("");
   const [activeWebsiteCategory, setActiveWebsiteCategory] = useState("");
@@ -238,6 +253,12 @@ function App() {
     fetchWebsiteManufacturers()
       .then((manufacturers) => setWebsiteManufacturers(manufacturers.filter((manufacturer) => manufacturer.logo && manufacturer.name)))
       .catch(() => setWebsiteManufacturers([]));
+  }, []);
+
+  useEffect(() => {
+    fetchCustomerCornerSettings()
+      .then((settings) => setCustomerCornerSettings(settings || fallbackCustomerCornerSettings))
+      .catch(() => setCustomerCornerSettings(fallbackCustomerCornerSettings));
   }, []);
 
   useEffect(() => {
@@ -754,6 +775,7 @@ function App() {
           devCode={accountDevCode}
           isLoading={accountLoading}
           isAuthenticated={Boolean(accountToken && accountSession)}
+          settings={customerCornerSettings}
           onEmailChange={setAccountEmail}
           onCodeChange={setAccountCode}
           onStartLogin={beginAccountLogin}

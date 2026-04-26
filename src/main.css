@@ -1492,6 +1492,7 @@ textarea:focus-visible {
 .account-hero,
 .account-auth,
 .account-panel,
+.account-disabled,
 .account-summary article {
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -1534,6 +1535,37 @@ textarea:focus-visible {
   width: auto;
   min-height: 44px;
   padding: 0 16px;
+}
+
+.account-disabled {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+  padding: 28px;
+}
+
+.account-disabled svg {
+  color: var(--leaf-dark);
+}
+
+.account-disabled h2 {
+  max-width: 720px;
+  margin: 0;
+  color: var(--ink);
+  font-size: 36px;
+  line-height: 1.1;
+}
+
+.account-disabled p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 18px;
+}
+
+.account-disabled div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .account-auth {

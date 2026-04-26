@@ -78,6 +78,18 @@ export type WebsiteManufacturer = {
   url?: string;
 };
 
+export type CustomerCornerSettings = {
+  enabled: boolean;
+  loginEnabled: boolean;
+  showQuoteHistory: boolean;
+  showPurchaseHistory: boolean;
+  title: string;
+  introCopy: string;
+  salesEmail: string;
+  salesPhone: string;
+  paymentNote: string;
+};
+
 export type CatalogDiagnostics = {
   priceList?: string;
   storefrontRules?: StorefrontRules;
@@ -108,8 +120,10 @@ export type RecentQuote = {
   owner?: string;
   customer: string;
   transactionDate?: string;
+  validTill?: string;
   grandTotal: number;
   status: string;
+  orderType?: string;
   creation?: string;
   marker: string;
 };
@@ -118,8 +132,11 @@ export type CustomerOrder = {
   name: string;
   customer: string;
   transactionDate?: string;
+  deliveryDate?: string;
   grandTotal: number;
   status: string;
+  perDelivered?: number;
+  perBilled?: number;
   creation?: string;
 };
 
