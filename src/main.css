@@ -540,41 +540,48 @@ textarea:focus-visible {
 }
 
 .hero-slider__controls .icon-button {
-  border-color: rgba(255, 255, 255, 0.55);
-  background: rgba(255, 255, 255, 0.52);
-  color: rgba(22, 32, 24, 0.78);
-  box-shadow: 0 10px 28px rgba(23, 35, 27, 0.08);
+  width: 40px;
+  height: 40px;
+  border-color: rgba(255, 255, 255, 0.34);
+  background: rgba(255, 255, 255, 0.28);
+  color: rgba(22, 32, 24, 0.62);
+  box-shadow: 0 8px 22px rgba(23, 35, 27, 0.06);
   backdrop-filter: blur(10px);
 }
 
+.hero-slider__controls .icon-button svg {
+  width: 18px;
+  height: 18px;
+}
+
 .hero-slider__controls .icon-button:hover {
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.5);
   color: var(--ink);
 }
 
 .hero-slider__dots {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  min-height: 38px;
-  padding: 0 10px;
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  gap: 7px;
+  min-height: 30px;
+  padding: 0 8px;
+  border: 1px solid rgba(255, 255, 255, 0.32);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.42);
+  background: rgba(255, 255, 255, 0.24);
   backdrop-filter: blur(10px);
 }
 
 .hero-slider__dots button {
-  width: 28px;
-  height: 8px;
+  width: 22px;
+  height: 6px;
   padding: 0;
   border: 0;
   border-radius: 999px;
-  background: rgba(80, 88, 82, 0.28);
+  background: rgba(80, 88, 82, 0.22);
 }
 
 .hero-slider__dots button.is-active {
-  background: rgba(21, 59, 40, 0.72);
+  background: rgba(21, 59, 40, 0.58);
 }
 
 .hero__actions {
