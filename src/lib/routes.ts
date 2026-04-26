@@ -1,5 +1,5 @@
 export type StorefrontRoute =
-  | { view: "catalog"; categorySlug?: string; search?: string }
+  | { view: "catalog"; categorySlug?: string; itemGroupSlug?: string; search?: string }
   | { view: "product"; sku: string }
   | { view: "account" };
 
@@ -15,6 +15,11 @@ export function slugify(value: string) {
 export function catalogPath(category?: string) {
   if (!category) return "/catalog";
   return `/catalog/${slugify(category)}`;
+}
+
+export function departmentCategoryPath(departmentId: string, category: string) {
+  if (!departmentId) return catalogPath(category);
+  return `/catalog/${departmentId}/${slugify(category)}`;
 }
 
 export function productPath(sku: string) {
@@ -36,9 +41,14 @@ export function parseStorefrontRoute(pathname = window.location.pathname, search
   }
 
   if (path.startsWith("/catalog/")) {
+    const [categorySlug, itemGroupSlug] = path
+      .slice("/catalog/".length)
+      .split("/")
+      .filter(Boolean);
     return {
       view: "catalog",
-      categorySlug: path.slice("/catalog/".length),
+      categorySlug,
+      itemGroupSlug,
       search: searchTerm
     };
   }

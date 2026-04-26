@@ -42,7 +42,7 @@ import {
   startAccountLogin,
   verifyAccountLogin
 } from "./lib/api";
-import { catalogPath, findCategoryBySlug, parseStorefrontRoute, productPath, type StorefrontRoute } from "./lib/routes";
+import { catalogPath, departmentCategoryPath, findCategoryBySlug, parseStorefrontRoute, productPath, type StorefrontRoute } from "./lib/routes";
 import type {
   CatalogDiagnostics,
   CatalogFacets,
@@ -269,7 +269,7 @@ function App() {
     const department = websiteNavigationCategories.find((category) => category.id === route.categorySlug);
     if (department) {
       setActiveWebsiteCategory(department.id);
-      setActiveCategory("");
+      setActiveCategory(findCategoryBySlug(matchedItemGroups(department, itemGroups), route.itemGroupSlug));
       setPage(1);
       return;
     }
@@ -439,7 +439,9 @@ function App() {
     }
     setActiveCategory(category);
     setPage(1);
-    if (!categoryBelongsToActiveDepartment) {
+    if (categoryBelongsToActiveDepartment && activeDepartment) {
+      navigate(departmentCategoryPath(activeDepartment.id, category));
+    } else {
       navigate(catalogPath(category), { view: "catalog", categorySlug: undefined });
     }
   }

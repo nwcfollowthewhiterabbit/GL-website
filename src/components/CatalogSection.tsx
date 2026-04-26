@@ -158,7 +158,7 @@ export function CatalogSection({
         <div className="catalog-main">
           <div className="catalog-current">
             <div>
-              <span>{activeDepartment ? "Department" : activeCategory ? "ERP item group" : "Catalog"}</span>
+              <span>{activeCategory ? "ERP item group" : activeDepartment ? "Department" : "Catalog"}</span>
               <strong>{activeLabel}</strong>
             </div>
             {activeDepartment ? <p>{activeDepartment.description}</p> : null}
@@ -281,7 +281,7 @@ export function CatalogSection({
                       event.currentTarget.src = productPlaceholder;
                     }}
                   />
-                  <span className="tag">{activeItemGroupNames.has(product.category) ? activeDepartment?.label : product.category}</span>
+                  <span className="tag">{activeCategory ? product.category : activeItemGroupNames.has(product.category) ? activeDepartment?.label : product.category}</span>
                 </div>
                 <div className="product-card__body">
                   <div className="product-card__badges">
