@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { AccountPage } from "./components/AccountPage";
 import { CatalogDownloadsSection } from "./components/CatalogDownloadsSection";
 import { CatalogSection } from "./components/CatalogSection";
+import { EditorialImageBand } from "./components/EditorialImageBand";
 import { HeroSection } from "./components/HeroSection";
 import { LegacyContentSection } from "./components/LegacyContentSection";
 import { ProductDetailPage } from "./components/ProductDetailPage";
@@ -857,6 +858,7 @@ function App() {
       {route.view !== "product" ? (
         <HeroSection banners={heroBanners} />
       ) : null}
+      {route.view !== "product" && route.view !== "account" ? <EditorialImageBand /> : null}
       {route.view === "account" ? (
         <AccountPage
           email={accountEmail}
