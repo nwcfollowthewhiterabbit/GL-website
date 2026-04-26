@@ -41,6 +41,16 @@ export type WebsiteCategory = {
   featured?: boolean;
 };
 
+export type WebsiteBanner = {
+  id: string;
+  label: string;
+  title: string;
+  copy: string;
+  image: string;
+  href: string;
+  openInNewTab?: boolean;
+};
+
 export type CatalogDiagnostics = {
   priceList?: string;
   storefrontRules?: StorefrontRules;

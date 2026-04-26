@@ -1,0 +1,70 @@
+[
+  {
+    "doctype": "DocType",
+    "name": "Website Banner",
+    "module": "Greenleaf",
+    "custom": 1,
+    "istable": 0,
+    "autoname": "field:banner_id",
+    "title_field": "title",
+    "sort_field": "sort_order",
+    "sort_order": "ASC",
+    "fields": [
+      {
+        "fieldname": "banner_id",
+        "label": "Banner ID",
+        "fieldtype": "Data",
+        "reqd": 1,
+        "unique": 1,
+        "description": "Stable URL-safe id, for example iced-tea-program."
+      },
+      {
+        "fieldname": "label",
+        "label": "Admin Label",
+        "fieldtype": "Data"
+      },
+      {
+        "fieldname": "title",
+        "label": "Title",
+        "fieldtype": "Data",
+        "reqd": 1
+      },
+      {
+        "fieldname": "copy",
+        "label": "Copy",
+        "fieldtype": "Small Text"
+      },
+      {
+        "fieldname": "image",
+        "label": "Image URL",
+        "fieldtype": "Data",
+        "reqd": 1,
+        "description": "Use a public storefront path or ERP file URL."
+      },
+      {
+        "fieldname": "href",
+        "label": "Click URL",
+        "fieldtype": "Data",
+        "default": "/catalog"
+      },
+      {
+        "fieldname": "open_in_new_tab",
+        "label": "Open in New Tab",
+        "fieldtype": "Check",
+        "default": "0"
+      },
+      {
+        "fieldname": "enabled",
+        "label": "Enabled on Website",
+        "fieldtype": "Check",
+        "default": "1"
+      },
+      {
+        "fieldname": "sort_order",
+        "label": "Website Sort Order",
+        "fieldtype": "Int",
+        "default": "0"
+      }
+    ]
+  }
+]

@@ -8,6 +8,7 @@ The storefront should stay as a separate Dockerized application. ERPNext should 
 
 - `fixtures/custom_fields.json`: proposed ERPNext `Custom Field` fixtures for stable website markers and audit data.
 - `fixtures/website_department_doctypes.json`: proposed ERPNext DocTypes for customer-facing department mapping.
+- `fixtures/website_banner_doctype.json`: proposed ERPNext DocType for hero/banner management.
 - `patches/`: operational patch notes and future migration scripts.
 - `../scripts/erpnext-validate.mjs`: local validator for ERPNext readiness.
 - `../docs/erpnext-setup.md`: setup and deployment checklist.
@@ -24,5 +25,6 @@ The site already works without these custom fields by storing the idempotency ma
 - `Customer.website_last_quote_request`
 - `Item.website_featured` / label `Recommended on Website` controls the product recommendation strip on the storefront.
 - `Website Department` controls the customer-facing catalog navigation and maps each storefront department to many ERP `Item Group` records.
+- `Website Banner` controls the storefront hero slideshow.
 
 Until these fields are applied to ERPNext, the API remains backward-compatible with `enq_det`.

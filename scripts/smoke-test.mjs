@@ -68,6 +68,10 @@ async function main() {
   assert(Array.isArray(departments.departments), "Website departments response is invalid");
   assert(typeof departments.source === "string", "Website departments source is missing");
 
+  const banners = await readJson("/api/storefront/banners");
+  assert(Array.isArray(banners.banners), "Website banners response is invalid");
+  assert(typeof banners.source === "string", "Website banners source is missing");
+
   const product = await readJson(`/api/catalog/product?sku=${encodeURIComponent(catalog.products[0].sku)}`);
   assert(product.product?.sku === catalog.products[0].sku, "Product endpoint returned the wrong SKU");
 
@@ -114,6 +118,7 @@ async function main() {
   console.log(`- Catalog search products: ${catalog.products.length} of ${catalog.total}`);
   console.log(`- Facet item groups: ${facets.itemGroups.length}`);
   console.log(`- Website departments source: ${departments.source}`);
+  console.log(`- Website banners source: ${banners.source}`);
   console.log(`- Product route SKU: ${product.product.sku}`);
   console.log(`- Related products: ${related.products.length}`);
   console.log(`- Featured products: ${featured.products.length} from ${featured.source}`);

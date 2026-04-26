@@ -10,6 +10,7 @@ import type {
   QuoteRequestPayload,
   QuoteRequestResponse,
   RecentQuote,
+  WebsiteBanner,
   WebsiteCategory
 } from "../types";
 
@@ -70,6 +71,11 @@ export function fetchCatalogFacets() {
 export async function fetchWebsiteDepartments() {
   const data = await getJson<{ source: string; departments: WebsiteCategory[] }>("/api/storefront/departments");
   return data.departments || [];
+}
+
+export async function fetchWebsiteBanners() {
+  const data = await getJson<{ source: string; banners: WebsiteBanner[] }>("/api/storefront/banners");
+  return data.banners || [];
 }
 
 export async function fetchRecentQuotes(limit = 5) {

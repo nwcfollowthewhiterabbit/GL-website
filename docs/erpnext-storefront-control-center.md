@@ -60,6 +60,33 @@ npm run erpnext:seed-departments:docker
 
 This creates the runtime tables, registers the ERPNext DocType metadata, and loads the initial department mapping from the current storefront category map.
 
+## Hero Banner Controls
+
+ERPNext DocType: `Website Banner`
+
+| Field | Purpose |
+| --- | --- |
+| `banner_id` | Stable id for the banner record. |
+| `label` | Internal/admin label. |
+| `title` | Main hero headline. |
+| `copy` | Supporting text shown over the banner. |
+| `image` | Public storefront path or ERP file URL. |
+| `href` | Click destination. |
+| `open_in_new_tab` | Opens the destination in a new tab when enabled. |
+| `enabled` | Shows or hides this banner. |
+| `sort_order` | Controls banner order. |
+
+API behavior:
+
+- `GET /api/storefront/banners` returns ERP-managed hero slides when `Website Banner` exists.
+- If the DocType/table is not installed, React uses `src/data/heroBannersSeed.mjs` as fallback.
+
+Local seed command:
+
+```bash
+npm run erpnext:seed-banners:docker
+```
+
 ## Product Overrides
 
 ERPNext DocType: `Item`

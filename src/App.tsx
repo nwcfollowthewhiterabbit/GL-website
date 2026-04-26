@@ -12,6 +12,7 @@ import { ServiceContactSection } from "./components/ServiceContactSection";
 import { SiteFooter } from "./components/SiteFooter";
 import { SiteHeader } from "./components/SiteHeader";
 import { featuredProducts as fallbackProducts } from "./data/catalog";
+import { heroBanners as fallbackHeroBanners } from "./data/heroBannersSeed.mjs";
 import {
   matchedItemGroups,
   websiteCategories as fallbackWebsiteCategories,
@@ -29,6 +30,7 @@ import {
   fetchItemGroups,
   fetchRecentQuotes,
   fetchRelatedCatalogProducts,
+  fetchWebsiteBanners,
   fetchWebsiteDepartments,
   logoutAccount,
   startAccountLogin,
@@ -45,6 +47,7 @@ import type {
   QuoteRequestResponse,
   QuoteResult,
   RecentQuote,
+  WebsiteBanner,
   WebsiteCategory
 } from "./types";
 import "./main.css";
@@ -89,6 +92,7 @@ function App() {
   const [quoteNotes, setQuoteNotes] = useState("");
   const [itemGroups, setItemGroups] = useState<ItemGroup[]>([]);
   const [websiteDepartments, setWebsiteDepartments] = useState<WebsiteCategory[]>([]);
+  const [websiteBanners, setWebsiteBanners] = useState<WebsiteBanner[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState("");
   const [activeWebsiteCategory, setActiveWebsiteCategory] = useState("");
@@ -113,6 +117,7 @@ function App() {
   const [accountStatus, setAccountStatus] = useState("");
   const [accountLoading, setAccountLoading] = useState(false);
   const websiteNavigationCategories = websiteDepartments.length ? websiteDepartments : fallbackWebsiteCategories;
+  const heroBanners = websiteBanners.length ? websiteBanners : (fallbackHeroBanners as WebsiteBanner[]);
 
   useEffect(() => {
     window.history.scrollRestoration = "manual";
@@ -179,6 +184,12 @@ function App() {
     fetchWebsiteDepartments()
       .then((departments) => setWebsiteDepartments(departments.filter((department) => department.itemGroups.length)))
       .catch(() => setWebsiteDepartments([]));
+  }, []);
+
+  useEffect(() => {
+    fetchWebsiteBanners()
+      .then((banners) => setWebsiteBanners(banners.filter((banner) => banner.image && banner.title)))
+      .catch(() => setWebsiteBanners([]));
   }, []);
 
   useEffect(() => {
@@ -610,7 +621,7 @@ function App() {
     <main className="app">
       <SiteHeader departments={websiteNavigationCategories} quoteCount={quoteCount} onOpenQuote={() => setQuoteOpen(true)} />
       {route.view !== "product" ? (
-        <HeroSection />
+        <HeroSection banners={heroBanners} />
       ) : null}
       {route.view === "account" ? (
         <AccountPage

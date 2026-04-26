@@ -79,3 +79,44 @@ export async function getWebsiteDepartments() {
     }))
   };
 }
+
+export async function getWebsiteBanners() {
+  const bannerTable = "tabWebsite Banner";
+  if (!(await tableExists(bannerTable))) {
+    return { source: "fallback_static_hero_banners", banners: [] };
+  }
+
+  const [banners] = await getErpPool().execute(
+    `
+      SELECT
+        name,
+        IFNULL(NULLIF(banner_id, ''), name) AS banner_id,
+        IFNULL(label, '') AS label,
+        IFNULL(title, '') AS title,
+        IFNULL(copy, '') AS copy,
+        IFNULL(image, '') AS image,
+        IFNULL(href, '') AS href,
+        IFNULL(open_in_new_tab, 0) AS open_in_new_tab
+      FROM \`${bannerTable}\`
+      WHERE IFNULL(enabled, 1) = 1
+      ORDER BY IFNULL(sort_order, 0), idx, creation
+    `
+  );
+
+  if (!banners.length) {
+    return { source: "erp_website_banner_empty", banners: [] };
+  }
+
+  return {
+    source: "erp_website_banner",
+    banners: banners.map((banner) => ({
+      id: normalizeId(banner.banner_id || banner.name),
+      label: banner.label || banner.title || banner.name,
+      title: banner.title || banner.label || banner.name,
+      copy: banner.copy || "",
+      image: banner.image || "",
+      href: banner.href || "/catalog",
+      openInNewTab: Boolean(Number(banner.open_in_new_tab || 0))
+    }))
+  };
+}

@@ -1,60 +1,47 @@
 import { useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight, Building2 } from "lucide-react";
 import { productPlaceholder } from "../lib/catalog";
+import type { WebsiteBanner } from "../types";
 
-export function HeroSection() {
-  const heroSlides = [
-    {
-      label: "Iced tea program",
-      title: "Beverage dispensers for hotel service.",
-      copy: "Contact Green Leaf sales about beverage programs and dispensers.",
-      image: "/legacy/slider/iced3.jpg",
-      href: "/catalog#contact"
-    },
-    {
-      label: "Trex decking",
-      title: "Outdoor fitouts for Fiji resorts.",
-      copy: "Open the Trex Fiji project site for decking and exterior spaces.",
-      image: "/legacy/slider/trex.jpg",
-      href: "https://trexfiji.com/"
-    },
-    {
-      label: "Karcher cleaning",
-      title: "Wet season cleaning equipment.",
-      copy: "Search commercial wet and dry vacuum cleaners in the catalog.",
-      image: "/legacy/slider/karcher_slider.jpg",
-      href: "/catalog?q=Vacuum%20Cleaner%2C%20Wet%20and%20Dry"
-    },
-    {
-      label: "Buffet solutions",
-      title: "Buffet presentation for hotels and resorts.",
-      copy: "Browse buffet display, serviceware and operational supply.",
-      image: "/legacy/slider/buffet.jpg",
-      href: "/catalog/buffet-table-service"
-    }
-  ];
+type HeroSectionProps = {
+  banners: WebsiteBanner[];
+};
+
+export function HeroSection({ banners }: HeroSectionProps) {
   const [activeSlide, setActiveSlide] = useState(0);
-  const slide = heroSlides[activeSlide];
+  const slide = banners[activeSlide] || banners[0];
 
   useEffect(() => {
+    setActiveSlide(0);
+  }, [banners]);
+
+  useEffect(() => {
+    if (banners.length <= 1) return;
     const timer = window.setInterval(() => {
-      setActiveSlide((value) => (value + 1) % heroSlides.length);
+      setActiveSlide((value) => (value + 1) % banners.length);
     }, 6500);
     return () => window.clearInterval(timer);
-  }, [heroSlides.length]);
+  }, [banners.length]);
 
   function previousSlide() {
-    setActiveSlide((value) => (value - 1 + heroSlides.length) % heroSlides.length);
+    setActiveSlide((value) => (value - 1 + banners.length) % banners.length);
   }
 
   function nextSlide() {
-    setActiveSlide((value) => (value + 1) % heroSlides.length);
+    setActiveSlide((value) => (value + 1) % banners.length);
   }
+
+  if (!slide) return null;
 
   return (
     <section className="shell hero">
       <div className="hero-slider" aria-label="Featured Green Leaf campaigns">
-        <a className="hero-slide" href={slide.href}>
+        <a
+          className="hero-slide"
+          href={slide.href || "/catalog"}
+          target={slide.openInNewTab ? "_blank" : undefined}
+          rel={slide.openInNewTab ? "noreferrer" : undefined}
+        >
           <img
             src={slide.image}
             alt=""
@@ -67,31 +54,33 @@ export function HeroSection() {
               <Building2 size={16} /> B2B supply for hotels, restaurants and resorts
             </span>
             <h1>{slide.title}</h1>
-            <p className="hero__copy">{slide.copy}</p>
+            {slide.copy ? <p className="hero__copy">{slide.copy}</p> : null}
             <span className="primary-button">
               Open promotion <ArrowRight size={18} />
             </span>
           </div>
         </a>
-        <div className="hero-slider__controls">
-          <button type="button" className="icon-button" onClick={previousSlide} aria-label="Previous hero slide">
-            <ArrowLeft />
-          </button>
-          <div className="hero-slider__dots" aria-label="Select hero slide">
-            {heroSlides.map((item, index) => (
-              <button
-                type="button"
-                className={activeSlide === index ? "is-active" : ""}
-                key={item.label}
-                onClick={() => setActiveSlide(index)}
-                aria-label={`Show ${item.label}`}
-              />
-            ))}
+        {banners.length > 1 ? (
+          <div className="hero-slider__controls">
+            <button type="button" className="icon-button" onClick={previousSlide} aria-label="Previous hero slide">
+              <ArrowLeft />
+            </button>
+            <div className="hero-slider__dots" aria-label="Select hero slide">
+              {banners.map((item, index) => (
+                <button
+                  type="button"
+                  className={activeSlide === index ? "is-active" : ""}
+                  key={item.id || item.label}
+                  onClick={() => setActiveSlide(index)}
+                  aria-label={`Show ${item.label || item.title}`}
+                />
+              ))}
+            </div>
+            <button type="button" className="icon-button" onClick={nextSlide} aria-label="Next hero slide">
+              <ArrowRight />
+            </button>
           </div>
-          <button type="button" className="icon-button" onClick={nextSlide} aria-label="Next hero slide">
-            <ArrowRight />
-          </button>
-        </div>
+        ) : null}
       </div>
     </section>
   );

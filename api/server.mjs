@@ -11,7 +11,7 @@ import {
 import { pingErpDb } from "./erpnext-db.mjs";
 import { legacySyncRules } from "./legacy-sync-rules.mjs";
 import { createQuoteRequest, getRecentWebsiteQuotes, getWebsiteQuotesByEmail } from "./quote-service.mjs";
-import { getWebsiteDepartments } from "./storefront-control-service.mjs";
+import { getWebsiteBanners, getWebsiteDepartments } from "./storefront-control-service.mjs";
 import {
   endAccountSession,
   getAccountSession,
@@ -114,6 +114,17 @@ app.get("/api/storefront/departments", async (_req, res) => {
     res.status(503).json({
       error: "erpnext_website_departments_unavailable",
       message: error instanceof Error ? error.message : "Unknown ERPNext website department error"
+    });
+  }
+});
+
+app.get("/api/storefront/banners", async (_req, res) => {
+  try {
+    res.json(await getWebsiteBanners());
+  } catch (error) {
+    res.status(503).json({
+      error: "erpnext_website_banners_unavailable",
+      message: error instanceof Error ? error.message : "Unknown ERPNext website banner error"
     });
   }
 });
