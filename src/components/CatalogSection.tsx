@@ -273,7 +273,12 @@ export function CatalogSection({
             <div className="product-grid">
               {products.map((product) => (
               <article className="product-card" key={product.sku}>
-                <div className="product-card__image">
+                <button
+                  type="button"
+                  className="product-card__image"
+                  onClick={() => onSelectProduct(product)}
+                  aria-label={`Open details for ${product.name}`}
+                >
                   <img
                     src={productImage(product)}
                     alt=""
@@ -282,7 +287,7 @@ export function CatalogSection({
                     }}
                   />
                   <span className="tag">{activeCategory ? product.category : activeItemGroupNames.has(product.category) ? activeDepartment?.label : product.category}</span>
-                </div>
+                </button>
                 <div className="product-card__body">
                   <div className="product-card__badges">
                     <span className={`availability-badge is-${availabilityTone(product)}`}>{availabilityLabel(product)}</span>
