@@ -431,10 +431,6 @@ textarea:focus-visible {
 }
 
 .hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.36fr);
-  gap: 18px;
-  align-items: start;
   padding: 38px 0 34px;
 }
 
@@ -473,7 +469,7 @@ textarea:focus-visible {
 .hero-slide {
   position: relative;
   display: block;
-  min-height: 500px;
+  min-height: 540px;
   color: var(--ink);
 }
 
@@ -501,7 +497,7 @@ textarea:focus-visible {
   display: grid;
   align-content: center;
   gap: 12px;
-  min-height: 500px;
+  min-height: 540px;
   max-width: 360px;
   padding: 36px;
 }
@@ -567,12 +563,6 @@ textarea:focus-visible {
 
 .hero-slider__dots button.is-active {
   background: var(--leaf-dark);
-}
-
-.hero__side {
-  display: grid;
-  gap: 14px;
-  align-self: stretch;
 }
 
 .hero__actions {

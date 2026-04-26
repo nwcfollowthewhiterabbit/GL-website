@@ -1,30 +1,8 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, ArrowRight, Building2, CheckCircle2, Mail, PackageSearch, Search, Truck } from "lucide-react";
-import { catalogStats, manufacturers } from "../data/catalog";
-import { legacyBrand } from "../data/legacyContent";
+import { ArrowLeft, ArrowRight, Building2 } from "lucide-react";
 import { productPlaceholder } from "../lib/catalog";
 
-type HeroSectionProps = {
-  catalogTotal: number | null;
-  quoteCompany: string;
-  quoteEmail: string;
-  quoteStatus: string;
-  isSubmitting: boolean;
-  onCompanyChange: (value: string) => void;
-  onEmailChange: (value: string) => void;
-  onSubmitQuickQuote: () => void;
-};
-
-export function HeroSection({
-  catalogTotal,
-  quoteCompany,
-  quoteEmail,
-  quoteStatus,
-  isSubmitting,
-  onCompanyChange,
-  onEmailChange,
-  onSubmitQuickQuote
-}: HeroSectionProps) {
+export function HeroSection() {
   const heroSlides = [
     {
       label: "Iced tea program",
@@ -115,50 +93,6 @@ export function HeroSection({
           </button>
         </div>
       </div>
-
-      <aside className="hero__side">
-        <div className="quote-panel" aria-label="Fast quote form">
-          <h2>Fast trade quote</h2>
-          <p>Send your company details and start a quote request with Green Leaf sales.</p>
-          <div className="field-grid">
-            <label className="field">
-              <Search size={18} />
-              <input
-                placeholder="Company name"
-                value={quoteCompany}
-                onChange={(event) => onCompanyChange(event.target.value)}
-              />
-            </label>
-            <label className="field">
-              <Mail size={18} />
-              <input
-                placeholder="Buyer email"
-                type="email"
-                value={quoteEmail}
-                onChange={(event) => onEmailChange(event.target.value)}
-              />
-            </label>
-            <button className="quote-button" onClick={onSubmitQuickQuote} disabled={isSubmitting}>
-              {isSubmitting ? "Creating..." : "Request trade quote"} <ArrowRight size={18} />
-            </button>
-            {quoteStatus ? <p className="quote-panel__status">{quoteStatus}</p> : null}
-          </div>
-        </div>
-        <div className="quick-links">
-          <span className="pill">
-            <PackageSearch /> {(catalogTotal || catalogStats.erpnext.items).toLocaleString()} catalog items
-          </span>
-          <span className="pill">
-            <Truck /> Trade quote workflow
-          </span>
-          <span className="pill">
-            <CheckCircle2 /> {manufacturers.length}+ mapped brands
-          </span>
-          <span className="pill">
-            <Mail /> {legacyBrand.email}
-          </span>
-        </div>
-      </aside>
     </section>
   );
 }
