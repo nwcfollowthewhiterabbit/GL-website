@@ -29,6 +29,7 @@ import {
   fetchCatalogProduct,
   fetchCatalogFacets,
   fetchCatalogProducts,
+  fetchCatalogSuggestions,
   fetchFeaturedCatalogProducts,
   fetchItemGroups,
   fetchRecentQuotes,
@@ -46,6 +47,7 @@ import type {
   CatalogDiagnostics,
   CatalogFacets,
   CatalogProduct,
+  CatalogSuggestion,
   AccountSession,
   ItemGroup,
   QuoteLine,
@@ -115,6 +117,8 @@ function App() {
   const [recentQuotes, setRecentQuotes] = useState<RecentQuote[]>([]);
   const [catalogFacets, setCatalogFacets] = useState<CatalogFacets | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [catalogSuggestions, setCatalogSuggestions] = useState<CatalogSuggestion[]>([]);
+  const [catalogSuggestionsLoading, setCatalogSuggestionsLoading] = useState(false);
   const [quoteSubmitting, setQuoteSubmitting] = useState(false);
   const [quoteResult, setQuoteResult] = useState<QuoteResult | null>(null);
   const [accountEmail, setAccountEmail] = useState("");
@@ -218,6 +222,47 @@ function App() {
       .then((manufacturers) => setWebsiteManufacturers(manufacturers.filter((manufacturer) => manufacturer.logo && manufacturer.name)))
       .catch(() => setWebsiteManufacturers([]));
   }, []);
+
+  useEffect(() => {
+    const q = searchTerm.trim();
+    if (!q) {
+      setCatalogSuggestions([]);
+      setCatalogSuggestionsLoading(false);
+      return;
+    }
+
+    let ignore = false;
+    setCatalogSuggestionsLoading(true);
+    const timer = window.setTimeout(() => {
+      fetchCatalogSuggestions(q, 8)
+        .then((suggestions) => {
+          if (ignore) return;
+          const lower = q.toLowerCase();
+          const departmentSuggestions = websiteNavigationCategories
+            .filter((department) => department.label.toLowerCase().includes(lower))
+            .slice(0, 3)
+            .map((department) => ({
+              id: `department:${department.id}`,
+              type: "department" as const,
+              label: department.label,
+              detail: "Department",
+              departmentId: department.id
+            }));
+          setCatalogSuggestions([...departmentSuggestions, ...suggestions].slice(0, 8));
+        })
+        .catch(() => {
+          if (!ignore) setCatalogSuggestions([]);
+        })
+        .finally(() => {
+          if (!ignore) setCatalogSuggestionsLoading(false);
+        });
+    }, 120);
+
+    return () => {
+      ignore = true;
+      window.clearTimeout(timer);
+    };
+  }, [searchTerm, websiteNavigationCategories]);
 
   useEffect(() => {
     if (route.view !== "catalog" || !route.categorySlug || !itemGroups.length) return;
@@ -417,6 +462,24 @@ function App() {
   function openProduct(product: CatalogProduct) {
     setActiveProduct(product);
     navigate(productPath(product.sku), { view: "product", sku: product.sku });
+  }
+
+  function selectCatalogSuggestion(suggestion: CatalogSuggestion) {
+    if (suggestion.type === "product" && suggestion.sku) {
+      navigate(productPath(suggestion.sku), { view: "product", sku: suggestion.sku });
+      return;
+    }
+
+    if (suggestion.type === "department" && suggestion.departmentId) {
+      setSearchTerm("");
+      setDepartment(suggestion.departmentId);
+      return;
+    }
+
+    if (suggestion.type === "item_group" && suggestion.category) {
+      setSearchTerm("");
+      setCategory(suggestion.category);
+    }
   }
 
   function backToCatalog() {
@@ -703,10 +766,13 @@ function App() {
           filtersOpen={filtersOpen}
           diagnostics={diagnostics}
           catalogFacets={catalogFacets}
+          searchSuggestions={catalogSuggestions}
+          suggestionsLoading={catalogSuggestionsLoading}
           onToggleFilters={() => setFiltersOpen((value) => !value)}
           onDepartmentChange={setDepartment}
           onCategoryChange={setCategory}
           onSearchChange={setSearch}
+          onSelectSuggestion={selectCatalogSuggestion}
           onPageChange={setPage}
           onSelectProduct={openProduct}
           onAddToQuote={addToQuote}

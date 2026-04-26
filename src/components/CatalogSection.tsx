@@ -1,6 +1,7 @@
+import { useEffect, useRef, useState } from "react";
 import { ChevronRight, Clock3, Layers3, Search, ShoppingCart, X } from "lucide-react";
 import { availabilityLabel, availabilityTone, plainTextDescription, priceLabel, productImage, productPlaceholder } from "../lib/catalog";
-import type { CatalogDiagnostics, CatalogFacets, CatalogProduct, ItemGroup, WebsiteCategory } from "../types";
+import type { CatalogDiagnostics, CatalogFacets, CatalogProduct, CatalogSuggestion, ItemGroup, WebsiteCategory } from "../types";
 
 type WebsiteCategoryView = WebsiteCategory & {
   itemCount: number;
@@ -23,10 +24,13 @@ type CatalogSectionProps = {
   filtersOpen: boolean;
   diagnostics: CatalogDiagnostics | null;
   catalogFacets: CatalogFacets | null;
+  searchSuggestions: CatalogSuggestion[];
+  suggestionsLoading: boolean;
   onToggleFilters: () => void;
   onDepartmentChange: (categoryId: string) => void;
   onCategoryChange: (category: string) => void;
   onSearchChange: (value: string) => void;
+  onSelectSuggestion: (suggestion: CatalogSuggestion) => void;
   onPageChange: (page: number) => void;
   onSelectProduct: (product: CatalogProduct) => void;
   onAddToQuote: (product: CatalogProduct) => void;
@@ -48,14 +52,19 @@ export function CatalogSection({
   filtersOpen,
   diagnostics,
   catalogFacets,
+  searchSuggestions,
+  suggestionsLoading,
   onToggleFilters,
   onDepartmentChange,
   onCategoryChange,
   onSearchChange,
+  onSelectSuggestion,
   onPageChange,
   onSelectProduct,
   onAddToQuote
 }: CatalogSectionProps) {
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
   const activeDepartment = visibleCategories.find((category) => category.id === activeWebsiteCategory);
   const activeLabel = activeCategory || activeDepartment?.label || "All products";
   const hasActiveFilters = Boolean(activeCategory || activeWebsiteCategory || searchTerm);
@@ -81,6 +90,17 @@ export function CatalogSection({
       ))}
     </div>
   ) : null;
+  const shouldShowSuggestions = suggestionsOpen && searchTerm.trim().length >= 1;
+
+  useEffect(() => {
+    if (!searchTerm.trim()) setSuggestionsOpen(false);
+  }, [searchTerm]);
+
+  function selectSuggestion(suggestion: CatalogSuggestion) {
+    setSuggestionsOpen(false);
+    searchInputRef.current?.blur();
+    onSelectSuggestion(suggestion);
+  }
 
   return (
     <section className="shell section" id="catalog">
@@ -145,14 +165,58 @@ export function CatalogSection({
           </div>
 
           <div className="catalog-tools">
-            <label className="search">
-              <Search size={18} />
-              <input
-                placeholder="Search product name, SKU, dimensions"
-                value={searchTerm}
-                onChange={(event) => onSearchChange(event.target.value)}
-              />
-            </label>
+            <div className="search-shell">
+              <label className="search">
+                <Search size={18} />
+                <input
+                  ref={searchInputRef}
+                  placeholder="Search product name, SKU, dimensions"
+                  value={searchTerm}
+                  onFocus={() => {
+                    if (searchTerm.trim()) setSuggestionsOpen(true);
+                  }}
+                  onChange={(event) => {
+                    onSearchChange(event.target.value);
+                    setSuggestionsOpen(Boolean(event.target.value.trim()));
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Escape") {
+                      setSuggestionsOpen(false);
+                      return;
+                    }
+                    if (event.key === "Enter" && searchSuggestions[0]) {
+                      event.preventDefault();
+                      selectSuggestion(searchSuggestions[0]);
+                    }
+                  }}
+                />
+              </label>
+              {shouldShowSuggestions ? (
+                <div className="search-suggestions" role="listbox" aria-label="Search suggestions">
+                  {suggestionsLoading ? (
+                    <div className="search-suggestions__status">Searching...</div>
+                  ) : searchSuggestions.length ? (
+                    searchSuggestions.map((suggestion) => (
+                      <button
+                        type="button"
+                        className="search-suggestion"
+                        key={suggestion.id}
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => selectSuggestion(suggestion)}
+                      >
+                        <span className="search-suggestion__type">
+                          {suggestion.type === "product" ? "Product" : suggestion.type === "department" ? "Department" : "Category"}
+                        </span>
+                        <strong>{suggestion.label}</strong>
+                        {suggestion.detail ? <small>{suggestion.detail}</small> : null}
+                      </button>
+                    ))
+                  ) : (
+                    <div className="search-suggestions__status">No suggestions</div>
+                  )}
+                </div>
+              ) : null}
+            </div>
             <div className="catalog-tools__actions">
               <button type="button" className="secondary-button catalog-filter-button" onClick={onToggleFilters}>
                 <Layers3 size={18} /> Categories

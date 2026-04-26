@@ -6,6 +6,7 @@ import {
   getCatalogItemGroups,
   getCatalogProductBySku,
   getCatalogProducts,
+  getCatalogSuggestions,
   getFeaturedCatalogProducts
 } from "./catalog-service.mjs";
 import { pingErpDb } from "./erpnext-db.mjs";
@@ -108,6 +109,19 @@ app.get("/api/catalog/facets", async (_req, res) => {
     res.status(503).json({
       error: "erpnext_catalog_facets_unavailable",
       message: error instanceof Error ? error.message : "Unknown ERPNext facets error"
+    });
+  }
+});
+
+app.get("/api/catalog/suggestions", async (req, res) => {
+  try {
+    const q = String(req.query.q || "").trim();
+    const limit = Math.min(Math.max(Number.parseInt(String(req.query.limit || "8"), 10) || 8, 1), 12);
+    res.json({ suggestions: await getCatalogSuggestions(q, limit) });
+  } catch (error) {
+    res.status(503).json({
+      error: "erpnext_catalog_suggestions_unavailable",
+      message: error instanceof Error ? error.message : "Unknown ERPNext catalog suggestions error"
     });
   }
 });

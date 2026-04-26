@@ -244,6 +244,52 @@ export async function getFeaturedCatalogProducts(limit = 8) {
   return { source: hasItemFields.website_featured ? "fallback_catalog_latest" : "fallback_missing_custom_field", products: result.products };
 }
 
+export async function getCatalogSuggestions(query, limit = 8) {
+  const q = String(query || "").trim();
+  if (!q) return [];
+
+  const max = normalizePage(limit, 8, 12);
+  const lower = q.toLowerCase();
+  const [catalogResult, categoryRules] = await Promise.all([
+    getCatalogProducts({ q, pageSize: max }),
+    getCategoryRules()
+  ]);
+
+  const categorySuggestions = categoryRules
+    .filter(
+      (group) =>
+        group.itemCount > 0 &&
+        group.showOnStorefront !== false &&
+        [group.name, group.parent || ""].some((value) => value.toLowerCase().includes(lower))
+    )
+    .sort((a, b) => {
+      const aStarts = a.name.toLowerCase().startsWith(lower) ? 0 : 1;
+      const bStarts = b.name.toLowerCase().startsWith(lower) ? 0 : 1;
+      if (aStarts !== bStarts) return aStarts - bStarts;
+      return b.itemCount - a.itemCount;
+    })
+    .slice(0, 4)
+    .map((group) => ({
+      id: `item_group:${group.name}`,
+      type: "item_group",
+      label: group.name,
+      detail: group.parent ? `${group.parent} - ${Number(group.itemCount || 0).toLocaleString()} items` : `${Number(group.itemCount || 0).toLocaleString()} items`,
+      category: group.name
+    }));
+
+  const productSuggestions = catalogResult.products.map((product) => ({
+    id: `product:${product.sku}`,
+    type: "product",
+    label: product.name,
+    detail: `${product.sku} - ${product.category}`,
+    sku: product.sku,
+    category: product.category,
+    image: product.image || null
+  }));
+
+  return [...categorySuggestions, ...productSuggestions].slice(0, max);
+}
+
 export async function getCatalogItemGroups() {
   return getCategoryRules();
 }

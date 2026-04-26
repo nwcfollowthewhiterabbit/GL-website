@@ -6,6 +6,7 @@ import type {
   CatalogFacets,
   CatalogProduct,
   CatalogProductsResponse,
+  CatalogSuggestion,
   ItemGroup,
   QuoteRequestPayload,
   QuoteRequestResponse,
@@ -43,6 +44,12 @@ export async function fetchCatalogProduct(sku: string) {
   const search = new URLSearchParams({ sku });
   const data = await getJson<{ product: CatalogProduct }>(`/api/catalog/product?${search.toString()}`);
   return data.product;
+}
+
+export async function fetchCatalogSuggestions(q: string, limit = 8) {
+  const search = new URLSearchParams({ q, limit: String(limit) });
+  const data = await getJson<{ suggestions: CatalogSuggestion[] }>(`/api/catalog/suggestions?${search.toString()}`);
+  return data.suggestions || [];
 }
 
 export async function fetchRelatedCatalogProducts(sku: string, limit = 4) {

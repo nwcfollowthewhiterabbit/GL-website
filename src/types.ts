@@ -14,6 +14,17 @@ export type CatalogProduct = {
   description?: string;
 };
 
+export type CatalogSuggestion = {
+  id: string;
+  type: "product" | "item_group" | "department";
+  label: string;
+  detail?: string;
+  sku?: string;
+  category?: string;
+  departmentId?: string;
+  image?: string | null;
+};
+
 export type QuoteLine = CatalogProduct & {
   qty: number;
 };
