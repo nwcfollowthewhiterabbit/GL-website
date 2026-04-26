@@ -30,11 +30,13 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: hidden;
 }
 
 body {
   margin: 0;
   min-width: 320px;
+  overflow-x: hidden;
 }
 
 button,
@@ -65,6 +67,23 @@ a {
 
 img {
   max-width: 100%;
+}
+
+h1,
+h2,
+h3,
+p,
+span,
+strong,
+button,
+a {
+  min-width: 0;
+}
+
+h1,
+h2,
+h3 {
+  overflow-wrap: anywhere;
 }
 
 button:focus-visible,
@@ -116,6 +135,15 @@ textarea:focus-visible {
   flex-wrap: wrap;
 }
 
+.topbar__group {
+  min-width: 0;
+}
+
+.topbar__group span,
+.topbar__group a {
+  overflow-wrap: anywhere;
+}
+
 .topbar svg,
 .nav svg,
 .pill svg {
@@ -139,6 +167,7 @@ textarea:focus-visible {
   justify-content: space-between;
   gap: 22px;
   min-height: 74px;
+  min-width: 0;
 }
 
 .brand {
@@ -146,6 +175,10 @@ textarea:focus-visible {
   align-items: center;
   gap: 12px;
   min-width: 190px;
+}
+
+.brand > span:last-child {
+  min-width: 0;
 }
 
 .brand__mark {
@@ -305,6 +338,16 @@ textarea:focus-visible {
   padding: 58px 0 28px;
 }
 
+.hero > *,
+.section-heading > *,
+.catalog-tools > *,
+.product-page__layout > *,
+.erp-layout > *,
+.legacy-layout > *,
+.contact > * {
+  min-width: 0;
+}
+
 .eyebrow {
   display: inline-flex;
   align-items: center;
@@ -336,6 +379,7 @@ textarea:focus-visible {
 
 .quick-links {
   margin-top: 28px;
+  overflow: hidden;
 }
 
 .pill {
@@ -350,6 +394,7 @@ textarea:focus-visible {
   color: #304137;
   font-size: 13px;
   font-weight: 700;
+  max-width: 100%;
 }
 
 .quote-panel,
@@ -817,6 +862,13 @@ textarea:focus-visible {
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+.product-card__image img[src$="product-placeholder.svg"],
+.product-page__media img[src$="product-placeholder.svg"],
+.product-modal__media img[src$="product-placeholder.svg"],
+.related-product img[src$="product-placeholder.svg"] {
+  object-fit: cover;
 }
 
 .tag {
@@ -1496,7 +1548,7 @@ textarea:focus-visible {
 
 @media (max-width: 680px) {
   .shell {
-    width: min(100% - 24px, 1180px);
+    width: min(calc(100% - 24px), 1180px);
   }
 
   .topbar__inner,
@@ -1509,10 +1561,19 @@ textarea:focus-visible {
 
   .nav__actions {
     width: 100%;
+    gap: 10px;
+    flex-wrap: nowrap;
   }
 
   .nav__actions .primary-button {
-    flex: 1;
+    flex: 1 1 0;
+    min-width: 0;
+    padding-inline: 12px;
+  }
+
+  .nav__actions .primary-button span {
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .hero {
@@ -1520,7 +1581,8 @@ textarea:focus-visible {
   }
 
   .hero h1 {
-    font-size: 42px;
+    font-size: 38px;
+    line-height: 1.04;
   }
 
   .hero__copy {
@@ -1558,7 +1620,8 @@ textarea:focus-visible {
   }
 
   .category-button {
-    min-width: 156px;
+    max-width: 220px;
+    white-space: nowrap;
   }
 
   .product-card__image {

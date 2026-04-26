@@ -10,6 +10,7 @@
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
     "smoke": "node scripts/smoke-test.mjs",
+    "visual:smoke": "node scripts/visual-smoke.mjs",
     "erpnext:validate": "node scripts/erpnext-validate.mjs",
     "erpnext:validate:docker": "docker compose exec api npm run erpnext:validate",
     "erpnext:apply-fixtures": "node scripts/erpnext-apply-fixtures.mjs",

@@ -1,15 +1,6 @@
 import type { CatalogProduct } from "../types";
 
-const fallbackImageByCategory = {
-  cleaning:
-    "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=900&q=75",
-  furniture:
-    "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=900&q=75",
-  kitchen:
-    "https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=900&q=75",
-  default:
-    "https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=900&q=75"
-};
+const productPlaceholder = "/product-placeholder.svg";
 
 export function productImage(product: CatalogProduct) {
   if (product.image?.startsWith("http")) {
@@ -19,11 +10,7 @@ export function productImage(product: CatalogProduct) {
     return `/api${product.image}`;
   }
 
-  const category = product.category.toLowerCase();
-  if (category.includes("clean") || category.includes("karcher")) return fallbackImageByCategory.cleaning;
-  if (category.includes("furniture") || category.includes("fitout")) return fallbackImageByCategory.furniture;
-  if (category.includes("kitchen") || category.includes("food")) return fallbackImageByCategory.kitchen;
-  return fallbackImageByCategory.default;
+  return productPlaceholder;
 }
 
 export function priceLabel(product: CatalogProduct) {
