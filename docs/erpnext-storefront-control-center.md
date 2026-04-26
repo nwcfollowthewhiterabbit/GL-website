@@ -2,6 +2,33 @@
 
 The website should not require a sales/admin user to manage a separate website backend. Storefront behavior is controlled in ERPNext.
 
+Desk page:
+
+```text
+http://localhost:18092/app/website-control-center
+```
+
+Workspace:
+
+```text
+http://localhost:18092/app/website-command-center
+```
+
+The Desk page source is kept in this repository under `erpnext/page/website_control_center/`. The local ERPNext app copy currently lives at:
+
+```text
+/Users/bc/woocommerce/erp-greenleafpacific-local/erp-build/apps/greenleaf/greenleaf/greenleaf/page/website_control_center/
+```
+
+After changing the page files, copy them into the ERPNext app and run:
+
+```bash
+docker exec erp-greenleafpacific-local-backend-1 bash -lc 'cd /home/frappe/frappe-bench && bench --site erp.greenleafpacific.com clear-cache'
+docker exec erp-greenleafpacific-local-backend-1 bash -lc 'cd /home/frappe/frappe-bench && bench build --app greenleaf'
+```
+
+The Command Center is intentionally written for everyday operators: large sections, simple labels, direct buttons, and short warnings instead of technical setup language.
+
 ## Category Controls
 
 ERPNext DocType: `Item Group`
