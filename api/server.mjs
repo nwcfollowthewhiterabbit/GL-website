@@ -11,7 +11,12 @@ import {
 import { pingErpDb } from "./erpnext-db.mjs";
 import { legacySyncRules } from "./legacy-sync-rules.mjs";
 import { createQuoteRequest, getRecentWebsiteQuotes, getWebsiteQuotesByEmail } from "./quote-service.mjs";
-import { getWebsiteBanners, getWebsiteDepartments } from "./storefront-control-service.mjs";
+import {
+  getWebsiteBanners,
+  getWebsiteCatalogs,
+  getWebsiteDepartments,
+  getWebsiteManufacturers
+} from "./storefront-control-service.mjs";
 import {
   endAccountSession,
   getAccountSession,
@@ -125,6 +130,28 @@ app.get("/api/storefront/banners", async (_req, res) => {
     res.status(503).json({
       error: "erpnext_website_banners_unavailable",
       message: error instanceof Error ? error.message : "Unknown ERPNext website banner error"
+    });
+  }
+});
+
+app.get("/api/storefront/catalogs", async (_req, res) => {
+  try {
+    res.json(await getWebsiteCatalogs());
+  } catch (error) {
+    res.status(503).json({
+      error: "erpnext_website_catalogs_unavailable",
+      message: error instanceof Error ? error.message : "Unknown ERPNext website catalog error"
+    });
+  }
+});
+
+app.get("/api/storefront/manufacturers", async (_req, res) => {
+  try {
+    res.json(await getWebsiteManufacturers());
+  } catch (error) {
+    res.status(503).json({
+      error: "erpnext_website_manufacturers_unavailable",
+      message: error instanceof Error ? error.message : "Unknown ERPNext website manufacturer error"
     });
   }
 });

@@ -23,6 +23,7 @@ export function SiteFooter({ departments }: SiteFooterProps) {
         </div>
         <div>
           <span>Company</span>
+          <a href="/catalog#catalogs">Catalogues</a>
           <a href="/catalog#brands">Brands</a>
           <a href="/catalog#service">Service</a>
           <a href="/account">Account</a>

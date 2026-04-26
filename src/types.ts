@@ -51,6 +51,22 @@ export type WebsiteBanner = {
   openInNewTab?: boolean;
 };
 
+export type WebsiteCatalogDownload = {
+  id: string;
+  title: string;
+  description: string;
+  fileUrl: string;
+  coverImage?: string;
+  sourceLabel?: string;
+};
+
+export type WebsiteManufacturer = {
+  id: string;
+  name: string;
+  logo: string;
+  url?: string;
+};
+
 export type CatalogDiagnostics = {
   priceList?: string;
   storefrontRules?: StorefrontRules;

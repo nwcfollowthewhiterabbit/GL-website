@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { AccountPage } from "./components/AccountPage";
+import { CatalogDownloadsSection } from "./components/CatalogDownloadsSection";
 import { CatalogSection } from "./components/CatalogSection";
 import { HeroSection } from "./components/HeroSection";
 import { LegacyContentSection } from "./components/LegacyContentSection";
@@ -12,7 +13,9 @@ import { ServiceContactSection } from "./components/ServiceContactSection";
 import { SiteFooter } from "./components/SiteFooter";
 import { SiteHeader } from "./components/SiteHeader";
 import { featuredProducts as fallbackProducts } from "./data/catalog";
+import { websiteCatalogDownloads as fallbackWebsiteCatalogs } from "./data/catalogDownloadsSeed.mjs";
 import { heroBanners as fallbackHeroBanners } from "./data/heroBannersSeed.mjs";
+import { websiteManufacturers as fallbackWebsiteManufacturers } from "./data/manufacturersSeed.mjs";
 import {
   matchedItemGroups,
   websiteCategories as fallbackWebsiteCategories,
@@ -31,7 +34,9 @@ import {
   fetchRecentQuotes,
   fetchRelatedCatalogProducts,
   fetchWebsiteBanners,
+  fetchWebsiteCatalogs,
   fetchWebsiteDepartments,
+  fetchWebsiteManufacturers,
   logoutAccount,
   startAccountLogin,
   verifyAccountLogin
@@ -48,7 +53,9 @@ import type {
   QuoteResult,
   RecentQuote,
   WebsiteBanner,
-  WebsiteCategory
+  WebsiteCatalogDownload,
+  WebsiteCategory,
+  WebsiteManufacturer
 } from "./types";
 import "./main.css";
 
@@ -93,6 +100,8 @@ function App() {
   const [itemGroups, setItemGroups] = useState<ItemGroup[]>([]);
   const [websiteDepartments, setWebsiteDepartments] = useState<WebsiteCategory[]>([]);
   const [websiteBanners, setWebsiteBanners] = useState<WebsiteBanner[]>([]);
+  const [websiteCatalogs, setWebsiteCatalogs] = useState<WebsiteCatalogDownload[]>([]);
+  const [websiteManufacturers, setWebsiteManufacturers] = useState<WebsiteManufacturer[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState("");
   const [activeWebsiteCategory, setActiveWebsiteCategory] = useState("");
@@ -118,6 +127,12 @@ function App() {
   const [accountLoading, setAccountLoading] = useState(false);
   const websiteNavigationCategories = websiteDepartments.length ? websiteDepartments : fallbackWebsiteCategories;
   const heroBanners = websiteBanners.length ? websiteBanners : (fallbackHeroBanners as WebsiteBanner[]);
+  const catalogDownloads = websiteCatalogs.length
+    ? websiteCatalogs
+    : (fallbackWebsiteCatalogs as WebsiteCatalogDownload[]);
+  const manufacturerLogos = websiteManufacturers.length
+    ? websiteManufacturers
+    : (fallbackWebsiteManufacturers as WebsiteManufacturer[]);
 
   useEffect(() => {
     window.history.scrollRestoration = "manual";
@@ -190,6 +205,18 @@ function App() {
     fetchWebsiteBanners()
       .then((banners) => setWebsiteBanners(banners.filter((banner) => banner.image && banner.title)))
       .catch(() => setWebsiteBanners([]));
+  }, []);
+
+  useEffect(() => {
+    fetchWebsiteCatalogs()
+      .then((catalogs) => setWebsiteCatalogs(catalogs.filter((catalog) => catalog.fileUrl && catalog.title)))
+      .catch(() => setWebsiteCatalogs([]));
+  }, []);
+
+  useEffect(() => {
+    fetchWebsiteManufacturers()
+      .then((manufacturers) => setWebsiteManufacturers(manufacturers.filter((manufacturer) => manufacturer.logo && manufacturer.name)))
+      .catch(() => setWebsiteManufacturers([]));
   }, []);
 
   useEffect(() => {
@@ -679,7 +706,8 @@ function App() {
       {route.view !== "product" ? (
         <RecommendedProductsSection products={recommendedProducts} onSelectProduct={openProduct} />
       ) : null}
-      <LegacyContentSection />
+      {route.view !== "product" ? <CatalogDownloadsSection catalogs={catalogDownloads} /> : null}
+      {route.view !== "product" ? <LegacyContentSection manufacturers={manufacturerLogos} /> : null}
       <ServiceContactSection onOpenQuote={() => setQuoteOpen(true)} />
       <SiteFooter departments={websiteNavigationCategories} />
       <QuoteDrawer

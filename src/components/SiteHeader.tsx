@@ -53,6 +53,7 @@ export function SiteHeader({ departments, quoteCount, onOpenQuote }: SiteHeaderP
             >
               Catalog
             </button>
+            <a href="/catalog#catalogs">Catalogues</a>
             <a href="/catalog#brands">Brands</a>
             <a href="/catalog#service">Service</a>
             <a href="/account">Account</a>
@@ -97,6 +98,7 @@ export function SiteHeader({ departments, quoteCount, onOpenQuote }: SiteHeaderP
             ))}
           </div>
           <div className="nav-menu__links">
+            <a href="/catalog#catalogs" onClick={closeMenu}>Catalogues</a>
             <a href="/catalog#brands" onClick={closeMenu}>Brands</a>
             <a href="/catalog#service" onClick={closeMenu}>Service</a>
             <a href="/catalog#contact" onClick={closeMenu}>Contact</a>

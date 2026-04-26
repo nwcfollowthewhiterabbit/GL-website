@@ -11,7 +11,9 @@ import type {
   QuoteRequestResponse,
   RecentQuote,
   WebsiteBanner,
-  WebsiteCategory
+  WebsiteCatalogDownload,
+  WebsiteCategory,
+  WebsiteManufacturer
 } from "../types";
 
 async function getJson<T>(path: string): Promise<T> {
@@ -76,6 +78,16 @@ export async function fetchWebsiteDepartments() {
 export async function fetchWebsiteBanners() {
   const data = await getJson<{ source: string; banners: WebsiteBanner[] }>("/api/storefront/banners");
   return data.banners || [];
+}
+
+export async function fetchWebsiteCatalogs() {
+  const data = await getJson<{ source: string; catalogs: WebsiteCatalogDownload[] }>("/api/storefront/catalogs");
+  return data.catalogs || [];
+}
+
+export async function fetchWebsiteManufacturers() {
+  const data = await getJson<{ source: string; manufacturers: WebsiteManufacturer[] }>("/api/storefront/manufacturers");
+  return data.manufacturers || [];
 }
 
 export async function fetchRecentQuotes(limit = 5) {

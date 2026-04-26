@@ -1,7 +1,14 @@
 import { Sparkles } from "lucide-react";
-import { legacyLogoStrip, legacyManufacturers } from "../data/legacyContent";
+import { legacyManufacturers } from "../data/legacyContent";
+import type { WebsiteManufacturer } from "../types";
 
-export function LegacyContentSection() {
+type LegacyContentSectionProps = {
+  manufacturers: WebsiteManufacturer[];
+};
+
+export function LegacyContentSection({ manufacturers }: LegacyContentSectionProps) {
+  if (!manufacturers.length) return null;
+
   return (
     <section className="shell section legacy-section">
       <div className="brands-section" id="brands">
@@ -16,10 +23,10 @@ export function LegacyContentSection() {
           </p>
         </div>
         <div>
-          {legacyLogoStrip.map((brand) => (
-            <div className="brand-strip__item" key={brand.name}>
-              <img src={brand.image} alt={brand.name} />
-            </div>
+          {manufacturers.map((brand) => (
+            <a className="brand-strip__item" href={brand.url || "/catalog"} key={brand.id}>
+              <img src={brand.logo} alt={brand.name} />
+            </a>
           ))}
         </div>
       </div>

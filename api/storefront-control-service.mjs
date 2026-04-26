@@ -120,3 +120,79 @@ export async function getWebsiteBanners() {
     }))
   };
 }
+
+export async function getWebsiteCatalogs() {
+  const catalogTable = "tabWebsite Catalog";
+  if (!(await tableExists(catalogTable))) {
+    return { source: "fallback_static_website_catalogs", catalogs: [] };
+  }
+
+  const [catalogs] = await getErpPool().execute(
+    `
+      SELECT
+        name,
+        IFNULL(NULLIF(catalog_id, ''), name) AS catalog_id,
+        IFNULL(title, '') AS title,
+        IFNULL(description, '') AS description,
+        IFNULL(file_url, '') AS file_url,
+        IFNULL(cover_image, '') AS cover_image,
+        IFNULL(source_label, '') AS source_label
+      FROM \`${catalogTable}\`
+      WHERE IFNULL(enabled, 1) = 1
+        AND IFNULL(file_url, '') <> ''
+      ORDER BY IFNULL(sort_order, 0), idx, creation
+    `
+  );
+
+  if (!catalogs.length) {
+    return { source: "erp_website_catalog_empty", catalogs: [] };
+  }
+
+  return {
+    source: "erp_website_catalog",
+    catalogs: catalogs.map((catalog) => ({
+      id: normalizeId(catalog.catalog_id || catalog.name),
+      title: catalog.title || catalog.name,
+      description: catalog.description || "",
+      fileUrl: catalog.file_url,
+      coverImage: catalog.cover_image || "",
+      sourceLabel: catalog.source_label || "Catalogue"
+    }))
+  };
+}
+
+export async function getWebsiteManufacturers() {
+  const manufacturerTable = "tabWebsite Manufacturer";
+  if (!(await tableExists(manufacturerTable))) {
+    return { source: "fallback_static_website_manufacturers", manufacturers: [] };
+  }
+
+  const [manufacturers] = await getErpPool().execute(
+    `
+      SELECT
+        name,
+        IFNULL(NULLIF(manufacturer_id, ''), name) AS manufacturer_id,
+        IFNULL(manufacturer_name, '') AS manufacturer_name,
+        IFNULL(logo, '') AS logo,
+        IFNULL(url, '') AS url
+      FROM \`${manufacturerTable}\`
+      WHERE IFNULL(enabled, 1) = 1
+        AND IFNULL(logo, '') <> ''
+      ORDER BY IFNULL(sort_order, 0), idx, creation
+    `
+  );
+
+  if (!manufacturers.length) {
+    return { source: "erp_website_manufacturer_empty", manufacturers: [] };
+  }
+
+  return {
+    source: "erp_website_manufacturer",
+    manufacturers: manufacturers.map((manufacturer) => ({
+      id: normalizeId(manufacturer.manufacturer_id || manufacturer.name),
+      name: manufacturer.manufacturer_name || manufacturer.name,
+      logo: manufacturer.logo,
+      url: manufacturer.url || ""
+    }))
+  };
+}

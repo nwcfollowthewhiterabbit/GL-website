@@ -1,0 +1,65 @@
+[
+  {
+    "doctype": "DocType",
+    "name": "Website Catalog",
+    "module": "Greenleaf",
+    "custom": 1,
+    "istable": 0,
+    "autoname": "field:catalog_id",
+    "title_field": "title",
+    "sort_field": "sort_order",
+    "sort_order": "ASC",
+    "fields": [
+      {
+        "fieldname": "catalog_id",
+        "label": "Catalog ID",
+        "fieldtype": "Data",
+        "reqd": 1,
+        "unique": 1,
+        "description": "Stable URL-safe id, for example winco-2018."
+      },
+      {
+        "fieldname": "title",
+        "label": "Title",
+        "fieldtype": "Data",
+        "reqd": 1
+      },
+      {
+        "fieldname": "description",
+        "label": "Description",
+        "fieldtype": "Small Text"
+      },
+      {
+        "fieldname": "source_label",
+        "label": "Source Label",
+        "fieldtype": "Data",
+        "default": "Catalogue"
+      },
+      {
+        "fieldname": "file_url",
+        "label": "PDF URL",
+        "fieldtype": "Data",
+        "reqd": 1,
+        "description": "Use a public URL or ERP file URL, for example /files/catalogue.pdf."
+      },
+      {
+        "fieldname": "cover_image",
+        "label": "Cover Image URL",
+        "fieldtype": "Data",
+        "description": "Optional image shown by future storefront layouts."
+      },
+      {
+        "fieldname": "enabled",
+        "label": "Enabled on Website",
+        "fieldtype": "Check",
+        "default": "1"
+      },
+      {
+        "fieldname": "sort_order",
+        "label": "Website Sort Order",
+        "fieldtype": "Int",
+        "default": "0"
+      }
+    ]
+  }
+]
