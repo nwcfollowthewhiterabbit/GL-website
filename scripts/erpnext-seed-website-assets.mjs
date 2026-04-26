@@ -244,6 +244,8 @@ async function seedCatalogs() {
 async function seedManufacturers() {
   const now = new Date().toISOString().slice(0, 19).replace("T", " ");
 
+  await getErpPool().execute("UPDATE `tabWebsite Manufacturer` SET enabled = 0");
+
   for (const [index, manufacturer] of websiteManufacturers.entries()) {
     await getErpPool().execute(
       `
