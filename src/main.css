@@ -773,10 +773,9 @@ textarea:focus-visible {
   position: sticky;
   top: 96px;
   display: grid;
-  gap: 8px;
-  max-height: calc(100vh - 116px);
-  overflow: auto;
-  padding: 14px;
+  gap: 4px;
+  overflow: visible;
+  padding: 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.96);
@@ -785,10 +784,10 @@ textarea:focus-visible {
 
 .catalog-sidebar__head {
   display: grid;
-  gap: 4px;
-  padding: 2px 2px 8px;
+  gap: 2px;
+  padding: 0 2px 8px;
   border-bottom: 1px solid var(--line);
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .catalog-sidebar__head span,
@@ -801,7 +800,7 @@ textarea:focus-visible {
 }
 
 .catalog-sidebar__head strong {
-  font-size: 18px;
+  font-size: 17px;
   line-height: 1.2;
 }
 
@@ -812,13 +811,14 @@ textarea:focus-visible {
   justify-content: space-between;
   gap: 10px;
   width: 100%;
-  min-height: 40px;
-  padding: 9px 10px;
+  min-height: 34px;
+  padding: 7px 9px;
   border: 1px solid transparent;
   border-radius: 8px;
   background: transparent;
   color: #33443a;
   text-align: left;
+  font-size: 14px;
   font-weight: 800;
 }
 
@@ -847,16 +847,16 @@ textarea:focus-visible {
 
 .catalog-sidebar__groups {
   display: grid;
-  gap: 6px;
-  margin-top: 10px;
-  padding-top: 12px;
+  gap: 4px;
+  margin-top: 8px;
+  padding-top: 10px;
   border-top: 1px solid var(--line);
 }
 
 .catalog-subcategory {
-  min-height: 36px;
-  padding: 8px 9px;
-  font-size: 13px;
+  min-height: 30px;
+  padding: 6px 9px;
+  font-size: 12px;
 }
 
 .catalog-current {
