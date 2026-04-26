@@ -72,6 +72,20 @@ function quotationName(data: QuoteRequestResponse) {
   return data.quotation?.name || "";
 }
 
+function quoteResultFromResponse(data: QuoteRequestResponse, email: string, options: Pick<QuoteResult, "reused" | "dryRun"> = {}): QuoteResult {
+  const name = quotationName(data) || data.id || "Validated quote request";
+  const missingSkus = (data.missing || []).map((line) => line.sku).filter(Boolean);
+  return {
+    name,
+    id: data.id,
+    missingCount: missingSkus.length,
+    missingSkus,
+    validLineCount: data.validLines?.length,
+    customerEmail: email,
+    ...options
+  };
+}
+
 function scrollToPageTopInstantly() {
   const root = document.documentElement;
   const body = document.body;
@@ -557,15 +571,15 @@ function App() {
 
       const name = quotationName(data);
       if (name && typeof data.quotation !== "string") {
-        const missingText = data.missing?.length ? ` ${data.missing.length} SKU missing.` : "";
-        setQuoteResult({ name, missingCount: data.missing?.length || 0 });
-        setQuoteStatus(`Quotation ${name} created.${missingText}`);
+        setQuoteResult(quoteResultFromResponse(data, quoteEmail));
+        setQuoteStatus("Quote request sent. Green Leaf sales will confirm price, stock and lead time.");
         refreshRecentQuotes();
       } else if (name) {
-        setQuoteResult({ name, missingCount: data.missing?.length || 0, reused: true });
-        setQuoteStatus(`Quotation ${name} already exists.`);
+        setQuoteResult(quoteResultFromResponse(data, quoteEmail, { reused: true }));
+        setQuoteStatus("This quote request was already received. We opened the existing ERP quotation.");
       } else if (data.mode === "validated_dry_run") {
-        setQuoteStatus("Validated. ERPNext REST credentials are not configured.");
+        setQuoteResult(quoteResultFromResponse(data, quoteEmail, { dryRun: true }));
+        setQuoteStatus("Validated locally. ERPNext REST credentials are not configured.");
       } else {
         setQuoteStatus(data.error || "Quote request processed.");
       }
@@ -601,16 +615,19 @@ function App() {
 
       const name = quotationName(data);
       if (name && typeof data.quotation !== "string") {
-        const missingText = data.missing?.length ? ` ${data.missing.length} SKU missing.` : "";
-        setQuoteResult({ name, missingCount: data.missing?.length || 0 });
-        setQuoteStatus(`Quotation ${name} created.${missingText}`);
+        setQuoteResult(quoteResultFromResponse(data, quoteEmail));
+        setQuoteStatus("Quote request sent. Green Leaf sales will confirm price, stock and lead time.");
         setQuoteLines([]);
         refreshRecentQuotes();
       } else if (name) {
-        setQuoteResult({ name, missingCount: data.missing?.length || 0, reused: true });
-        setQuoteStatus(`Quotation ${name} already exists.`);
+        setQuoteResult(quoteResultFromResponse(data, quoteEmail, { reused: true }));
+        setQuoteStatus("This quote request was already received. We opened the existing ERP quotation.");
+        setQuoteLines([]);
       } else if (data.mode === "validation_failed") {
         setQuoteStatus("No valid ERPNext items in basket.");
+      } else if (data.mode === "validated_dry_run") {
+        setQuoteResult(quoteResultFromResponse(data, quoteEmail, { dryRun: true }));
+        setQuoteStatus("Validated locally. ERPNext REST credentials are not configured.");
       } else {
         setQuoteStatus(data.error || "Quote request processed.");
       }
@@ -812,6 +829,11 @@ function App() {
         onRemoveLine={removeLine}
         onClear={() => {
           setQuoteResult(null);
+          setQuoteLines([]);
+        }}
+        onNewQuote={() => {
+          setQuoteResult(null);
+          setQuoteStatus("");
           setQuoteLines([]);
         }}
         onSubmit={submitQuote}

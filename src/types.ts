@@ -179,6 +179,8 @@ export type QuoteRequestPayload = {
 
 export type QuoteRequestResponse = {
   mode?: string;
+  id?: string;
+  nextAction?: string;
   error?: string;
   quotation?: string | {
     name: string;
@@ -186,11 +188,17 @@ export type QuoteRequestResponse = {
     customer?: string;
     grand_total?: number;
   };
-  missing?: Array<{ sku: string; qty: number; reason?: string }>;
+  validLines?: Array<{ item_code: string; qty: number; rate?: number; uom?: string }>;
+  missing?: Array<{ sku: string; qty?: number; reason?: string }>;
 };
 
 export type QuoteResult = {
   name: string;
+  id?: string;
   missingCount: number;
+  missingSkus?: string[];
+  validLineCount?: number;
+  customerEmail?: string;
   reused?: boolean;
+  dryRun?: boolean;
 };

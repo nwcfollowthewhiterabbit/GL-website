@@ -1,4 +1,4 @@
-import { ArrowRight, Building2, CheckCircle2, Mail, Minus, Phone, Plus, Send, StickyNote, Trash2, UserRound } from "lucide-react";
+import { AlertTriangle, ArrowRight, Building2, CheckCircle2, ClipboardCheck, Mail, Minus, Phone, Plus, RotateCcw, Send, StickyNote, Trash2, UserRound } from "lucide-react";
 import { priceLabel, productImage, productPlaceholder } from "../lib/catalog";
 import type { QuoteLine, QuoteResult } from "../types";
 
@@ -24,6 +24,7 @@ type QuoteDrawerProps = {
   onSetLineQty: (sku: string, qty: number) => void;
   onRemoveLine: (sku: string) => void;
   onClear: () => void;
+  onNewQuote: () => void;
   onSubmit: () => void;
 };
 
@@ -49,10 +50,12 @@ export function QuoteDrawer({
   onSetLineQty,
   onRemoveLine,
   onClear,
+  onNewQuote,
   onSubmit
 }: QuoteDrawerProps) {
-  const canSubmit = quoteLines.length > 0 && !isSubmitting;
+  const canSubmit = quoteLines.length > 0 && !isSubmitting && !quoteResult;
   const quoteTotalLabel = quoteTotal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const resultTitle = quoteResult?.dryRun ? "Quote validated" : quoteResult?.reused ? "Existing quotation" : "Quote request sent";
 
   return (
     <>
@@ -68,9 +71,7 @@ export function QuoteDrawer({
           <div>
             <span>Request for quote</span>
             <h2>Trade quote</h2>
-            <p>
-              {quoteCount} item{quoteCount === 1 ? "" : "s"} selected for ERPNext quotation
-            </p>
+            <p>{quoteResult ? "ERP quotation ready for Green Leaf sales" : `${quoteCount} item${quoteCount === 1 ? "" : "s"} selected for ERPNext quotation`}</p>
           </div>
           <button type="button" className="icon-button" onClick={onClose} aria-label="Close quote basket">
             <ArrowRight />
@@ -78,7 +79,7 @@ export function QuoteDrawer({
         </div>
 
         <div className="quote-drawer__progress" aria-label="Quote request steps">
-          <span className={quoteLines.length ? "is-complete" : ""}>Products</span>
+          <span className={quoteLines.length || quoteResult ? "is-complete" : ""}>Products</span>
           <span className={quoteCompany && quoteEmail ? "is-complete" : ""}>Buyer</span>
           <span className={quoteResult ? "is-complete" : ""}>ERP quote</span>
         </div>
@@ -89,7 +90,7 @@ export function QuoteDrawer({
               <>
                 <div className="quote-drawer__section-title">
                   <span>Selected products</span>
-                  <button type="button" onClick={onClear} disabled={!quoteLines.length || isSubmitting}>
+                  <button type="button" onClick={onClear} disabled={!quoteLines.length || isSubmitting || Boolean(quoteResult)}>
                     Clear all
                   </button>
                 </div>
@@ -108,20 +109,26 @@ export function QuoteDrawer({
                       <strong>{priceLabel(line)}</strong>
                     </div>
                     <div className="qty-control">
-                      <button type="button" className="icon-button" onClick={() => onSetLineQty(line.sku, line.qty - 1)} aria-label="Decrease quantity">
+                      <button type="button" className="icon-button" onClick={() => onSetLineQty(line.sku, line.qty - 1)} disabled={isSubmitting || Boolean(quoteResult)} aria-label="Decrease quantity">
                         <Minus />
                       </button>
                       <span>{line.qty}</span>
-                      <button type="button" className="icon-button" onClick={() => onSetLineQty(line.sku, line.qty + 1)} aria-label="Increase quantity">
+                      <button type="button" className="icon-button" onClick={() => onSetLineQty(line.sku, line.qty + 1)} disabled={isSubmitting || Boolean(quoteResult)} aria-label="Increase quantity">
                         <Plus />
                       </button>
-                      <button type="button" className="icon-button" onClick={() => onRemoveLine(line.sku)} aria-label="Remove item">
+                      <button type="button" className="icon-button" onClick={() => onRemoveLine(line.sku)} disabled={isSubmitting || Boolean(quoteResult)} aria-label="Remove item">
                         <Trash2 />
                       </button>
                     </div>
                   </article>
                 ))}
               </>
+            ) : quoteResult ? (
+              <div className="quote-confirmation-empty">
+                <ClipboardCheck size={22} />
+                <strong>Products moved into ERP quotation</strong>
+                <p>The sales team can now check pricing, stock and lead time in ERPNext.</p>
+              </div>
             ) : (
               <div className="quote-empty">
                 <strong>No products selected</strong>
@@ -136,15 +143,48 @@ export function QuoteDrawer({
           <div className="quote-form">
             {quoteResult ? (
               <div className="quote-result" role="status">
-                <span>
-                  <CheckCircle2 size={16} /> {quoteResult.reused ? "Existing quotation" : "Quotation created"}
-                </span>
-                <strong>{quoteResult.name}</strong>
-                <p>
-                  {quoteResult.missingCount
-                    ? `${quoteResult.missingCount} SKU could not be matched in ERPNext.`
-                    : "Your request is now available in ERPNext for the sales team."}
-                </p>
+                <div className="quote-result__header">
+                  <CheckCircle2 size={20} />
+                  <div>
+                    <span>{resultTitle}</span>
+                    <strong>{quoteResult.name}</strong>
+                  </div>
+                </div>
+                <div className="quote-result__meta">
+                  {quoteResult.customerEmail ? <span>{quoteResult.customerEmail}</span> : null}
+                  {quoteResult.id ? <span>Request ID {quoteResult.id}</span> : null}
+                  {typeof quoteResult.validLineCount === "number" ? <span>{quoteResult.validLineCount} ERP line{quoteResult.validLineCount === 1 ? "" : "s"}</span> : null}
+                </div>
+                <ol className="quote-result__steps">
+                  <li>Sales checks price, stock and lead time.</li>
+                  <li>Buyer receives confirmation before payment.</li>
+                  <li>Payment link will be added after Windcave approval.</li>
+                </ol>
+                {quoteResult.missingCount ? (
+                  <div className="quote-result__warning">
+                    <AlertTriangle size={16} />
+                    <div>
+                      <strong>{quoteResult.missingCount} SKU not matched in ERPNext</strong>
+                      <p>These products need ERP item mapping before sales can quote them.</p>
+                      {quoteResult.missingSkus?.length ? (
+                        <div className="quote-result__chips">
+                          {quoteResult.missingSkus.slice(0, 6).map((sku) => (
+                            <span key={sku}>{sku}</span>
+                          ))}
+                          {quoteResult.missingSkus.length > 6 ? <span>+{quoteResult.missingSkus.length - 6}</span> : null}
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
+                <div className="quote-result__actions">
+                  <a className="secondary-button" href="/account" onClick={onClose}>
+                    Quote history
+                  </a>
+                  <button type="button" className="secondary-button" onClick={onNewQuote}>
+                    <RotateCcw size={16} /> New quote
+                  </button>
+                </div>
               </div>
             ) : null}
             <div className="quote-drawer__section-title">
@@ -175,9 +215,11 @@ export function QuoteDrawer({
               <span>Estimated product total</span>
               <strong>{quoteTotalLabel} FJD</strong>
             </div>
-            <button type="button" className="quote-button" onClick={onSubmit} disabled={!canSubmit}>
-              {isSubmitting ? "Creating..." : "Send quote request"} <Send size={17} />
-            </button>
+            {quoteResult ? null : (
+              <button type="button" className="quote-button" onClick={onSubmit} disabled={!canSubmit}>
+                {isSubmitting ? "Creating..." : "Send quote request"} <Send size={17} />
+              </button>
+            )}
             {quoteStatus ? <p className="quote-panel__status">{quoteStatus}</p> : null}
           </div>
         </div>
