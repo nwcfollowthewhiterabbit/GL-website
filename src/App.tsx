@@ -14,6 +14,7 @@ import { featuredProducts as fallbackProducts } from "./data/catalog";
 import { findWebsiteCategory, matchedItemGroups, websiteCategories, websiteCategoryCount } from "./data/websiteCategories";
 import {
   createQuoteRequest,
+  fetchAccountSession,
   fetchAccountQuotes,
   fetchCatalogDiagnostics,
   fetchCatalogProduct,
@@ -21,13 +22,17 @@ import {
   fetchCatalogProducts,
   fetchItemGroups,
   fetchRecentQuotes,
-  fetchRelatedCatalogProducts
+  fetchRelatedCatalogProducts,
+  logoutAccount,
+  startAccountLogin,
+  verifyAccountLogin
 } from "./lib/api";
 import { catalogPath, findCategoryBySlug, parseStorefrontRoute, productPath, type StorefrontRoute } from "./lib/routes";
 import type {
   CatalogDiagnostics,
   CatalogFacets,
   CatalogProduct,
+  AccountSession,
   ItemGroup,
   QuoteLine,
   QuoteRequestResponse,
@@ -90,6 +95,10 @@ function App() {
   const [quoteSubmitting, setQuoteSubmitting] = useState(false);
   const [quoteResult, setQuoteResult] = useState<QuoteResult | null>(null);
   const [accountEmail, setAccountEmail] = useState("");
+  const [accountCode, setAccountCode] = useState("");
+  const [accountDevCode, setAccountDevCode] = useState("");
+  const [accountToken, setAccountToken] = useState("");
+  const [accountSession, setAccountSession] = useState<AccountSession | null>(null);
   const [accountQuotes, setAccountQuotes] = useState<RecentQuote[]>([]);
   const [accountStatus, setAccountStatus] = useState("");
   const [accountLoading, setAccountLoading] = useState(false);
@@ -231,6 +240,30 @@ function App() {
       window.localStorage.removeItem("greenleaf.quoteLines");
     }
   }, []);
+
+  useEffect(() => {
+    const savedToken = window.localStorage.getItem("greenleaf.accountToken") || "";
+    if (savedToken) setAccountToken(savedToken);
+  }, []);
+
+  useEffect(() => {
+    if (!accountToken) return;
+    setAccountLoading(true);
+    fetchAccountSession(accountToken)
+      .then((account) => {
+        setAccountSession(account);
+        setAccountEmail(account.email);
+        setAccountQuotes(account.quotes || []);
+        setAccountStatus("");
+      })
+      .catch(() => {
+        window.localStorage.removeItem("greenleaf.accountToken");
+        setAccountToken("");
+        setAccountSession(null);
+        setAccountStatus("Account session expired. Send a new login code.");
+      })
+      .finally(() => setAccountLoading(false));
+  }, [accountToken]);
 
   useEffect(() => {
     window.localStorage.setItem("greenleaf.quoteLines", JSON.stringify(quoteLines));
@@ -472,6 +505,85 @@ function App() {
     }
   }
 
+  async function beginAccountLogin() {
+    if (!isValidEmail(accountEmail)) {
+      setAccountStatus("Enter a valid buyer email.");
+      return;
+    }
+
+    setAccountLoading(true);
+    setAccountStatus("Sending login code...");
+    setAccountDevCode("");
+    try {
+      const result = await startAccountLogin(accountEmail);
+      if (!result.ok) {
+        setAccountStatus("Login code could not be sent.");
+        return;
+      }
+      setAccountEmail(result.email || accountEmail);
+      setAccountDevCode(result.devCode || "");
+      setAccountStatus(result.devCode ? "Code generated for local testing." : "Check your email for the login code.");
+    } catch {
+      setAccountStatus("Login code could not be sent.");
+    } finally {
+      setAccountLoading(false);
+    }
+  }
+
+  async function completeAccountLogin() {
+    if (!isValidEmail(accountEmail)) {
+      setAccountStatus("Enter a valid buyer email.");
+      return;
+    }
+    if (!accountCode.trim()) {
+      setAccountStatus("Enter the login code.");
+      return;
+    }
+
+    setAccountLoading(true);
+    setAccountStatus("Verifying login code...");
+    try {
+      const result = await verifyAccountLogin(accountEmail, accountCode);
+      if (!result.ok || !result.token) {
+        setAccountStatus("Invalid or expired login code.");
+        return;
+      }
+      window.localStorage.setItem("greenleaf.accountToken", result.token);
+      setAccountToken(result.token);
+      setAccountCode("");
+      setAccountDevCode("");
+      setAccountStatus("Signed in.");
+    } catch {
+      setAccountStatus("Login failed.");
+    } finally {
+      setAccountLoading(false);
+    }
+  }
+
+  function refreshAccount() {
+    if (!accountToken) return;
+    setAccountLoading(true);
+    fetchAccountSession(accountToken)
+      .then((account) => {
+        setAccountSession(account);
+        setAccountQuotes(account.quotes || []);
+        setAccountStatus("Account refreshed.");
+      })
+      .catch(() => setAccountStatus("Account data could not be loaded."))
+      .finally(() => setAccountLoading(false));
+  }
+
+  async function signOutAccount() {
+    if (accountToken) await logoutAccount(accountToken).catch(() => undefined);
+    window.localStorage.removeItem("greenleaf.accountToken");
+    setAccountToken("");
+    setAccountSession(null);
+    setAccountQuotes([]);
+    setAccountCode("");
+    setAccountDevCode("");
+    setAccountStatus("Signed out.");
+  }
+
   return (
     <main className="app">
       <SiteHeader quoteCount={quoteCount} onOpenQuote={() => setQuoteOpen(true)} />
@@ -481,11 +593,20 @@ function App() {
       {route.view === "account" ? (
         <AccountPage
           email={accountEmail}
+          code={accountCode}
           quotes={accountQuotes}
+          account={accountSession}
           status={accountStatus}
+          devCode={accountDevCode}
           isLoading={accountLoading}
+          isAuthenticated={Boolean(accountToken && accountSession)}
           onEmailChange={setAccountEmail}
+          onCodeChange={setAccountCode}
+          onStartLogin={beginAccountLogin}
+          onVerifyLogin={completeAccountLogin}
           onLoadQuotes={loadAccountQuotes}
+          onRefreshAccount={refreshAccount}
+          onLogout={signOutAccount}
         />
       ) : route.view === "product" ? (
         <ProductDetailPage

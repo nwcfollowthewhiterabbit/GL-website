@@ -1324,6 +1324,150 @@ textarea:focus-visible {
   padding-top: 32px;
 }
 
+.account-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 18px;
+  align-items: stretch;
+}
+
+.account-hero,
+.account-auth,
+.account-panel,
+.account-summary article {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 14px 32px rgba(23, 35, 27, 0.06);
+}
+
+.account-hero {
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  min-height: 280px;
+  padding: 34px;
+}
+
+.account-hero h2 {
+  max-width: 720px;
+  margin: 18px 0 14px;
+  color: var(--ink);
+  font-size: 48px;
+  line-height: 1.02;
+}
+
+.account-hero p {
+  max-width: 760px;
+  color: #405449;
+  font-size: 19px;
+  line-height: 1.7;
+}
+
+.account-auth {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+}
+
+.account-auth__state {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(46, 111, 74, 0.24);
+  border-radius: 8px;
+  background: #f3f8f0;
+}
+
+.account-auth__state div {
+  display: grid;
+  gap: 2px;
+}
+
+.account-auth__state span,
+.account-dev-code {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.account-dev-code {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #f7f4e8;
+}
+
+.account-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.account-summary article {
+  display: grid;
+  gap: 6px;
+  padding: 16px;
+}
+
+.account-summary span,
+.account-panel__head span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.account-summary strong {
+  color: var(--ink);
+  font-size: 24px;
+  line-height: 1.15;
+}
+
+.account-content {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.account-panel {
+  padding: 18px;
+}
+
+.account-panel--wide {
+  grid-column: 1 / -1;
+}
+
+.account-panel__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.account-panel__head h3 {
+  margin: 4px 0 0;
+  color: var(--ink);
+  font-size: 24px;
+}
+
+.account-roadmap {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.account-roadmap span {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcf8;
+  color: #33443a;
+  font-weight: 800;
+}
+
 .account-lookup {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 210px;
@@ -2477,7 +2621,10 @@ textarea:focus-visible {
   }
 
   .product-page__hero,
-  .related-products__grid {
+  .related-products__grid,
+  .account-shell,
+  .account-content,
+  .account-summary {
     grid-template-columns: 1fr;
   }
 
@@ -2622,6 +2769,19 @@ textarea:focus-visible {
   }
 
   .catalog-main .product-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .account-hero {
+    min-height: auto;
+    padding: 24px;
+  }
+
+  .account-hero h2 {
+    font-size: 34px;
+  }
+
+  .account-roadmap {
     grid-template-columns: 1fr;
   }
 

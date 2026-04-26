@@ -26,6 +26,25 @@ async function readText(path) {
   return text;
 }
 
+async function postJson(path, payload, headers = {}) {
+  const response = await fetch(`${baseUrl}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...headers },
+    body: JSON.stringify(payload)
+  });
+  const text = await response.text();
+
+  if (!response.ok) {
+    throw new Error(`${path} returned ${response.status}: ${text.slice(0, 240)}`);
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(`${path} did not return JSON: ${text.slice(0, 240)}`);
+  }
+}
+
 function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
@@ -63,6 +82,22 @@ async function main() {
   const accountQuotes = await readJson("/api/account/quotes?email=patch.fields%40example.com&limit=5");
   assert(Array.isArray(accountQuotes.quotes), "Account quotes response is invalid");
 
+  const loginStart = await postJson("/api/account/login/start", { email: "patch.fields@example.com" });
+  assert(loginStart.ok && loginStart.devCode, "Account login start did not return a development code");
+
+  const loginVerify = await postJson("/api/account/login/verify", {
+    email: "patch.fields@example.com",
+    code: loginStart.devCode
+  });
+  assert(loginVerify.ok && loginVerify.token, "Account login verification did not return a token");
+
+  const accountSessionResponse = await fetch(`${baseUrl}/api/account/session`, {
+    headers: { Authorization: `Bearer ${loginVerify.token}` }
+  });
+  assert(accountSessionResponse.ok, "Authenticated account session failed");
+  const accountSession = await accountSessionResponse.json();
+  assert(accountSession.account?.email === "patch.fields@example.com", "Account session returned wrong email");
+
   const quotes = await readJson("/api/admin/recent-quotes?limit=2");
   assert(Array.isArray(quotes.quotes), "Recent quotes response is invalid");
 
@@ -74,6 +109,7 @@ async function main() {
   console.log(`- Related products: ${related.products.length}`);
   console.log("- Category route shell: ok");
   console.log(`- Account quotes: ${accountQuotes.quotes.length}`);
+  console.log(`- Account auth: ${accountSession.account.email}`);
   console.log(`- Recent website quotations: ${quotes.quotes.length}`);
 }
 

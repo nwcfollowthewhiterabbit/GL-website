@@ -1,4 +1,7 @@
 import type {
+  AccountLoginStartResponse,
+  AccountLoginVerifyResponse,
+  AccountSession,
   CatalogDiagnostics,
   CatalogFacets,
   CatalogProduct,
@@ -66,6 +69,40 @@ export async function fetchAccountQuotes(email: string, limit = 20) {
   const search = new URLSearchParams({ email, limit: String(limit) });
   const data = await getJson<{ quotes: RecentQuote[] }>(`/api/account/quotes?${search.toString()}`);
   return data.quotes || [];
+}
+
+export async function startAccountLogin(email: string): Promise<AccountLoginStartResponse> {
+  const response = await fetch("/api/account/login/start", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email })
+  });
+  return response.json();
+}
+
+export async function verifyAccountLogin(email: string, code: string): Promise<AccountLoginVerifyResponse> {
+  const response = await fetch("/api/account/login/verify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, code })
+  });
+  return response.json();
+}
+
+export async function fetchAccountSession(token: string) {
+  const response = await fetch("/api/account/session", {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!response.ok) throw new Error("account_session_failed");
+  const data = (await response.json()) as { account: AccountSession };
+  return data.account;
+}
+
+export async function logoutAccount(token: string) {
+  await fetch("/api/account/logout", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` }
+  });
 }
 
 export async function createQuoteRequest(payload: QuoteRequestPayload): Promise<QuoteRequestResponse> {

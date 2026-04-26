@@ -77,6 +77,48 @@ export type RecentQuote = {
   marker: string;
 };
 
+export type CustomerOrder = {
+  name: string;
+  customer: string;
+  transactionDate?: string;
+  grandTotal: number;
+  status: string;
+  creation?: string;
+};
+
+export type CustomerProfile = {
+  name: string;
+  customerName: string;
+  email: string;
+  phone: string;
+  group: string;
+  territory: string;
+};
+
+export type AccountSession = {
+  email: string;
+  profile: CustomerProfile | null;
+  quotes: RecentQuote[];
+  orders: CustomerOrder[];
+};
+
+export type AccountLoginStartResponse = {
+  ok: boolean;
+  email?: string;
+  expiresInSeconds?: number;
+  delivery?: string;
+  devCode?: string;
+  error?: string;
+};
+
+export type AccountLoginVerifyResponse = {
+  ok: boolean;
+  token?: string;
+  email?: string;
+  expiresAt?: string;
+  error?: string;
+};
+
 export type CatalogProductsResponse = {
   page: number;
   pageSize: number;

@@ -5,6 +5,14 @@ import { getCatalogDiagnostics, getCatalogItemGroups, getCatalogProductBySku, ge
 import { pingErpDb } from "./erpnext-db.mjs";
 import { legacySyncRules } from "./legacy-sync-rules.mjs";
 import { createQuoteRequest, getRecentWebsiteQuotes, getWebsiteQuotesByEmail } from "./quote-service.mjs";
+import {
+  endAccountSession,
+  getAccountSession,
+  getCustomerOrdersByEmail,
+  getCustomerProfileByEmail,
+  startAccountLogin,
+  verifyAccountLogin
+} from "./account-service.mjs";
 import { catalogStats, categories, featuredProducts, manufacturers } from "../src/data/catalog.mjs";
 
 const app = express();
@@ -210,7 +218,8 @@ app.post("/api/quote-requests", (req, res) => {
 });
 
 app.get("/api/account/quotes", (req, res) => {
-  const email = String(req.query.email || "").trim().toLowerCase();
+  const session = getAccountSession(req);
+  const email = (session?.email || String(req.query.email || "")).trim().toLowerCase();
   if (!email) {
     res.status(400).json({ error: "email_required" });
     return;
@@ -224,6 +233,53 @@ app.get("/api/account/quotes", (req, res) => {
         message: error instanceof Error ? error.message : "Unknown ERPNext account quote error"
       });
     });
+});
+
+app.post("/api/account/login/start", (req, res) => {
+  const result = startAccountLogin(req.body?.email);
+  if (!result.ok) {
+    res.status(400).json(result);
+    return;
+  }
+  res.json(result);
+});
+
+app.post("/api/account/login/verify", (req, res) => {
+  const result = verifyAccountLogin(req.body?.email, req.body?.code);
+  if (!result.ok) {
+    res.status(401).json(result);
+    return;
+  }
+  res.json(result);
+});
+
+app.get("/api/account/session", async (req, res) => {
+  const session = getAccountSession(req);
+  if (!session) {
+    res.status(401).json({ error: "not_authenticated" });
+    return;
+  }
+
+  try {
+    const [profile, quotes, orders] = await Promise.all([
+      getCustomerProfileByEmail(session.email),
+      getWebsiteQuotesByEmail(session.email, 20),
+      getCustomerOrdersByEmail(session.email, 20)
+    ]);
+    res.json({ account: { email: session.email, profile, quotes, orders } });
+  } catch (error) {
+    res.status(503).json({
+      error: "erpnext_account_unavailable",
+      message: error instanceof Error ? error.message : "Unknown ERPNext account error"
+    });
+  }
+});
+
+app.post("/api/account/logout", (req, res) => {
+  const header = String(req.headers.authorization || "");
+  const token = header.toLowerCase().startsWith("bearer ") ? header.slice(7).trim() : "";
+  endAccountSession(token);
+  res.json({ ok: true });
 });
 
 app.get("/api/sync/status", (_req, res) => {
