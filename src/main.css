@@ -863,15 +863,29 @@ textarea:focus-visible {
 
 .catalog-sidebar {
   position: sticky;
-  top: 96px;
+  top: 92px;
   display: grid;
   gap: 4px;
-  overflow: visible;
+  align-self: start;
+  max-height: calc(100vh - 108px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.96);
   box-shadow: var(--shadow);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(46, 111, 74, 0.28) transparent;
+}
+
+.catalog-sidebar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.catalog-sidebar::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(46, 111, 74, 0.24);
 }
 
 .catalog-sidebar__head {
