@@ -1270,17 +1270,40 @@ textarea:focus-visible {
 }
 
 .catalog-service-band {
+  position: relative;
+  overflow: hidden;
   min-height: 560px;
   display: grid;
   align-items: center;
   margin: 8px 0 0;
-  background:
-    linear-gradient(90deg, rgba(8, 14, 10, 0.84), rgba(8, 14, 10, 0.56) 42%, rgba(8, 14, 10, 0.14) 82%),
-    url("/assets/catalog-after-service-band.webp") center center / cover no-repeat;
+  background: #101a12;
   color: #fff8ec;
 }
 
+.catalog-service-band::before,
+.catalog-service-band::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.catalog-service-band::before {
+  inset: -90px 0;
+  background: url("/assets/catalog-after-service-band.webp") center center / cover no-repeat;
+  transform: translate3d(0, var(--service-photo-offset, 0px), 0) scale(1.05);
+  will-change: transform;
+}
+
+.catalog-service-band::after {
+  background:
+    linear-gradient(90deg, rgba(8, 14, 10, 0.84), rgba(8, 14, 10, 0.56) 42%, rgba(8, 14, 10, 0.14) 82%),
+    linear-gradient(180deg, rgba(8, 14, 10, 0.08), rgba(8, 14, 10, 0.18));
+}
+
 .catalog-service-band__inner {
+  position: relative;
+  z-index: 1;
   padding: 70px 0;
 }
 
