@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
-import { ChevronRight, Clock3, Layers3, Search, ShoppingCart, X } from "lucide-react";
+import { ChevronRight, Clock3, DollarSign, Layers3, Search, ShoppingCart, X } from "lucide-react";
 import { availabilityLabel, availabilityTone, plainTextDescription, priceLabel, productImage, productPlaceholder } from "../lib/catalog";
 import type { CatalogDiagnostics, CatalogFacets, CatalogProduct, CatalogSuggestion, ItemGroup, WebsiteCategory } from "../types";
 
@@ -301,11 +301,17 @@ export function CatalogSection({
               </label>
               <label>
                 <span>Min price</span>
-                <input inputMode="decimal" placeholder="0" value={minPrice} onChange={(event) => onPriceFilterChange("min", event.target.value)} />
+                <div className="price-input">
+                  <DollarSign size={16} />
+                  <input inputMode="decimal" placeholder="0" value={minPrice} onChange={(event) => onPriceFilterChange("min", event.target.value)} />
+                </div>
               </label>
               <label>
                 <span>Max price</span>
-                <input inputMode="decimal" placeholder="Any" value={maxPrice} onChange={(event) => onPriceFilterChange("max", event.target.value)} />
+                <div className="price-input">
+                  <DollarSign size={16} />
+                  <input inputMode="decimal" placeholder="Any" value={maxPrice} onChange={(event) => onPriceFilterChange("max", event.target.value)} />
+                </div>
               </label>
             </div>
             <div className="catalog-tools__actions">

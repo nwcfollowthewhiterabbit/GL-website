@@ -1,7 +1,9 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;600;700;800;900&family=Fraunces:opsz,wght@9..144,650;9..144,760&display=swap");
+
 :root {
   color-scheme: light;
   font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "DM Sans", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
   background: #f6f7f3;
   color: #162018;
@@ -9,6 +11,7 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   --leaf: #2e6f4a;
+  --leaf-fresh: #7cb342;
   --leaf-dark: #153b28;
   --lime: #aac467;
   --ink: #162018;
@@ -88,6 +91,16 @@ h3 {
   overflow-wrap: anywhere;
 }
 
+h1,
+h2,
+.section-heading h2,
+.catalog-service-band__inner h2,
+.product-page__body h1,
+.erp-band h2 {
+  font-family: Fraunces, Georgia, serif;
+  font-weight: 760;
+}
+
 button:focus-visible,
 a:focus-visible,
 input:focus-visible,
@@ -137,8 +150,10 @@ textarea:focus-visible {
 }
 
 .topbar {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
-  background: #14241a;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+  background:
+    linear-gradient(90deg, #0f2b1c, #1e4d2b 46%, #143421),
+    #1e4d2b;
   color: #f8fbf4;
 }
 
@@ -183,7 +198,7 @@ textarea:focus-visible {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: rgba(255, 255, 250, 0.92);
+  background: rgba(255, 255, 250, 0.95);
   backdrop-filter: blur(18px);
   border-bottom: 1px solid rgba(213, 220, 205, 0.9);
   box-shadow: 0 8px 28px rgba(23, 35, 27, 0.04);
@@ -221,8 +236,10 @@ textarea:focus-visible {
 }
 
 .brand__mark--image {
-  background: #fff;
-  border: 1px solid var(--line);
+  background:
+    radial-gradient(circle at 28% 24%, rgba(124, 179, 66, 0.24), transparent 35%),
+    #fff;
+  border: 1px solid rgba(46, 111, 74, 0.2);
   overflow: hidden;
   box-shadow: 0 8px 20px rgba(23, 35, 27, 0.08);
 }
@@ -434,15 +451,16 @@ textarea:focus-visible {
 }
 
 .primary-button {
-  background: linear-gradient(180deg, #245e3e, var(--leaf-dark));
+  background: linear-gradient(180deg, #2f744e, #1e4d2b);
   color: #fff;
-  box-shadow: 0 12px 24px rgba(21, 59, 40, 0.18);
+  box-shadow: 0 14px 28px rgba(21, 59, 40, 0.22);
 }
 
 .primary-button:hover,
 .quote-button:hover {
-  background: linear-gradient(180deg, #347a52, #1e5136);
-  box-shadow: 0 14px 30px rgba(21, 59, 40, 0.22);
+  background: linear-gradient(180deg, #3c895d, #235a3c);
+  box-shadow: 0 18px 36px rgba(21, 59, 40, 0.27);
+  transform: translateY(-2px);
 }
 
 .secondary-button {
@@ -458,7 +476,7 @@ textarea:focus-visible {
 }
 
 .hero {
-  padding: 38px 0 34px;
+  padding: 34px 0 18px;
 }
 
 .hero > *,
@@ -490,7 +508,7 @@ textarea:focus-visible {
   border: 1px solid rgba(221, 226, 215, 0.9);
   border-radius: 8px;
   background: #fff;
-  box-shadow: var(--shadow-strong);
+  box-shadow: 0 30px 90px rgba(21, 59, 40, 0.18);
 }
 
 .hero-slide {
@@ -507,9 +525,9 @@ textarea:focus-visible {
   width: 100%;
   height: 100%;
   display: block;
-  object-fit: contain;
+  object-fit: cover;
   object-position: center;
-  background: #f6f7f3;
+  background: #edf3e8;
 }
 
 .hero-slide::after {
@@ -517,8 +535,8 @@ textarea:focus-visible {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(90deg, rgba(246, 247, 243, 0.94), rgba(246, 247, 243, 0.5) 42%, rgba(246, 247, 243, 0.05) 74%),
-    linear-gradient(180deg, rgba(21, 59, 40, 0.08), rgba(21, 59, 40, 0.1));
+    linear-gradient(90deg, rgba(12, 27, 18, 0.72), rgba(21, 59, 40, 0.28) 42%, rgba(21, 59, 40, 0.03) 72%),
+    linear-gradient(180deg, rgba(16, 40, 26, 0.2), rgba(16, 40, 26, 0.18));
 }
 
 .hero-slide__overlay {
@@ -529,15 +547,15 @@ textarea:focus-visible {
   gap: 12px;
   min-height: 300px;
   height: 100%;
-  max-width: 360px;
+  max-width: 430px;
   padding: 36px;
 }
 
 .hero-slide h1 {
   margin: 0;
   max-width: 100%;
-  color: var(--ink);
-  font-size: 30px;
+  color: #fffaf0;
+  font-size: 42px;
   line-height: 1.08;
   letter-spacing: 0;
 }
@@ -545,8 +563,8 @@ textarea:focus-visible {
 .hero__copy {
   margin: 0;
   max-width: 100%;
-  color: #314239;
-  font-size: 15px;
+  color: rgba(255, 250, 240, 0.9);
+  font-size: 16px;
   line-height: 1.55;
 }
 
@@ -571,10 +589,10 @@ textarea:focus-visible {
 .hero-slider__controls .icon-button {
   width: 40px;
   height: 40px;
-  border-color: rgba(255, 255, 255, 0.34);
-  background: rgba(255, 255, 255, 0.28);
-  color: rgba(22, 32, 24, 0.62);
-  box-shadow: 0 8px 22px rgba(23, 35, 27, 0.06);
+  border-color: rgba(255, 255, 255, 0.64);
+  background: rgba(255, 255, 255, 0.88);
+  color: #1e4d2b;
+  box-shadow: 0 12px 32px rgba(17, 28, 21, 0.2);
   backdrop-filter: blur(10px);
 }
 
@@ -584,8 +602,8 @@ textarea:focus-visible {
 }
 
 .hero-slider__controls .icon-button:hover {
-  background: rgba(255, 255, 255, 0.5);
-  color: var(--ink);
+  background: #fff;
+  color: var(--leaf-dark);
 }
 
 .hero-slider__dots {
@@ -594,9 +612,9 @@ textarea:focus-visible {
   gap: 7px;
   min-height: 30px;
   padding: 0 8px;
-  border: 1px solid rgba(255, 255, 255, 0.32);
+  border: 1px solid rgba(255, 255, 255, 0.58);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.68);
   backdrop-filter: blur(10px);
 }
 
@@ -606,11 +624,39 @@ textarea:focus-visible {
   padding: 0;
   border: 0;
   border-radius: 999px;
-  background: rgba(80, 88, 82, 0.22);
+  background: rgba(21, 59, 40, 0.24);
 }
 
 .hero-slider__dots button.is-active {
-  background: rgba(21, 59, 40, 0.58);
+  background: #1e4d2b;
+}
+
+.value-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 34px;
+}
+
+.value-strip div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 0 16px;
+  border: 1px solid rgba(46, 111, 74, 0.16);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #244836;
+  font-weight: 900;
+  box-shadow: 0 14px 34px rgba(23, 35, 27, 0.07);
+}
+
+.value-strip svg {
+  width: 20px;
+  height: 20px;
+  color: var(--leaf-fresh);
 }
 
 .hero__actions {
@@ -1017,7 +1063,15 @@ textarea:focus-visible {
 
 .catalog-nav-button strong,
 .catalog-subcategory strong {
-  color: var(--soft);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(46, 111, 74, 0.08);
+  color: #496352;
   font-size: 12px;
 }
 
@@ -1038,10 +1092,20 @@ textarea:focus-visible {
 
 .catalog-nav-button.is-active,
 .catalog-subcategory.is-active {
-  background: var(--leaf-dark);
+  background: linear-gradient(180deg, #2f744e, #1e4d2b);
   border-color: var(--leaf-dark);
   color: #fff;
   box-shadow: 0 10px 22px rgba(21, 59, 40, 0.18);
+}
+
+.catalog-nav-button.is-active::after {
+  content: "";
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-top: 2px solid currentColor;
+  border-right: 2px solid currentColor;
+  transform: rotate(45deg);
 }
 
 .catalog-nav-button.is-active:hover,
@@ -1052,7 +1116,8 @@ textarea:focus-visible {
 
 .catalog-nav-button.is-active strong,
 .catalog-subcategory.is-active strong {
-  color: rgba(255, 255, 255, 0.78);
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
 }
 
 .catalog-nav-subcategories {
@@ -1143,10 +1208,11 @@ textarea:focus-visible {
 
 .catalog-sort-panel label {
   display: grid;
+  gap: 5px;
 }
 
 .catalog-sort-panel span {
-  display: none;
+  display: block;
   color: var(--muted);
   font-size: 11px;
   font-weight: 900;
@@ -1160,14 +1226,46 @@ textarea:focus-visible {
   padding: 0 10px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.84);
+  background: rgba(255, 255, 255, 0.94);
   color: var(--ink);
   font-weight: 800;
   outline: 0;
 }
 
+.catalog-sort-panel select {
+  appearance: none;
+  padding-right: 34px;
+  background:
+    linear-gradient(45deg, transparent 50%, #1e4d2b 50%) right 15px center / 6px 6px no-repeat,
+    linear-gradient(135deg, #fff, #f7faf3);
+}
+
+.price-input {
+  display: flex;
+  align-items: center;
+  min-height: 46px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  overflow: hidden;
+}
+
+.price-input svg {
+  flex: 0 0 auto;
+  margin-left: 10px;
+  color: var(--leaf);
+}
+
+.catalog-sort-panel .price-input input {
+  min-height: 44px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
 .catalog-sort-panel select:focus,
-.catalog-sort-panel input:focus {
+.catalog-sort-panel input:focus,
+.price-input:focus-within {
   border-color: rgba(46, 111, 74, 0.42);
   box-shadow: 0 0 0 3px rgba(46, 111, 74, 0.12);
 }
@@ -2251,6 +2349,9 @@ textarea:focus-visible {
   display: flex;
   flex-direction: column;
   min-height: 100%;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 248, 239, 0.94)),
+    #fff;
   transition:
     box-shadow 160ms ease,
     transform 160ms ease,
@@ -2259,8 +2360,8 @@ textarea:focus-visible {
 
 .product-card:hover {
   border-color: rgba(46, 111, 74, 0.28);
-  box-shadow: 0 22px 55px rgba(23, 35, 27, 0.12);
-  transform: translateY(-2px);
+  box-shadow: 0 26px 64px rgba(23, 35, 27, 0.16);
+  transform: translateY(-3px) scale(1.012);
 }
 
 .product-card__image {
@@ -2271,8 +2372,8 @@ textarea:focus-visible {
   padding: 12px;
   border: 0;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0)),
-    linear-gradient(145deg, #eef3e7, #fafaf4);
+    radial-gradient(circle at 50% 44%, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.32) 46%, rgba(255, 255, 255, 0) 70%),
+    linear-gradient(145deg, #eef5e7, #f7f2e6);
   cursor: pointer;
   overflow: hidden;
 }
@@ -2305,10 +2406,13 @@ textarea:focus-visible {
   padding: 6px 9px;
   border-radius: 8px;
   max-width: calc(100% - 20px);
-  background: rgba(21, 59, 40, 0.92);
-  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.72);
+  color: #1e4d2b;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 900;
+  box-shadow: 0 10px 24px rgba(23, 35, 27, 0.1);
+  backdrop-filter: blur(12px);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2427,8 +2531,8 @@ textarea:focus-visible {
 }
 
 .price {
-  color: var(--ink);
-  font-size: 18px;
+  color: #1e4d2b;
+  font-size: 22px;
   font-weight: 900;
 }
 
@@ -3001,10 +3105,12 @@ textarea:focus-visible {
 }
 
 .footer {
-  padding: 36px 0 22px;
-  border-top: 1px solid var(--line);
-  background: #fff;
-  color: var(--muted);
+  padding: 48px 0 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  background:
+    radial-gradient(circle at 18% 0%, rgba(124, 179, 66, 0.16), transparent 34%),
+    linear-gradient(135deg, #11281a, #1e4d2b 58%, #102319);
+  color: rgba(248, 251, 244, 0.72);
   font-size: 13px;
 }
 
@@ -3021,12 +3127,12 @@ textarea:focus-visible {
 }
 
 .footer-layout strong {
-  color: var(--ink);
+  color: #fffaf0;
   font-size: 18px;
 }
 
 .footer-layout span {
-  color: var(--ink);
+  color: #fffaf0;
   font-weight: 900;
 }
 
@@ -3036,12 +3142,12 @@ textarea:focus-visible {
 }
 
 .footer-layout a {
-  color: var(--muted);
+  color: rgba(248, 251, 244, 0.72);
   font-weight: 800;
 }
 
 .footer-layout a:hover {
-  color: var(--leaf-dark);
+  color: #fff;
 }
 
 .footer-bottom {
@@ -3051,7 +3157,7 @@ textarea:focus-visible {
   flex-wrap: wrap;
   margin-top: 26px;
   padding-top: 18px;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
 }
 
 .quote-backdrop {
@@ -3745,8 +3851,8 @@ textarea:focus-visible {
 
   .hero-slide::after {
     background:
-      linear-gradient(180deg, rgba(246, 247, 243, 0.95), rgba(246, 247, 243, 0.62) 58%, rgba(246, 247, 243, 0.08)),
-      linear-gradient(180deg, rgba(21, 59, 40, 0.08), rgba(21, 59, 40, 0.1));
+      linear-gradient(180deg, rgba(12, 27, 18, 0.78), rgba(21, 59, 40, 0.5) 58%, rgba(21, 59, 40, 0.18)),
+      linear-gradient(180deg, rgba(21, 59, 40, 0.12), rgba(21, 59, 40, 0.2));
   }
 
   .hero-slide h1 {
@@ -3781,6 +3887,8 @@ textarea:focus-visible {
   }
 
   .catalog-tools,
+  .catalog-sort-panel,
+  .value-strip,
   .account-lookup,
   .account-profile,
   .filter-panel,

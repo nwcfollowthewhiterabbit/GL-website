@@ -14,6 +14,7 @@ import { RecommendedProductsSection } from "./components/RecommendedProductsSect
 import { ServiceContactSection } from "./components/ServiceContactSection";
 import { SiteFooter } from "./components/SiteFooter";
 import { SiteHeader } from "./components/SiteHeader";
+import { ValueStrip } from "./components/ValueStrip";
 import { featuredProducts as fallbackProducts } from "./data/catalog";
 import { websiteCatalogDownloads as fallbackWebsiteCatalogs } from "./data/catalogDownloadsSeed.mjs";
 import { heroBanners as fallbackHeroBanners } from "./data/heroBannersSeed.mjs";
@@ -856,7 +857,10 @@ function App() {
     <main className="app">
       <SiteHeader departments={websiteNavigationCategories} quoteCount={quoteCount} onOpenQuote={() => setQuoteOpen(true)} />
       {route.view !== "product" ? (
-        <HeroSection banners={heroBanners} />
+        <>
+          <HeroSection banners={heroBanners} />
+          <ValueStrip />
+        </>
       ) : null}
       {route.view === "account" ? (
         <AccountPage
