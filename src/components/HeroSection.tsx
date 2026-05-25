@@ -49,10 +49,6 @@ export function HeroSection({ banners }: HeroSectionProps) {
               event.currentTarget.src = productPlaceholder;
             }}
           />
-          <div className="hero-slide__overlay">
-            <h1>{slide.title}</h1>
-            {slide.copy ? <p className="hero__copy">{slide.copy}</p> : null}
-          </div>
         </a>
         {banners.length > 1 ? (
           <div className="hero-slider__controls">
