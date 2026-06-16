@@ -41,8 +41,8 @@ Existing direction:
 Required fields:
 
 - Internal label.
-- Title and optional supporting copy, if the approved design uses text overlay.
-- Banner image.
+- Banner image as final artwork. The approved direction is a ready-made image, not editable overlay text.
+- Optional internal title/copy can remain for ERP staff reference, but the website should not depend on overlay text for the approved design.
 - Link URL.
 - Open in new tab toggle.
 - Enabled toggle.
@@ -54,7 +54,7 @@ Image requirements to confirm with final implementation:
 - Recommended source size: 1920 x 720 px minimum.
 - Safe crop: keep important product/content near the center 70% of the image.
 - File size target: under 500 KB after optimization where possible.
-- Avoid text baked into the image unless it is part of supplier artwork.
+- Because the approved direction is final artwork, any visible hero text must be baked into the image by the content team.
 
 Acceptance criteria:
 
@@ -79,7 +79,7 @@ Required behavior:
 - Staff can set sort order.
 - Website shows a horizontal carousel or scrollable row.
 - User can manually scroll using arrows or swipe/trackpad.
-- Optional auto-scroll can be added only if it does not reduce usability.
+- Auto-scroll is required, with pause on hover/focus/interact so it does not fight the user.
 
 Acceptance criteria:
 
@@ -89,7 +89,7 @@ Acceptance criteria:
 
 ## 4. ERP-Managed Catalogues And Price Lists
 
-Goal: allow staff to add and manage catalogue/price-list downloads from ERPNext.
+Goal: allow staff to add and manage catalogue/price-list downloads from ERPNext, and apply customer-specific price-list visibility/pricing rules.
 
 Existing direction:
 
@@ -111,6 +111,10 @@ Required behavior:
 - Staff can add new price lists/catalogues without code changes.
 - Staff can disable outdated files without deleting history.
 - Website supports multiple files and preserves existing catalogues.
+- Anonymous users see Standard Selling pricing.
+- Authenticated customers use the price list that matches their customer group where such a price list exists.
+- High Priority or equivalent customer groups use the matching high-priority price list.
+- If no customer-group price list applies, pricing falls back to Standard Selling.
 
 Acceptance criteria:
 
@@ -133,7 +137,7 @@ Required fields:
 - Item code.
 - Optional display title.
 - Optional promotional image override.
-- Optional promotional price/copy, if business wants a marketing value separate from ERP price.
+- Optional promotional copy. Pricing follows the same customer-specific price-list logic as the catalog: anonymous users get Standard Selling; authenticated customer groups get their matching price list when available.
 - Enabled toggle.
 - Sort order.
 - Start date and end date, optional.
@@ -143,6 +147,7 @@ Required behavior:
 - Staff can turn the whole section on/off.
 - Staff can add multiple products.
 - Website section can be horizontally scrollable like featured products.
+- Auto-scroll is required, with manual arrows/swipe also available.
 
 Acceptance criteria:
 
@@ -161,8 +166,11 @@ Required ERP controls:
 - View products missing price, image, description, or storefront visibility settings.
 - Enable or disable whole categories/item groups on the storefront.
 - Enable or disable individual products on the storefront.
-- Category-level toggle: show or hide products without images.
+- Global website setting: show or hide products without images.
+- Category-level override for products without images.
 - Product-level visibility override.
+- Product-level explicit publish block must win over category/group/default rules.
+- Group/category visibility rules must apply before products are shown in catalog, search, featured rows, and monthly products.
 
 Existing fields to use or extend:
 
@@ -176,7 +184,8 @@ Required website behavior:
 
 - Hidden categories are removed from navigation and facets.
 - Hidden products are removed from catalog, search, recommendations, and monthly products.
-- Products without images respect the category-level rule.
+- Products without images respect the global rule unless a category-level override is set.
+- Category override can show no-photo products even when the global rule hides them, or hide them even when the global rule shows them.
 - Diagnostics endpoint reports counts staff can act on.
 
 Acceptance criteria:
@@ -227,10 +236,16 @@ Acceptance criteria:
 9. Implement multiple product image gallery.
 10. Run full smoke, visual, and ERP readiness checks before production cutover.
 
-## Open Questions
+## Resolved Decisions
 
-- Should hero images have visible text baked into the artwork, or should all text be editable fields in ERP?
-- Is auto-scroll required for product rows, or is manual scroll enough?
-- Should price-list PDFs be public, customer-only, or staff-controlled per customer group?
-- Should product-of-the-month prices always come from ERP price lists, or can marketing override text be shown?
-- Who owns final product photos and image cleanup before launch?
+- Hero banner is a final ready-made image. Any visible banner text is part of the artwork.
+- Featured and monthly product sections need both auto-scroll and manual scrolling.
+- Anonymous users use Standard Selling pricing. Authenticated customers use the price list matching their customer group when available, otherwise Standard Selling.
+- Product-of-the-month pricing follows the same customer-specific price-list logic as the main catalog.
+- Product photos are uploaded by the new Website Content Manager role.
+- No-photo product visibility needs a global rule plus category-level overrides and item-level publish blocking.
+
+## Remaining Open Questions
+
+- Exact role permissions for Website Content Manager: only website content DocTypes and item images, or also item text/description/category controls?
+- Should price-list PDF downloads follow the same customer-group visibility rules as numeric prices, or can all PDFs remain public?

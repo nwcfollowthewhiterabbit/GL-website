@@ -1750,6 +1750,21 @@ textarea:focus-visible {
   margin-bottom: 18px;
 }
 
+.recommended-section__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.recommended-section__actions .icon-button {
+  width: 42px;
+  height: 42px;
+  background: #fff;
+  box-shadow: var(--control-shadow);
+}
+
 .recommended-section__head h2 {
   margin: 12px 0 0;
   color: var(--ink);
@@ -1759,8 +1774,15 @@ textarea:focus-visible {
 
 .recommended-products {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(230px, 1fr);
   gap: 16px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(46, 111, 74, 0.28) transparent;
   padding: 18px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -1768,11 +1790,21 @@ textarea:focus-visible {
   box-shadow: var(--shadow);
 }
 
+.recommended-products::-webkit-scrollbar {
+  height: 8px;
+}
+
+.recommended-products::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(46, 111, 74, 0.24);
+}
+
 .recommended-product {
   display: grid;
   grid-template-rows: 190px minmax(48px, auto) auto;
   gap: 12px;
   min-width: 0;
+  scroll-snap-align: start;
   padding: 12px;
   border: 1px solid transparent;
   border-radius: 8px;
@@ -3764,14 +3796,21 @@ textarea:focus-visible {
   .account-shell,
   .account-content,
   .account-summary,
-  .catalog-downloads__grid,
-  .recommended-products {
+  .catalog-downloads__grid {
     grid-template-columns: 1fr;
+  }
+
+  .recommended-products {
+    grid-auto-columns: minmax(240px, 86vw);
   }
 
   .recommended-section__head {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .recommended-section__actions {
+    justify-content: flex-start;
   }
 
   .product-page__media {
