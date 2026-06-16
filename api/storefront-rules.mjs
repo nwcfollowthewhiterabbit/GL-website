@@ -95,21 +95,24 @@ export function defaultCategoryRule(category = "") {
   };
 }
 
+function categoryBoolean(value, fallback) {
+  if (value === undefined || value === null || value === "") return fallback;
+  return Boolean(Number(value));
+}
+
 export function normalizeCategoryRule(row = {}) {
   return {
     name: row.name,
     parent: row.parent || null,
     isGroup: Boolean(row.is_group),
     itemCount: Number(row.item_count || 0),
-    showOnStorefront: row.website_show_on_storefront === undefined ? true : Boolean(Number(row.website_show_on_storefront)),
+    showOnStorefront: categoryBoolean(row.website_show_on_storefront, true),
     sortOrder: Number(row.website_sort_order || 0),
     priceMode: row.website_price_mode || "Price List",
     priceList: row.website_price_list || "",
     stockDisplay: row.website_stock_display || "Availability",
-    showProductsWithoutImages:
-      row.website_show_products_without_images === undefined ? true : Boolean(Number(row.website_show_products_without_images)),
-    showProductsWithoutPrice:
-      row.website_show_products_without_price === undefined ? false : Boolean(Number(row.website_show_products_without_price)),
+    showProductsWithoutImages: categoryBoolean(row.website_show_products_without_images, true),
+    showProductsWithoutPrice: categoryBoolean(row.website_show_products_without_price, false),
     categoryNote: row.website_category_note || ""
   };
 }
