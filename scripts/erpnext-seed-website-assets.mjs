@@ -126,10 +126,17 @@ async function ensureRuntimeTables() {
       sales_email varchar(140) DEFAULT NULL,
       sales_phone varchar(140) DEFAULT NULL,
       payment_note text,
+      sort_order int(11) NOT NULL DEFAULT 0,
       PRIMARY KEY (name),
-      UNIQUE KEY settings_id (settings_id)
+      UNIQUE KEY settings_id (settings_id),
+      KEY sort_order (sort_order)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
+
+  await getErpPool().query(
+    "ALTER TABLE `tabWebsite Customer Corner Settings` ADD COLUMN IF NOT EXISTS sort_order int(11) NOT NULL DEFAULT 0"
+  );
+  await getErpPool().query("ALTER TABLE `tabWebsite Customer Corner Settings` ADD KEY IF NOT EXISTS sort_order (sort_order)");
 }
 
 async function tryCreateDoctypes(fixtures) {
@@ -372,13 +379,13 @@ async function seedCustomerCornerSettings() {
     `
       INSERT INTO \`tabWebsite Customer Corner Settings\`
         (name, creation, modified, modified_by, owner, docstatus, idx, settings_id, title, intro_copy,
-         enabled, login_enabled, show_quote_history, show_purchase_history, sales_email, sales_phone, payment_note)
+         enabled, login_enabled, show_quote_history, show_purchase_history, sales_email, sales_phone, payment_note, sort_order)
       VALUES
         ('customer-corner', :now, :now, 'Administrator', 'Administrator', 0, 1, 'customer-corner',
          'Customer account for trade buyers.',
          'Use one email login to track website quotations, ERP purchase history and the next action from Green Leaf sales.',
          1, 1, 1, 1, 'buy@greenleafpacific.com', '+679 670 2222',
-         'Payment link will be added after Windcave approval.')
+         'Payment link will be added after Windcave approval.', 0)
       ON DUPLICATE KEY UPDATE
         modified = VALUES(modified),
         settings_id = VALUES(settings_id),
@@ -386,7 +393,8 @@ async function seedCustomerCornerSettings() {
         intro_copy = IFNULL(NULLIF(intro_copy, ''), VALUES(intro_copy)),
         sales_email = IFNULL(NULLIF(sales_email, ''), VALUES(sales_email)),
         sales_phone = IFNULL(NULLIF(sales_phone, ''), VALUES(sales_phone)),
-        payment_note = IFNULL(NULLIF(payment_note, ''), VALUES(payment_note))
+        payment_note = IFNULL(NULLIF(payment_note, ''), VALUES(payment_note)),
+        sort_order = VALUES(sort_order)
     `,
     { now }
   );

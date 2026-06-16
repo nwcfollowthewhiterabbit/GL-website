@@ -7,8 +7,8 @@
     "istable": 0,
     "autoname": "field:settings_id",
     "title_field": "title",
-    "sort_field": "modified",
-    "sort_order": "DESC",
+    "sort_field": "sort_order",
+    "sort_order": "ASC",
     "fields": [
       {
         "fieldname": "settings_id",
@@ -36,6 +36,12 @@
         "label": "Customer Corner Enabled",
         "fieldtype": "Check",
         "default": "1"
+      },
+      {
+        "fieldname": "sort_order",
+        "label": "Sort Order",
+        "fieldtype": "Int",
+        "default": "0"
       },
       {
         "fieldname": "login_enabled",
