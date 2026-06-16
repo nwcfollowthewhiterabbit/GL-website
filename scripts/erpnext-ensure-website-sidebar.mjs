@@ -7,6 +7,22 @@ const pageFixturePath = fileURLToPath(new URL("../erpnext/page/website_control_c
 const workspaceName = "Website";
 const shortcutLabel = "Website Control Center";
 const pageName = "website-control-center";
+const workspaceContent = [
+  {
+    type: "header",
+    data: {
+      text: "<span class=\"h4\"><b>Website Management</b></span>",
+      col: 12
+    }
+  },
+  {
+    type: "shortcut",
+    data: {
+      shortcut_name: shortcutLabel,
+      col: 3
+    }
+  }
+];
 
 function now() {
   return new Date().toISOString().slice(0, 19).replace("T", " ");
@@ -36,13 +52,6 @@ async function ensurePage() {
   );
 }
 
-async function nextIdx(tableName, parent) {
-  const [rows] = await getErpPool().execute(`SELECT IFNULL(MAX(idx), 0) + 1 AS next_idx FROM \`${tableName}\` WHERE parent = :parent`, {
-    parent
-  });
-  return Number(rows[0]?.next_idx || 1);
-}
-
 async function ensureWorkspaceShortcut() {
   const [workspaces] = await getErpPool().execute("SELECT name, content FROM `tabWorkspace` WHERE name = :name LIMIT 1", {
     name: workspaceName
@@ -51,11 +60,15 @@ async function ensureWorkspaceShortcut() {
     throw new Error(`Workspace ${workspaceName} not found`);
   }
 
-  const [existing] = await getErpPool().execute(
-    "SELECT name FROM `tabWorkspace Shortcut` WHERE parent = :parent AND label = :label LIMIT 1",
-    { parent: workspaceName, label: shortcutLabel }
-  );
+  await getErpPool().execute("DELETE FROM `tabWorkspace Shortcut` WHERE parent = :parent AND label != :label", {
+    parent: workspaceName,
+    label: shortcutLabel
+  });
 
+  const [existing] = await getErpPool().execute("SELECT name FROM `tabWorkspace Shortcut` WHERE parent = :parent AND label = :label LIMIT 1", {
+    parent: workspaceName,
+    label: shortcutLabel
+  });
   if (!existing[0]) {
     await getErpPool().execute(
       `INSERT INTO \`tabWorkspace Shortcut\`
@@ -67,7 +80,7 @@ async function ensureWorkspaceShortcut() {
       {
         name: `${workspaceName}-${shortcutLabel}`,
         now: now(),
-        idx: await nextIdx("tabWorkspace Shortcut", workspaceName),
+        idx: 1,
         parent: workspaceName,
         linkTo: pageName,
         label: shortcutLabel,
@@ -75,36 +88,26 @@ async function ensureWorkspaceShortcut() {
         url: `/app/${pageName}`
       }
     );
-  }
-
-  let content = [];
-  try {
-    content = JSON.parse(workspaces[0].content || "[]");
-  } catch {
-    content = [];
-  }
-
-  const hasShortcut = content.some((block) => block?.type === "shortcut" && block?.data?.shortcut_name === shortcutLabel);
-  if (!hasShortcut) {
-    const shortcutBlock = {
-      type: "shortcut",
-      data: {
-        shortcut_name: shortcutLabel,
-        col: 3
-      }
-    };
-    const firstShortcutIndex = content.findIndex((block) => block?.type === "shortcut");
-    if (firstShortcutIndex >= 0) {
-      content.splice(firstShortcutIndex, 0, shortcutBlock);
-    } else {
-      content.unshift(shortcutBlock);
-    }
-
+  } else {
     await getErpPool().execute(
-      "UPDATE `tabWorkspace` SET content = :content, modified = :now WHERE name = :name",
-      { content: JSON.stringify(content), now: now(), name: workspaceName }
+      `UPDATE \`tabWorkspace Shortcut\`
+       SET modified = :now, idx = 1, type = 'Page', link_to = :linkTo, icon = :icon, url = :url
+       WHERE parent = :parent AND label = :label`,
+      {
+        now: now(),
+        parent: workspaceName,
+        label: shortcutLabel,
+        linkTo: pageName,
+        icon: "website",
+        url: `/app/${pageName}`
+      }
     );
   }
+
+  await getErpPool().execute(
+    "UPDATE `tabWorkspace` SET content = :content, modified = :now WHERE name = :name",
+    { content: JSON.stringify(workspaceContent), now: now(), name: workspaceName }
+  );
 }
 
 async function main() {
