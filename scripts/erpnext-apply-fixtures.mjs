@@ -98,10 +98,7 @@ async function main() {
       await createDoc("Custom Field", field);
       console.log(`create ${field.dt}.${field.fieldname}`);
     } catch (error) {
-      if (!String(error.message || "").includes("In List View")) {
-        throw error;
-      }
-
+      console.log(`fallback db patch for ${field.dt}.${field.fieldname}: ${String(error.message || error).slice(0, 160)}`);
       await createCustomFieldByDatabasePatch(field);
       console.log(`create ${field.dt}.${field.fieldname} via db patch`);
     }
