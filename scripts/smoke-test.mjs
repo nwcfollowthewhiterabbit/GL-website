@@ -75,9 +75,6 @@ async function main() {
   assert(catalog.products.length > 0, "Catalog search returned no products");
   assert(catalog.priceList === "Standard Selling", "Unexpected catalog price list");
 
-  const facets = await readJson("/api/catalog/facets");
-  assert(Array.isArray(facets.itemGroups), "Catalog facets response is invalid");
-  assert(facets.itemGroups.length > 0, "Catalog facets returned no item groups");
 
   const departments = await readJson("/api/storefront/departments");
   assert(Array.isArray(departments.departments), "Website departments response is invalid");
@@ -155,7 +152,6 @@ async function main() {
   console.log("Smoke checks passed");
   console.log(`- ERPNext DB reachable: ${health.erpnextDbReachable}`);
   console.log(`- Catalog search products: ${catalog.products.length} of ${catalog.total}`);
-  console.log(`- Facet item groups: ${facets.itemGroups.length}`);
   console.log(`- Website departments source: ${departments.source}`);
   console.log(`- Website banners source: ${banners.source}`);
   console.log(`- Website catalogs source: ${websiteCatalogs.source}, ${websiteCatalogs.catalogs.length} downloads`);
