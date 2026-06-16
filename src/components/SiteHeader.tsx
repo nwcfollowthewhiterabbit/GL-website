@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Mail, MapPin, Menu, Phone, ShoppingCart } from "lucide-react";
 import { legacyBrand } from "../data/legacyContent";
 import type { WebsiteCategory } from "../types";
@@ -11,10 +11,34 @@ type SiteHeaderProps = {
 
 export function SiteHeader({ departments, quoteCount, onOpenQuote }: SiteHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const navRef = useRef<HTMLElement | null>(null);
 
   function closeMenu() {
     setMenuOpen(false);
   }
+
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    function handlePointerDown(event: PointerEvent) {
+      if (!navRef.current?.contains(event.target as Node)) {
+        closeMenu();
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") closeMenu();
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("click", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("click", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [menuOpen]);
 
   return (
     <>
@@ -33,7 +57,7 @@ export function SiteHeader({ departments, quoteCount, onOpenQuote }: SiteHeaderP
         </div>
       </div>
 
-      <nav className="nav">
+      <nav className="nav" ref={navRef}>
         <div className="shell nav__inner">
           <a className="brand" href="/catalog">
             <span className="brand__mark brand__mark--image">
@@ -53,11 +77,11 @@ export function SiteHeader({ departments, quoteCount, onOpenQuote }: SiteHeaderP
             >
               Catalog
             </button>
-            <a href="/catalog#catalogs">Catalogues</a>
-            <a href="/catalog#brands">Brands</a>
-            <a href="/catalog#service">Service</a>
-            <a href="/account">Account</a>
-            <a href="/catalog#contact">Contact</a>
+            <a href="/catalog#catalogs" onClick={closeMenu}>Catalogues</a>
+            <a href="/catalog#brands" onClick={closeMenu}>Brands</a>
+            <a href="/catalog#service" onClick={closeMenu}>Service</a>
+            <a href="/account" onClick={closeMenu}>Account</a>
+            <a href="/catalog#contact" onClick={closeMenu}>Contact</a>
           </div>
           <div className="nav__actions">
             <button
