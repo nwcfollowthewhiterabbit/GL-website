@@ -1,6 +1,7 @@
 import type {
   AccountLoginStartResponse,
   AccountLoginVerifyResponse,
+  AccountInvoiceDetail,
   AccountOrderDetail,
   AccountQuoteDetail,
   AccountSession,
@@ -165,6 +166,15 @@ export async function fetchAccountOrderDetail(token: string, name: string) {
   if (!response.ok) throw new Error("account_order_detail_failed");
   const data = (await response.json()) as { order: AccountOrderDetail };
   return data.order;
+}
+
+export async function fetchAccountInvoiceDetail(token: string, name: string) {
+  const response = await fetch(`/api/account/invoices/${encodeURIComponent(name)}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!response.ok) throw new Error("account_invoice_detail_failed");
+  const data = (await response.json()) as { invoice: AccountInvoiceDetail };
+  return data.invoice;
 }
 
 export async function logoutAccount(token: string) {

@@ -25,6 +25,7 @@ import {
 } from "./data/websiteCategories";
 import {
   createQuoteRequest,
+  fetchAccountInvoiceDetail,
   fetchAccountOrderDetail,
   fetchAccountQuoteDetail,
   fetchAccountSession,
@@ -812,6 +813,23 @@ function App() {
     }
   }
 
+  async function viewAccountInvoice(name: string) {
+    if (!accountToken) {
+      setAccountStatus("Sign in to view invoice details.");
+      return;
+    }
+    setAccountDetailLoading(true);
+    setAccountStatus("Loading invoice details...");
+    try {
+      setAccountDetail(await fetchAccountInvoiceDetail(accountToken, name));
+      setAccountStatus("");
+    } catch {
+      setAccountStatus("Invoice details could not be loaded.");
+    } finally {
+      setAccountDetailLoading(false);
+    }
+  }
+
   async function signOutAccount() {
     if (accountToken) await logoutAccount(accountToken).catch(() => undefined);
     window.localStorage.removeItem("greenleaf.accountToken");
@@ -853,6 +871,7 @@ function App() {
           isDetailLoading={accountDetailLoading}
           onViewQuote={viewAccountQuote}
           onViewOrder={viewAccountOrder}
+          onViewInvoice={viewAccountInvoice}
           onCloseDetail={() => setAccountDetail(null)}
         />
       ) : route.view === "product" ? (

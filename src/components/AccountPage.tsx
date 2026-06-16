@@ -38,6 +38,7 @@ type AccountPageProps = {
   onOpenQuote: () => void;
   onViewQuote: (name: string) => void;
   onViewOrder: (name: string) => void;
+  onViewInvoice: (name: string) => void;
   onCloseDetail: () => void;
 };
 
@@ -82,13 +83,16 @@ export function AccountPage({
   onOpenQuote,
   onViewQuote,
   onViewOrder,
+  onViewInvoice,
   onCloseDetail
 }: AccountPageProps) {
   const accountQuotes = account?.quotes || quotes;
   const orders = account?.orders || [];
+  const invoices = account?.invoices || [];
   const profile = account?.profile;
   const latestQuote = accountQuotes[0];
   const latestOrder = orders[0];
+  const latestInvoice = invoices[0];
   const quotesVisible = settings.showQuoteHistory;
   const ordersVisible = settings.showPurchaseHistory;
 
@@ -205,6 +209,11 @@ export function AccountPage({
           <strong>{ordersVisible ? orders.length : "Off"}</strong>
           <small>{ordersVisible && latestOrder ? `Latest ${shortDate(latestOrder.creation || latestOrder.transactionDate)}` : "Managed in ERP"}</small>
         </article>
+        <article>
+          <span>Invoices</span>
+          <strong>{ordersVisible ? invoices.length : "Off"}</strong>
+          <small>{ordersVisible && latestInvoice ? `Latest ${shortDate(latestInvoice.creation || latestInvoice.postingDate)}` : "Managed in ERP"}</small>
+        </article>
       </div>
 
       <div className="account-content">
@@ -292,6 +301,44 @@ export function AccountPage({
         <section className="account-panel account-panel--wide">
           <div className="account-panel__head">
             <div>
+              <span>ERPNext sales invoices</span>
+              <h3>Invoices</h3>
+            </div>
+            <FileText size={22} />
+          </div>
+
+          <div className="account-quotes">
+            {invoices.length ? (
+              invoices.map((invoice) => (
+                <article key={invoice.name}>
+                  <div>
+                    <strong>{invoice.name}</strong>
+                    <span>{invoice.customer}</span>
+                    <small>Due {shortDate(invoice.dueDate)}</small>
+                  </div>
+                  <span className={statusClass(invoice.status)}>{invoice.status}</span>
+                  <span>Outstanding {money(invoice.outstandingAmount)} FJD</span>
+                  <strong>{money(invoice.grandTotal)} FJD</strong>
+                  <button className="secondary-button" type="button" onClick={() => onViewInvoice(invoice.name)} disabled={!isAuthenticated || isDetailLoading}>
+                    View details
+                  </button>
+                </article>
+              ))
+            ) : (
+              <div className="account-empty">
+                <FileText size={24} />
+                <strong>{isAuthenticated ? "No invoices found" : "Invoices are locked"}</strong>
+                <p>{isAuthenticated ? "ERP invoices for this customer will appear here." : "Sign in to load invoices for this customer account."}</p>
+              </div>
+            )}
+          </div>
+        </section>
+        ) : null}
+
+        {ordersVisible ? (
+        <section className="account-panel account-panel--wide">
+          <div className="account-panel__head">
+            <div>
               <span>ERPNext sales orders</span>
               <h3>Purchase history</h3>
             </div>
@@ -319,7 +366,7 @@ export function AccountPage({
               <div className="account-empty">
                 <PackageCheck size={24} />
                 <strong>{isAuthenticated ? "No purchase orders found" : "Purchase history is locked"}</strong>
-                <p>{isAuthenticated ? "ERP sales orders for this customer email will appear here." : "Sign in to load ERP purchase history for this buyer email."}</p>
+                <p>{isAuthenticated ? "ERP sales orders for this customer will appear here." : "Sign in to load ERP purchase history for this customer account."}</p>
               </div>
             )}
           </div>
@@ -330,7 +377,7 @@ export function AccountPage({
           <section className="account-panel account-panel--wide account-detail">
             <div className="account-panel__head">
               <div>
-                <span>{detail.type === "quote" ? "Quotation details" : "Sales order details"}</span>
+                <span>{detail.type === "quote" ? "Quotation details" : detail.type === "invoice" ? "Invoice details" : "Sales order details"}</span>
                 <h3>{detail.name}</h3>
               </div>
               <button className="secondary-button" type="button" onClick={onCloseDetail}>
@@ -347,8 +394,8 @@ export function AccountPage({
                 <strong>{detail.customer}</strong>
               </article>
               <article>
-                <span>{detail.type === "quote" ? "Valid until" : "Delivery date"}</span>
-                <strong>{detail.type === "quote" ? shortDate(detail.validTill) : shortDate(detail.deliveryDate)}</strong>
+                <span>{detail.type === "quote" ? "Valid until" : detail.type === "invoice" ? "Due date" : "Delivery date"}</span>
+                <strong>{detail.type === "quote" ? shortDate(detail.validTill) : detail.type === "invoice" ? shortDate(detail.dueDate) : shortDate(detail.deliveryDate)}</strong>
               </article>
               <article>
                 <span>Total</span>
@@ -387,6 +434,12 @@ export function AccountPage({
               <div className="account-detail__progress">
                 <span>Delivered {percent(detail.perDelivered)}</span>
                 <span>Billed {percent(detail.perBilled)}</span>
+              </div>
+            ) : null}
+            {detail.type === "invoice" ? (
+              <div className="account-detail__progress">
+                <span>Outstanding {money(detail.outstandingAmount)} FJD</span>
+                <span>Due {shortDate(detail.dueDate)}</span>
               </div>
             ) : null}
           </section>

@@ -140,6 +140,17 @@ export type CustomerOrder = {
   creation?: string;
 };
 
+export type CustomerInvoice = {
+  name: string;
+  customer: string;
+  postingDate?: string;
+  dueDate?: string;
+  grandTotal: number;
+  outstandingAmount: number;
+  status: string;
+  creation?: string;
+};
+
 export type AccountDocumentLine = {
   itemCode: string;
   itemName: string;
@@ -176,7 +187,17 @@ export type AccountOrderDetail = CustomerOrder & {
   lines: AccountDocumentLine[];
 };
 
-export type AccountDocumentDetail = AccountQuoteDetail | AccountOrderDetail;
+export type AccountInvoiceDetail = CustomerInvoice & {
+  type: "invoice";
+  contactEmail?: string;
+  contactMobile?: string;
+  poNo?: string;
+  poDate?: string;
+  terms?: string;
+  lines: AccountDocumentLine[];
+};
+
+export type AccountDocumentDetail = AccountQuoteDetail | AccountOrderDetail | AccountInvoiceDetail;
 
 export type CustomerProfile = {
   name: string;
@@ -192,6 +213,7 @@ export type AccountSession = {
   profile: CustomerProfile | null;
   quotes: RecentQuote[];
   orders: CustomerOrder[];
+  invoices: CustomerInvoice[];
 };
 
 export type AccountLoginStartResponse = {

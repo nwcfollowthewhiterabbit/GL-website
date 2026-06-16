@@ -20,12 +20,18 @@ import {
   getWebsiteManufacturers
 } from "./storefront-control-service.mjs";
 import {
+  disableWebsiteCustomerAccess,
   endAccountSession,
+  getAccountInvoiceDetailByEmail,
   getAccountOrderDetailByEmail,
   getAccountQuotationDetailByEmail,
   getAccountSession,
+  getCustomerInvoicesByEmail,
   getCustomerOrdersByEmail,
+  getCustomerQuotesForAccount,
   getCustomerProfileByEmail,
+  getWebsiteCustomerAccessList,
+  linkWebsiteCustomerAccess,
   startAccountLogin,
   verifyAccountLogin
 } from "./account-service.mjs";
@@ -357,16 +363,39 @@ app.get("/api/account/session", async (req, res) => {
   }
 
   try {
-    const [profile, quotes, orders] = await Promise.all([
+    const [profile, quotes, orders, invoices] = await Promise.all([
       getCustomerProfileByEmail(session.email),
-      getWebsiteQuotesByEmail(session.email, 20),
-      getCustomerOrdersByEmail(session.email, 20)
+      getCustomerQuotesForAccount(session.email, 20),
+      getCustomerOrdersByEmail(session.email, 20),
+      getCustomerInvoicesByEmail(session.email, 20)
     ]);
-    res.json({ account: { email: session.email, profile, quotes, orders } });
+    res.json({ account: { email: session.email, profile, quotes, orders, invoices } });
   } catch (error) {
     res.status(503).json({
       error: "erpnext_account_unavailable",
       message: error instanceof Error ? error.message : "Unknown ERPNext account error"
+    });
+  }
+});
+
+app.get("/api/account/invoices/:name", async (req, res) => {
+  const session = getAccountSession(req);
+  if (!session) {
+    res.status(401).json({ error: "not_authenticated" });
+    return;
+  }
+
+  try {
+    const invoice = await getAccountInvoiceDetailByEmail(session.email, req.params.name);
+    if (!invoice) {
+      res.status(404).json({ error: "invoice_not_found" });
+      return;
+    }
+    res.json({ invoice });
+  } catch (error) {
+    res.status(503).json({
+      error: "erpnext_account_invoice_detail_unavailable",
+      message: error instanceof Error ? error.message : "Unknown ERPNext invoice detail error"
     });
   }
 });
@@ -462,6 +491,41 @@ app.get("/api/admin/recent-quotes", async (req, res) => {
     res.status(503).json({
       error: "erpnext_recent_quotes_unavailable",
       message: error instanceof Error ? error.message : "Unknown ERPNext recent quotes error"
+    });
+  }
+});
+
+app.get("/api/admin/customer-access", async (req, res) => {
+  try {
+    res.json({ customers: await getWebsiteCustomerAccessList({ q: req.query.q, limit: req.query.limit }) });
+  } catch (error) {
+    res.status(503).json({
+      error: "erpnext_customer_access_unavailable",
+      message: error instanceof Error ? error.message : "Unknown ERPNext customer access error"
+    });
+  }
+});
+
+app.post("/api/admin/customer-access/link", async (req, res) => {
+  try {
+    const result = await linkWebsiteCustomerAccess(req.body || {});
+    res.status(result.ok ? 200 : 400).json(result);
+  } catch (error) {
+    res.status(503).json({
+      error: "erpnext_customer_access_link_unavailable",
+      message: error instanceof Error ? error.message : "Unknown ERPNext customer access link error"
+    });
+  }
+});
+
+app.post("/api/admin/customer-access/disable", async (req, res) => {
+  try {
+    const result = await disableWebsiteCustomerAccess(req.body?.email);
+    res.status(result.ok ? 200 : 400).json(result);
+  } catch (error) {
+    res.status(503).json({
+      error: "erpnext_customer_access_disable_unavailable",
+      message: error instanceof Error ? error.message : "Unknown ERPNext customer access disable error"
     });
   }
 });

@@ -11,7 +11,8 @@ frappe.pages["website-control-center"].on_page_load = function (wrapper) {
   render_website_control_center(page);
 };
 
-const WEBSITE_URL = "http://localhost:8080/catalog";
+const WEBSITE_URL = "https://testing.greenleafpacific.com/catalog";
+const WEBSITE_API_URL = "https://testing.greenleafpacific.com";
 
 const CONTROL_SECTIONS = [
   {
@@ -179,6 +180,32 @@ async function render_website_control_center(page) {
         </ol>
       </section>
 
+      <section class="gl-customer-access">
+        <div class="gl-section-title">
+          <span>${__("Customer Access")}</span>
+          <h3>${__("Website customer accounts")}</h3>
+          <p>${__(
+            "Link a website login email to the standard ERPNext Customer through Contact. Quotes, orders and invoices stay in ERPNext."
+          )}</p>
+        </div>
+        <div class="gl-customer-access__tools">
+          <input class="form-control" data-customer-search placeholder="${__("Search customer, email or contact")}" />
+          <button class="btn btn-default" data-customer-refresh>${__("Refresh")}</button>
+        </div>
+        <div class="gl-customer-access__form">
+          <input class="form-control" data-customer-name placeholder="${__("ERP Customer ID")}" />
+          <input class="form-control" data-customer-email placeholder="${__("Website login email")}" />
+          <input class="form-control" data-customer-first-name placeholder="${__("First name")}" />
+          <input class="form-control" data-customer-last-name placeholder="${__("Last name")}" />
+          <button class="btn btn-primary" data-customer-link>${__("Link / Invite")}</button>
+          <button class="btn btn-default" data-customer-disable>${__("Disable Email")}</button>
+        </div>
+        <div class="gl-customer-access__summary"></div>
+        <div class="gl-customer-access__list">
+          <div class="gl-loading">${__("Loading customer access...")}</div>
+        </div>
+      </section>
+
       <section class="gl-status-grid"></section>
       <section class="gl-control-grid"></section>
 
@@ -205,6 +232,8 @@ async function render_website_control_center(page) {
   `);
 
   bind_common_actions(page.body);
+  bind_customer_access_actions(page.body);
+  render_customer_access(page.body);
 
   const $status = page.body.find(".gl-status-grid");
   const $grid = page.body.find(".gl-control-grid");
@@ -234,6 +263,7 @@ async function render_website_control_center(page) {
   });
 
   bind_common_actions(page.body);
+  bind_customer_access_actions(page.body);
 }
 
 function bind_common_actions($body) {
@@ -247,6 +277,125 @@ function bind_common_actions($body) {
   $body.find("[data-new-doc]").off("click").on("click", function () {
     frappe.new_doc($(this).attr("data-new-doc"));
   });
+}
+
+function bind_customer_access_actions($body) {
+  $body.find("[data-customer-refresh]").off("click").on("click", () => render_customer_access($body));
+  $body.find("[data-customer-search]").off("keydown").on("keydown", function (event) {
+    if (event.key === "Enter") render_customer_access($body);
+  });
+  $body.find("[data-customer-link]").off("click").on("click", () => link_customer_access($body));
+  $body.find("[data-customer-disable]").off("click").on("click", () => disable_customer_access($body));
+}
+
+async function render_customer_access($body) {
+  const query = ($body.find("[data-customer-search]").val() || "").trim();
+  const $summary = $body.find(".gl-customer-access__summary");
+  const $list = $body.find(".gl-customer-access__list");
+  $list.html(`<div class="gl-loading">${__("Loading customer access...")}</div>`);
+
+  try {
+    const params = new URLSearchParams({ limit: "12" });
+    if (query) params.set("q", query);
+    const response = await fetch(`${WEBSITE_API_URL}/api/admin/customer-access?${params.toString()}`);
+    if (!response.ok) throw new Error("customer_access_failed");
+    const data = await response.json();
+    const customers = data.customers || [];
+    const enabledCount = customers.filter((customer) => customer.websiteAccessEnabled).length;
+
+    $summary.html(`
+      <article><span>${__("Loaded")}</span><strong>${customers.length}</strong><small>${__("customers")}</small></article>
+      <article><span>${__("Website access")}</span><strong>${enabledCount}</strong><small>${__("enabled users")}</small></article>
+      <article><span>${__("Documents")}</span><strong>${customers.reduce((sum, customer) => sum + customer.salesOrders + customer.invoices, 0)}</strong><small>${__("orders + invoices")}</small></article>
+    `);
+
+    if (!customers.length) {
+      $list.html(`<div class="gl-loading">${__("No customers found.")}</div>`);
+      return;
+    }
+
+    $list.html(customers.map(customer_access_row).join(""));
+    $list.find("[data-fill-customer]").off("click").on("click", function () {
+      $body.find("[data-customer-name]").val($(this).attr("data-fill-customer"));
+      const email = $(this).attr("data-fill-email") || "";
+      if (email) $body.find("[data-customer-email]").val(email);
+    });
+  } catch (error) {
+    $list.html(`<div class="gl-loading gl-loading--error">${__("Could not load customer access.")}</div>`);
+  }
+}
+
+async function link_customer_access($body) {
+  const payload = {
+    customer: ($body.find("[data-customer-name]").val() || "").trim(),
+    email: ($body.find("[data-customer-email]").val() || "").trim(),
+    firstName: ($body.find("[data-customer-first-name]").val() || "").trim(),
+    lastName: ($body.find("[data-customer-last-name]").val() || "").trim()
+  };
+  if (!payload.customer || !payload.email) {
+    frappe.msgprint(__("Enter ERP Customer ID and website login email."));
+    return;
+  }
+
+  const response = await fetch(`${WEBSITE_API_URL}/api/admin/customer-access/link`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  const result = await response.json();
+  if (!response.ok || !result.ok) {
+    frappe.msgprint(__(`Could not link customer access: ${result.error || "unknown error"}`));
+    return;
+  }
+  frappe.show_alert({ message: __("Website customer access linked."), indicator: "green" });
+  render_customer_access($body);
+}
+
+async function disable_customer_access($body) {
+  const email = ($body.find("[data-customer-email]").val() || "").trim();
+  if (!email) {
+    frappe.msgprint(__("Enter website login email to disable."));
+    return;
+  }
+
+  const response = await fetch(`${WEBSITE_API_URL}/api/admin/customer-access/disable`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email })
+  });
+  const result = await response.json();
+  if (!response.ok || !result.ok) {
+    frappe.msgprint(__(`Could not disable website access: ${result.error || "unknown error"}`));
+    return;
+  }
+  frappe.show_alert({ message: __("Website access disabled."), indicator: "orange" });
+  render_customer_access($body);
+}
+
+function customer_access_row(customer) {
+  const emails = customer.emails?.length ? customer.emails.join(", ") : customer.email || __("No email");
+  const users = customer.users?.length ? customer.users.join(", ") : __("No website user");
+  const status = customer.websiteAccessEnabled ? __("Enabled") : __("No active access");
+  const statusClass = customer.websiteAccessEnabled ? "is-on" : "is-off";
+  return `
+    <article class="gl-customer-row">
+      <div>
+        <strong>${frappe.utils.escape_html(customer.customerName || customer.customer)}</strong>
+        <span>${frappe.utils.escape_html(customer.customer)}</span>
+        <small>${frappe.utils.escape_html(emails)}</small>
+      </div>
+      <div>
+        <span>${__("Users")}</span>
+        <strong>${frappe.utils.escape_html(users)}</strong>
+      </div>
+      <div>
+        <span>${__("Documents")}</span>
+        <strong>${customer.salesOrders} ${__("orders")} / ${customer.invoices} ${__("invoices")}</strong>
+      </div>
+      <span class="${statusClass}">${status}</span>
+      <button class="btn btn-default btn-xs" data-fill-customer="${frappe.utils.escape_html(customer.customer)}" data-fill-email="${frappe.utils.escape_html(customer.emails?.[0] || customer.email || "")}">${__("Use")}</button>
+    </article>
+  `;
 }
 
 async function get_section_summary(section) {
