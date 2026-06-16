@@ -24,7 +24,9 @@
     "erpnext:seed-catalogs": "node scripts/erpnext-seed-website-assets.mjs",
     "erpnext:seed-catalogs:docker": "docker compose exec api npm run erpnext:seed-catalogs",
     "erpnext:seed-manufacturers": "node scripts/erpnext-seed-website-assets.mjs",
-    "erpnext:seed-manufacturers:docker": "docker compose exec api npm run erpnext:seed-manufacturers"
+    "erpnext:seed-manufacturers:docker": "docker compose exec api npm run erpnext:seed-manufacturers",
+    "erpnext:ensure-website-sidebar": "node scripts/erpnext-ensure-website-sidebar.mjs",
+    "erpnext:ensure-website-sidebar:docker": "docker compose exec api npm run erpnext:ensure-website-sidebar"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^5.0.0",
