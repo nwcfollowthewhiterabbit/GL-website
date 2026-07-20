@@ -303,7 +303,7 @@ function catalogOrderBy(sort) {
     case "price_desc":
       return "IFNULL(price.price_list_rate, 0) DESC, i.item_name ASC";
     default:
-      return "website_sort_order, i.modified DESC";
+      return "website_sort_order, CASE WHEN IFNULL(stock.actual_qty, 0) > 0 THEN 0 ELSE 1 END, i.modified DESC";
   }
 }
 
