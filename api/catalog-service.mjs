@@ -16,7 +16,10 @@ const EXCLUDED_STOREFRONT_GROUPS = [
   "Raw Material",
   "Sub Assemblies",
   "TAXES",
-  "Utility"
+  "Utility",
+  "All Item Groups",
+  "Products",
+  "Construction project activities"
 ];
 
 function normalizePage(value, fallback, max) {
