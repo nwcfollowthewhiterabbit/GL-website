@@ -440,9 +440,10 @@ export async function getCatalogQualityReport() {
     AND IFNULL(i.is_sales_item, 1) = 1
     AND IFNULL(i.has_variants, 0) = 0
   `;
+  const readyCountSql = `SUM(CASE WHEN ${CATALOG_PRODUCT_READY_SQL} THEN 1 ELSE 0 END)`;
   const qualityColumns = `
     COUNT(*) AS total,
-    SUM(CASE WHEN ${CATALOG_PRODUCT_READY_SQL} THEN 1 ELSE 0 END) AS ready,
+    ${readyCountSql} AS ready,
     SUM(CASE WHEN IFNULL(i.image, '') = '' THEN 1 ELSE 0 END) AS missing_image,
     SUM(CASE WHEN IFNULL(price.price_list_rate, 0) <= 0 THEN 1 ELSE 0 END) AS missing_price,
     SUM(CASE WHEN NOT (${CATALOG_DESCRIPTION_READY_SQL}) THEN 1 ELSE 0 END) AS incomplete_description
@@ -456,7 +457,7 @@ export async function getCatalogQualityReport() {
         ${base}
         WHERE ${where}
         GROUP BY COALESCE(NULLIF(i.item_group, ''), 'Unassigned')
-        ORDER BY (total - ready) DESC, total DESC
+        ORDER BY (COUNT(*) - ${readyCountSql}) DESC, COUNT(*) DESC
       `,
       params
     ),
@@ -466,7 +467,7 @@ export async function getCatalogQualityReport() {
         ${base}
         WHERE ${where}
         GROUP BY COALESCE(NULLIF(i.brand, ''), 'Unassigned')
-        ORDER BY (total - ready) DESC, total DESC
+        ORDER BY (COUNT(*) - ${readyCountSql}) DESC, COUNT(*) DESC
       `,
       params
     )
