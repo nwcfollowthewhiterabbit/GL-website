@@ -973,22 +973,6 @@ textarea:focus-visible {
   scrollbar-color: rgba(46, 111, 74, 0.28) transparent;
 }
 
-.catalog-sidebar.is-fixed {
-  position: fixed;
-  top: 92px;
-  left: var(--catalog-sidebar-left);
-  width: var(--catalog-sidebar-width);
-  z-index: 30;
-}
-
-.catalog-sidebar.is-bottom {
-  position: absolute;
-  top: auto;
-  bottom: 0;
-  left: 0;
-  width: 280px;
-}
-
 .catalog-main {
   grid-column: 2;
   min-width: 0;
@@ -3203,6 +3187,18 @@ textarea:focus-visible {
   border-top: 1px solid var(--line);
 }
 
+.footer-credit a {
+  color: var(--leaf-dark);
+  font-weight: 900;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.footer-credit a:hover {
+  color: var(--leaf);
+}
+
+
 .quote-backdrop {
   position: fixed;
   inset: 0;
@@ -3755,12 +3751,6 @@ textarea:focus-visible {
     position: static;
     display: none;
     max-height: none;
-  }
-
-  .catalog-sidebar.is-fixed,
-  .catalog-sidebar.is-bottom {
-    position: static;
-    width: auto;
   }
 
   .catalog-sidebar.is-open {
