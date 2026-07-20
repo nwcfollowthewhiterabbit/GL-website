@@ -32,7 +32,6 @@ type AccountPageProps = {
   onCodeChange: (value: string) => void;
   onStartLogin: () => void;
   onVerifyLogin: () => void;
-  onLoadQuotes: () => void;
   onRefreshAccount: () => void;
   onLogout: () => void;
   onOpenQuote: () => void;
@@ -77,7 +76,6 @@ export function AccountPage({
   onCodeChange,
   onStartLogin,
   onVerifyLogin,
-  onLoadQuotes,
   onRefreshAccount,
   onLogout,
   onOpenQuote,
@@ -259,11 +257,7 @@ export function AccountPage({
               <span>ERPNext quotations</span>
               <h3>Quote history</h3>
             </div>
-            {!isAuthenticated ? (
-              <button className="secondary-button" onClick={onLoadQuotes} disabled={isLoading}>
-                <RefreshCcw size={18} /> Lookup
-              </button>
-            ) : null}
+            <FileText size={22} />
           </div>
 
           <div className="account-quotes">
@@ -287,7 +281,7 @@ export function AccountPage({
               <div className="account-empty">
                 <FileText size={24} />
                 <strong>No quote history loaded</strong>
-                <p>{isAuthenticated ? "New website quote requests will appear here after ERPNext creates a quotation." : "Enter buyer email and use Lookup, or sign in with a login code."}</p>
+                <p>{isAuthenticated ? "New website quote requests will appear here after ERPNext creates a quotation." : "Sign in to load quotation history for this customer account."}</p>
                 <button className="secondary-button" type="button" onClick={onOpenQuote}>
                   Start quote <ArrowRight size={16} />
                 </button>

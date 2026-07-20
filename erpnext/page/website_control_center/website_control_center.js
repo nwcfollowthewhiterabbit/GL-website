@@ -138,9 +138,9 @@ const PLANNED_CONTROLS = [
     route: ["List", "Website Customer Corner Settings"]
   },
   {
-    title: __("Windcave Payments"),
+    title: __("Westpac IPG Payments"),
     status: __("Waiting"),
-    text: __("Waiting for Windcave sandbox credentials. Planned flow: hosted payment page after quote/order confirmation.")
+    text: __("Provider and sandbox credentials are pending. Planned flow: hosted payment page after quote/order confirmation.")
   },
   {
     title: __("Sync Health"),

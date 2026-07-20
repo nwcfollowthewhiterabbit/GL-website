@@ -7,6 +7,7 @@ import { CatalogServiceBand } from "./components/CatalogServiceBand";
 import { CatalogSection } from "./components/CatalogSection";
 import { HeroSection } from "./components/HeroSection";
 import { LegacyContentSection } from "./components/LegacyContentSection";
+import { NotFoundPage, PolicyPage } from "./components/PolicyPage";
 import { ProductDetailPage } from "./components/ProductDetailPage";
 import { ProductModal } from "./components/ProductModal";
 import { QuoteDrawer } from "./components/QuoteDrawer";
@@ -29,7 +30,6 @@ import {
   fetchAccountOrderDetail,
   fetchAccountQuoteDetail,
   fetchAccountSession,
-  fetchAccountQuotes,
   fetchCatalogDiagnostics,
   fetchCatalogProduct,
   fetchCatalogFacets,
@@ -38,7 +38,6 @@ import {
   fetchCustomerCornerSettings,
   fetchFeaturedCatalogProducts,
   fetchItemGroups,
-  fetchRecentQuotes,
   fetchRelatedCatalogProducts,
   fetchWebsiteBanners,
   fetchWebsiteCatalogs,
@@ -73,14 +72,14 @@ const PAGE_SIZE = 12;
 
 const fallbackCustomerCornerSettings: CustomerCornerSettings = {
   enabled: true,
-  loginEnabled: true,
+  loginEnabled: false,
   showQuoteHistory: true,
   showPurchaseHistory: true,
   title: "Customer account for trade buyers.",
   introCopy: "Use one email login to track website quotations, ERP purchase history and the next action from Green Leaf sales.",
   salesEmail: "buy@greenleafpacific.com",
   salesPhone: "+679 670 2222",
-  paymentNote: "Payment link will be added after Windcave approval."
+  paymentNote: "Secure payment link will be available after quote approval."
 };
 
 function isValidEmail(value: string) {
@@ -153,7 +152,6 @@ function App() {
   const [productLoading, setProductLoading] = useState(false);
   const [relatedProducts, setRelatedProducts] = useState<CatalogProduct[]>([]);
   const [recommendedProducts, setRecommendedProducts] = useState<CatalogProduct[]>([]);
-  const [recentQuotes, setRecentQuotes] = useState<RecentQuote[]>([]);
   const [catalogFacets, setCatalogFacets] = useState<CatalogFacets | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [catalogSuggestions, setCatalogSuggestions] = useState<CatalogSuggestion[]>([]);
@@ -187,15 +185,28 @@ function App() {
   }, []);
 
   useLayoutEffect(() => {
-    if (route.view !== "product") return;
     scrollToPageTopInstantly();
   }, [route]);
+
+  useEffect(() => {
+    const pageTitle =
+      route.view === "policy"
+        ? `${route.policy.replace(/-/g, " ")} | Green Leaf Pacific`
+        : route.view === "account"
+          ? "Customer account | Green Leaf Pacific"
+          : route.view === "product" && activeProduct
+            ? `${activeProduct.name} | Green Leaf Pacific`
+            : route.view === "not-found"
+              ? "Page not found | Green Leaf Pacific"
+              : "Green Leaf Pacific";
+    document.title = pageTitle;
+  }, [activeProduct, route]);
 
   useEffect(() => {
     if (route.view !== "catalog" || route.search === undefined) return;
     setSearchTerm(route.search);
     setPage(1);
-  }, [route.view, route.search]);
+  }, [route]);
 
   useEffect(() => {
     let ignore = false;
@@ -427,16 +438,6 @@ function App() {
     window.localStorage.setItem("greenleaf.quoteLines", JSON.stringify(quoteLines));
   }, [quoteLines]);
 
-  function refreshRecentQuotes() {
-    fetchRecentQuotes(5)
-      .then(setRecentQuotes)
-      .catch(() => setRecentQuotes([]));
-  }
-
-  useEffect(() => {
-    refreshRecentQuotes();
-  }, []);
-
   const products = useMemo<CatalogProduct[]>(() => {
     if (catalogState === "fallback") return fallbackProducts;
     return erpProducts;
@@ -625,7 +626,6 @@ function App() {
       if (name && typeof data.quotation !== "string") {
         setQuoteResult(quoteResultFromResponse(data, quoteEmail));
         setQuoteStatus("Quote request sent. Green Leaf sales will confirm price, stock and lead time.");
-        refreshRecentQuotes();
       } else if (name) {
         setQuoteResult(quoteResultFromResponse(data, quoteEmail, { reused: true }));
         setQuoteStatus("This quote request was already received. We opened the existing ERP quotation.");
@@ -670,7 +670,6 @@ function App() {
         setQuoteResult(quoteResultFromResponse(data, quoteEmail));
         setQuoteStatus("Quote request sent. Green Leaf sales will confirm price, stock and lead time.");
         setQuoteLines([]);
-        refreshRecentQuotes();
       } else if (name) {
         setQuoteResult(quoteResultFromResponse(data, quoteEmail, { reused: true }));
         setQuoteStatus("This quote request was already received. We opened the existing ERP quotation.");
@@ -687,27 +686,6 @@ function App() {
       setQuoteStatus("Quote request failed.");
     } finally {
       setQuoteSubmitting(false);
-    }
-  }
-
-  async function loadAccountQuotes() {
-    if (!isValidEmail(accountEmail)) {
-      setAccountStatus("Enter a valid buyer email.");
-      setAccountQuotes([]);
-      return;
-    }
-
-    setAccountLoading(true);
-    setAccountStatus("Loading quote history...");
-    try {
-      const quotes = await fetchAccountQuotes(accountEmail, 20);
-      setAccountQuotes(quotes);
-      setAccountStatus(quotes.length ? `${quotes.length} quotation${quotes.length === 1 ? "" : "s"} found.` : "No quotations found.");
-    } catch {
-      setAccountQuotes([]);
-      setAccountStatus("Quote history could not be loaded.");
-    } finally {
-      setAccountLoading(false);
     }
   }
 
@@ -845,10 +823,14 @@ function App() {
   return (
     <main className="app">
       <SiteHeader departments={websiteNavigationCategories} quoteCount={quoteCount} onOpenQuote={() => setQuoteOpen(true)} />
-      {route.view !== "product" ? (
+      {route.view === "catalog" || route.view === "account" ? (
         <HeroSection banners={heroBanners} />
       ) : null}
-      {route.view === "account" ? (
+      {route.view === "policy" ? (
+        <PolicyPage policy={route.policy} />
+      ) : route.view === "not-found" ? (
+        <NotFoundPage />
+      ) : route.view === "account" ? (
         <AccountPage
           email={accountEmail}
           code={accountCode}
@@ -863,7 +845,6 @@ function App() {
           onCodeChange={setAccountCode}
           onStartLogin={beginAccountLogin}
           onVerifyLogin={completeAccountLogin}
-          onLoadQuotes={loadAccountQuotes}
           onRefreshAccount={refreshAccount}
           onLogout={signOutAccount}
           onOpenQuote={() => setQuoteOpen(true)}
@@ -920,11 +901,11 @@ function App() {
           <CatalogServiceBand onOpenQuote={() => setQuoteOpen(true)} />
         </>
       )}
-      {route.view !== "product" ? (
+      {route.view === "catalog" || route.view === "account" ? (
         <RecommendedProductsSection products={recommendedProducts} onSelectProduct={openProductPreview} />
       ) : null}
-      {route.view !== "product" ? <CatalogDownloadsSection catalogs={catalogDownloads} /> : null}
-      {route.view !== "product" ? <LegacyContentSection manufacturers={manufacturerLogos} /> : null}
+      {route.view === "catalog" || route.view === "account" ? <CatalogDownloadsSection catalogs={catalogDownloads} /> : null}
+      {route.view === "catalog" || route.view === "account" ? <LegacyContentSection manufacturers={manufacturerLogos} /> : null}
       <ServiceContactSection onOpenQuote={() => setQuoteOpen(true)} />
       <SiteFooter departments={websiteNavigationCategories} />
       <ProductModal product={previewProduct} onClose={() => setPreviewProduct(null)} onAddToQuote={addToQuote} />

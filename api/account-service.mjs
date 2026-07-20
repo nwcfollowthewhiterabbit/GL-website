@@ -7,6 +7,10 @@ const CODE_TTL_MS = 10 * 60 * 1000;
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const WEBSITE_CUSTOMER_ROLE = "Website Customer";
 
+export function isAccountLoginAvailable() {
+  return process.env.NODE_ENV !== "production" && process.env.ACCOUNT_DEV_LOGIN === "true";
+}
+
 function clean(value) {
   return String(value || "").trim();
 }
@@ -210,6 +214,9 @@ export async function resolveCustomerAccessByEmail(emailValue) {
 
 export function startAccountLogin(emailValue) {
   purgeExpired();
+  if (!isAccountLoginAvailable()) {
+    return { ok: false, error: "account_login_unavailable" };
+  }
   const email = normalizeEmail(emailValue);
   if (!isValidEmail(email)) {
     return { ok: false, error: "invalid_email" };
@@ -226,8 +233,8 @@ export function startAccountLogin(emailValue) {
     ok: true,
     email,
     expiresInSeconds: Math.floor(CODE_TTL_MS / 1000),
-    delivery: process.env.ACCOUNT_EMAIL_PROVIDER ? "email" : "development_response",
-    devCode: process.env.ACCOUNT_EMAIL_PROVIDER ? undefined : code
+    delivery: "development_response",
+    devCode: code
   };
 }
 

@@ -80,7 +80,7 @@ export async function fetchItemGroups() {
 }
 
 export function fetchCatalogDiagnostics() {
-  return getJson<CatalogDiagnostics>("/api/admin/catalog-diagnostics");
+  return getJson<CatalogDiagnostics>("/api/catalog/diagnostics");
 }
 
 export function fetchCatalogFacets() {
@@ -110,17 +110,6 @@ export async function fetchWebsiteManufacturers() {
 export async function fetchCustomerCornerSettings() {
   const data = await getJson<{ source: string; settings: CustomerCornerSettings }>("/api/storefront/customer-corner");
   return data.settings;
-}
-
-export async function fetchRecentQuotes(limit = 5) {
-  const data = await getJson<{ quotes: RecentQuote[] }>(`/api/admin/recent-quotes?limit=${limit}`);
-  return data.quotes || [];
-}
-
-export async function fetchAccountQuotes(email: string, limit = 20) {
-  const search = new URLSearchParams({ email, limit: String(limit) });
-  const data = await getJson<{ quotes: RecentQuote[] }>(`/api/account/quotes?${search.toString()}`);
-  return data.quotes || [];
 }
 
 export async function startAccountLogin(email: string): Promise<AccountLoginStartResponse> {

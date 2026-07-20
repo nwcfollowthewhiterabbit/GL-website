@@ -210,7 +210,7 @@ export async function getWebsiteCustomerCornerSettings() {
       introCopy: "Use one email login to track website quotations, ERP purchase history and the next action from Green Leaf sales.",
       salesEmail: "buy@greenleafpacific.com",
       salesPhone: "+679 670 2222",
-      paymentNote: "Payment link will be added after Windcave approval."
+      paymentNote: "Secure payment link will be available after quote approval."
     }
   };
 
@@ -229,7 +229,7 @@ export async function getWebsiteCustomerCornerSettings() {
         IFNULL(NULLIF(intro_copy, ''), 'Use one email login to track website quotations, ERP purchase history and the next action from Green Leaf sales.') AS intro_copy,
         IFNULL(NULLIF(sales_email, ''), 'buy@greenleafpacific.com') AS sales_email,
         IFNULL(NULLIF(sales_phone, ''), '+679 670 2222') AS sales_phone,
-        IFNULL(NULLIF(payment_note, ''), 'Payment link will be added after Windcave approval.') AS payment_note
+        IFNULL(NULLIF(payment_note, ''), 'Secure payment link will be available after quote approval.') AS payment_note
       FROM \`${settingsTable}\`
       ORDER BY modified DESC, creation DESC
       LIMIT 1

@@ -2,7 +2,7 @@ export const legacyBrand = {
   name: "Green Leaf",
   logo: "/legacy/greenleaf-logo.png",
   email: "buy@greenleafpacific.com",
-  phone: "+679 670 1444",
+  phone: "+679 670 2222",
   alternatePhone: "+679 725 1452",
   address: "Nippon Complex, Back Rd., Nadi, Fiji Islands",
   mapEmbed:

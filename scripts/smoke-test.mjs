@@ -15,21 +15,6 @@ async function readJson(path) {
   }
 }
 
-async function readJsonWithHeaders(path, headers = {}) {
-  const response = await fetch(`${baseUrl}${path}`, { headers });
-  const text = await response.text();
-
-  if (!response.ok) {
-    throw new Error(`${path} returned ${response.status}: ${text.slice(0, 240)}`);
-  }
-
-  try {
-    return JSON.parse(text);
-  } catch {
-    throw new Error(`${path} did not return JSON: ${text.slice(0, 240)}`);
-  }
-}
-
 async function readText(path) {
   const response = await fetch(`${baseUrl}${path}`);
   const text = await response.text();
@@ -41,23 +26,14 @@ async function readText(path) {
   return text;
 }
 
-async function postJson(path, payload, headers = {}) {
-  const response = await fetch(`${baseUrl}${path}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...headers },
-    body: JSON.stringify(payload)
-  });
-  const text = await response.text();
-
-  if (!response.ok) {
-    throw new Error(`${path} returned ${response.status}: ${text.slice(0, 240)}`);
+async function expectStatus(path, expectedStatuses, options = {}) {
+  const response = await fetch(`${baseUrl}${path}`, options);
+  const expected = Array.isArray(expectedStatuses) ? expectedStatuses : [expectedStatuses];
+  if (!expected.includes(response.status)) {
+    const text = await response.text();
+    throw new Error(`${path} returned ${response.status}, expected ${expected.join("/")}: ${text.slice(0, 240)}`);
   }
-
-  try {
-    return JSON.parse(text);
-  } catch {
-    throw new Error(`${path} did not return JSON: ${text.slice(0, 240)}`);
-  }
+  return response;
 }
 
 function assert(condition, message) {
@@ -67,8 +43,7 @@ function assert(condition, message) {
 async function main() {
   const health = await readJson("/health");
   assert(health.ok, "Health endpoint is not ok");
-  assert(health.erpnextConfigured, "ERPNext REST credentials are not configured");
-  assert(health.erpnextDbReachable, "ERPNext database is not reachable");
+  assert(!("erpnextConfigured" in health), "Public health endpoint exposes configuration state");
 
   const catalog = await readJson("/api/catalog/products?page=1&pageSize=2&q=Bath");
   assert(Array.isArray(catalog.products), "Catalog products response is invalid");
@@ -93,6 +68,7 @@ async function main() {
   assert(Array.isArray(websiteManufacturers.manufacturers), "Website manufacturers response is invalid");
   const customerCorner = await readJson("/api/storefront/customer-corner");
   assert(customerCorner.settings?.title, "Customer corner settings response is invalid");
+  assert(customerCorner.settings.loginEnabled === false, "Production account login should be disabled without an email provider");
   assert(websiteManufacturers.manufacturers.length > 0, "Website manufacturers returned no logos");
   assert(typeof websiteManufacturers.source === "string", "Website manufacturers source is missing");
 
@@ -115,42 +91,42 @@ async function main() {
   const accountPage = await readText("/account");
   assert(accountPage.includes('<div id="root"></div>'), "Account route did not return the SPA shell");
 
-  const accountQuotes = await readJson("/api/account/quotes?email=patch.fields%40example.com&limit=5");
-  assert(Array.isArray(accountQuotes.quotes), "Account quotes response is invalid");
+  const diagnostics = await readJson("/api/catalog/diagnostics");
+  assert(diagnostics.storefrontRules?.defaultCurrency === "FJD", "Public catalog diagnostics are invalid");
 
-  const loginStart = await postJson("/api/account/login/start", { email: "patch.fields@example.com" });
-  assert(loginStart.ok && loginStart.devCode, "Account login start did not return a development code");
-
-  const loginVerify = await postJson("/api/account/login/verify", {
-    email: "patch.fields@example.com",
-    code: loginStart.devCode
-  });
-  assert(loginVerify.ok && loginVerify.token, "Account login verification did not return a token");
-
-  const accountSessionResponse = await fetch(`${baseUrl}/api/account/session`, {
-    headers: { Authorization: `Bearer ${loginVerify.token}` }
-  });
-  assert(accountSessionResponse.ok, "Authenticated account session failed");
-  const accountSession = await accountSessionResponse.json();
-  assert(accountSession.account?.email === "patch.fields@example.com", "Account session returned wrong email");
-  if (accountSession.account.quotes?.length) {
-    const quoteDetail = await readJsonWithHeaders(`/api/account/quotes/${encodeURIComponent(accountSession.account.quotes[0].name)}`, {
-      Authorization: `Bearer ${loginVerify.token}`
-    });
-    assert(quoteDetail.quote?.lines && Array.isArray(quoteDetail.quote.lines), "Quote detail response is invalid");
-  }
-  if (accountSession.account.orders?.length) {
-    const orderDetail = await readJsonWithHeaders(`/api/account/orders/${encodeURIComponent(accountSession.account.orders[0].name)}`, {
-      Authorization: `Bearer ${loginVerify.token}`
-    });
-    assert(orderDetail.order?.lines && Array.isArray(orderDetail.order.lines), "Order detail response is invalid");
+  for (const policyPath of ["/privacy", "/terms", "/shipping", "/returns", "/payment-security"]) {
+    const policyPage = await readText(policyPath);
+    assert(policyPage.includes('<div id="root"></div>'), `${policyPath} did not return the SPA shell`);
   }
 
-  const quotes = await readJson("/api/admin/recent-quotes?limit=2");
-  assert(Array.isArray(quotes.quotes), "Recent quotes response is invalid");
+  const robots = await readText("/robots.txt");
+  assert(robots.includes("Disallow: /"), "Testing robots policy is missing");
+  const sitemap = await readText("/sitemap.xml");
+  assert(sitemap.includes("/payment-security"), "Policy sitemap is incomplete");
+
+  await expectStatus("/api/account/quotes?email=patch.fields%40example.com", 401);
+  const loginResponse = await expectStatus("/api/account/login/start", 503, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: "patch.fields@example.com" })
+  });
+  const loginResult = await loginResponse.json();
+  assert(loginResult.error === "account_login_unavailable" && !loginResult.devCode, "Production login exposed a development code");
+  await expectStatus("/api/admin/recent-quotes?limit=2", [401, 404]);
+  await expectStatus("/api/admin/customer-access?limit=2", [401, 404]);
+  await expectStatus("/api/sync/status", [401, 404]);
+
+  const hostileCorsResponse = await fetch(`${baseUrl}/api/catalog/summary`, {
+    headers: { Origin: "https://invalid-origin.example" }
+  });
+  assert(!hostileCorsResponse.headers.get("access-control-allow-origin"), "Untrusted CORS origin was allowed");
+
+  const pageResponse = await fetch(`${baseUrl}/catalog`);
+  for (const header of ["content-security-policy", "strict-transport-security", "x-content-type-options", "x-frame-options"]) {
+    assert(pageResponse.headers.get(header), `Missing security header: ${header}`);
+  }
 
   console.log("Smoke checks passed");
-  console.log(`- ERPNext DB reachable: ${health.erpnextDbReachable}`);
   console.log(`- Catalog search products: ${catalog.products.length} of ${catalog.total}`);
   console.log(`- Website departments source: ${departments.source}`);
   console.log(`- Website banners source: ${banners.source}`);
@@ -161,10 +137,9 @@ async function main() {
   console.log(`- Related products: ${related.products.length}`);
   console.log(`- Featured products: ${featured.products.length} from ${featured.source}`);
   console.log("- Category route shell: ok");
-  console.log(`- Account quotes: ${accountQuotes.quotes.length}`);
-  console.log(`- Account auth: ${accountSession.account.email}`);
-  console.log(`- Account detail endpoints: checked`);
-  console.log(`- Recent website quotations: ${quotes.quotes.length}`);
+  console.log("- Policy routes and static compliance files: ok");
+  console.log("- Account, admin and sync route protection: ok");
+  console.log("- CORS and security headers: ok");
 }
 
 main().catch((error) => {

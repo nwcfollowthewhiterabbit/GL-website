@@ -385,7 +385,7 @@ async function seedCustomerCornerSettings() {
          'Customer account for trade buyers.',
          'Use one email login to track website quotations, ERP purchase history and the next action from Green Leaf sales.',
          1, 1, 1, 1, 'buy@greenleafpacific.com', '+679 670 2222',
-         'Payment link will be added after Windcave approval.', 0)
+         'Secure payment link will be available after quote approval.', 0)
       ON DUPLICATE KEY UPDATE
         modified = VALUES(modified),
         settings_id = VALUES(settings_id),

@@ -29,6 +29,14 @@ export function SiteFooter({ departments }: SiteFooterProps) {
           <a href="/account">Account</a>
         </div>
         <div>
+          <span>Policies</span>
+          <a href="/privacy">Privacy</a>
+          <a href="/terms">Terms</a>
+          <a href="/shipping">Shipping</a>
+          <a href="/returns">Returns</a>
+          <a href="/payment-security">Payment security</a>
+        </div>
+        <div>
           <span>Contact</span>
           <p>{legacyBrand.address}</p>
           <a href={`mailto:${legacyBrand.email}`}>{legacyBrand.email}</a>
@@ -37,7 +45,7 @@ export function SiteFooter({ departments }: SiteFooterProps) {
       </div>
       <div className="shell footer-bottom">
         <span>Green Leaf Pacific storefront</span>
-        <span>Trade quote catalog for hospitality procurement</span>
+        <span>Trade quote catalog · Currency FJD</span>
         <span className="footer-credit">Website created by <a href="https://rabbitsystems.net" target="_blank" rel="noreferrer">rabbitsystems.net</a></span>
       </div>
     </footer>

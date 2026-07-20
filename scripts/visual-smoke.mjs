@@ -3,6 +3,7 @@ import { mkdir, rm, writeFile } from "node:fs/promises";
 import { setTimeout as wait } from "node:timers/promises";
 
 const baseUrl = (process.env.VISUAL_BASE_URL || "http://localhost:8080").replace(/\/+$/, "");
+const baseHostname = new URL(baseUrl).hostname;
 const chromePath =
   process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const profileDir = "/tmp/gl-visual-smoke-chrome";
@@ -32,7 +33,7 @@ async function connectToPage(url) {
 
   await wait(500);
   const pages = await getJson(`http://127.0.0.1:${debuggingPort}/json`);
-  const page = pages.find((item) => item.type === "page" && item.url.includes("localhost"));
+  const page = pages.find((item) => item.type === "page" && new URL(item.url).hostname === baseHostname);
   assert(page?.webSocketDebuggerUrl, "Unable to find a Chrome page target for the storefront");
 
   const ws = new WebSocket(page.webSocketDebuggerUrl);
@@ -78,6 +79,9 @@ async function captureViewport(send, name, viewport) {
       innerWidth,
       scrollWidth: document.documentElement.scrollWidth,
       bodyScrollWidth: document.body.scrollWidth,
+      heading: document.querySelector(".policy-page__header h1, .policy-page__not-found h1, h1")
+        ?.textContent?.trim() || "",
+      productCards: document.querySelectorAll(".product-card").length,
       productImages: [...document.querySelectorAll(".product-card__image img")]
         .slice(0, 4)
         .map((img) => ({ src: img.getAttribute("src"), naturalWidth: img.naturalWidth }))
@@ -97,6 +101,34 @@ async function captureViewport(send, name, viewport) {
   await writeFile(`${outputDir}/${name}.png`, Buffer.from(screenshot.result.data, "base64"));
 
   return value;
+}
+
+async function waitForSelector(send, selector, timeoutMs = 15000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const result = await send("Runtime.evaluate", {
+      returnByValue: true,
+      expression: `Boolean(document.querySelector(${JSON.stringify(selector)}))`
+    });
+    if (result.result.result.value) return;
+    await wait(250);
+  }
+  throw new Error(`Timed out waiting for ${selector}`);
+}
+
+async function scrollToSelector(send, selector) {
+  const result = await send("Runtime.evaluate", {
+    returnByValue: true,
+    expression: `(() => {
+      const element = document.querySelector(${JSON.stringify(selector)});
+      if (!element) return false;
+      const top = element.getBoundingClientRect().top + window.scrollY - 84;
+      window.scrollTo({ top: Math.max(0, top), behavior: "instant" });
+      return true;
+    })()`
+  });
+  assert(result.result.result.value, `Unable to find ${selector}`);
+  await wait(500);
 }
 
 async function main() {
@@ -120,8 +152,9 @@ async function main() {
   try {
     await getJson(`http://127.0.0.1:${debuggingPort}/json/version`);
     const page = await connectToPage(`${baseUrl}/catalog?visual-smoke=1`);
-    await wait(2600);
+    await waitForSelector(page.send, ".product-card");
 
+    await scrollToSelector(page.send, "#catalog");
     const mobile = await captureViewport(page.send, "catalog-mobile", {
       width: 390,
       height: 1200,
@@ -132,8 +165,10 @@ async function main() {
       height: 1200,
       mobile: false
     });
+    assert(mobile.productCards > 0 && desktop.productCards > 0, "Catalog has no product cards");
+
     await page.send("Page.navigate", { url: `${baseUrl}/account?visual-smoke=1` });
-    await wait(1800);
+    await waitForSelector(page.send, ".account-page");
     const accountMobile = await captureViewport(page.send, "account-mobile", {
       width: 390,
       height: 1200,
@@ -145,12 +180,29 @@ async function main() {
       mobile: false
     });
 
+    await page.send("Page.navigate", { url: `${baseUrl}/privacy?visual-smoke=1` });
+    await waitForSelector(page.send, ".policy-page");
+    const policyMobile = await captureViewport(page.send, "policy-mobile", {
+      width: 390,
+      height: 1200,
+      mobile: true
+    });
+    const policyDesktop = await captureViewport(page.send, "policy-desktop", {
+      width: 1440,
+      height: 1200,
+      mobile: false
+    });
+    assert(policyMobile.heading === "Privacy policy", "Privacy page heading is missing");
+    assert(policyDesktop.heading === "Privacy policy", "Privacy page heading is missing");
+
     page.close();
     console.log("Visual smoke checks passed");
     console.log(`- Mobile width: ${mobile.innerWidth}, scroll width: ${mobile.scrollWidth}`);
     console.log(`- Desktop width: ${desktop.innerWidth}, scroll width: ${desktop.scrollWidth}`);
     console.log(`- Account mobile width: ${accountMobile.innerWidth}, scroll width: ${accountMobile.scrollWidth}`);
     console.log(`- Account desktop width: ${accountDesktop.innerWidth}, scroll width: ${accountDesktop.scrollWidth}`);
+    console.log(`- Policy mobile width: ${policyMobile.innerWidth}, scroll width: ${policyMobile.scrollWidth}`);
+    console.log(`- Policy desktop width: ${policyDesktop.innerWidth}, scroll width: ${policyDesktop.scrollWidth}`);
     console.log(`- Screenshots written to ${outputDir}/`);
   } finally {
     chrome.kill("SIGTERM");

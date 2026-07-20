@@ -1,7 +1,25 @@
 export type StorefrontRoute =
   | { view: "catalog"; categorySlug?: string; itemGroupSlug?: string; search?: string }
   | { view: "product"; sku: string }
-  | { view: "account" };
+  | { view: "account" }
+  | { view: "policy"; policy: PolicySlug }
+  | { view: "not-found" };
+
+export type PolicySlug = "privacy" | "terms" | "shipping" | "returns" | "payment-security";
+
+const policyPaths = new Map<string, PolicySlug>([
+  ["/privacy", "privacy"],
+  ["/privacy-policy", "privacy"],
+  ["/terms", "terms"],
+  ["/terms-and-conditions", "terms"],
+  ["/shipping", "shipping"],
+  ["/delivery", "shipping"],
+  ["/returns", "returns"],
+  ["/refunds", "returns"],
+  ["/cancellation", "returns"],
+  ["/payment-security", "payment-security"],
+  ["/checkout", "payment-security"]
+]);
 
 export function slugify(value: string) {
   return value
@@ -56,6 +74,11 @@ export function parseStorefrontRoute(pathname = window.location.pathname, search
   if (path === "/account") {
     return { view: "account" };
   }
+
+  const policy = policyPaths.get(path);
+  if (policy) return { view: "policy", policy };
+
+  if (path !== "/" && path !== "/catalog") return { view: "not-found" };
 
   return { view: "catalog", search: searchTerm };
 }

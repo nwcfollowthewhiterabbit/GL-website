@@ -11,7 +11,7 @@ import {
 } from "./catalog-service.mjs";
 import { pingErpDb } from "./erpnext-db.mjs";
 import { legacySyncRules } from "./legacy-sync-rules.mjs";
-import { createQuoteRequest, getRecentWebsiteQuotes, getWebsiteQuotesByEmail } from "./quote-service.mjs";
+import { createQuoteRequest, getRecentWebsiteQuotes } from "./quote-service.mjs";
 import {
   getWebsiteBanners,
   getWebsiteCatalogs,
@@ -31,29 +31,48 @@ import {
   getCustomerQuotesForAccount,
   getCustomerProfileByEmail,
   getWebsiteCustomerAccessList,
+  isAccountLoginAvailable,
   linkWebsiteCustomerAccess,
   startAccountLogin,
   verifyAccountLogin
 } from "./account-service.mjs";
+import {
+  accountLoginLimiter,
+  adminLimiter,
+  corsOptions,
+  quoteRequestLimiter,
+  requireAdminToken
+} from "./security.mjs";
 import { catalogStats, categories, featuredProducts, manufacturers } from "../src/data/catalog.mjs";
 
 const app = express();
 const port = Number(process.env.API_PORT || 3000);
 
-app.use(cors());
+app.disable("x-powered-by");
+app.set("trust proxy", 2);
+app.use(cors(corsOptions));
 app.use(express.json({ limit: "1mb" }));
+app.use("/api/account/login", accountLoginLimiter);
+app.use("/api/quote-requests", quoteRequestLimiter);
+app.use("/api/admin", adminLimiter, requireAdminToken);
+app.use("/api/sync", adminLimiter, requireAdminToken);
 
-app.get("/health", async (_req, res) => {
+app.get("/health", (_req, res) => {
+  res.json({
+    ok: true,
+    service: "green-leaf-integration-api"
+  });
+});
+
+app.get("/api/admin/health", async (_req, res) => {
   let erpnextDbReachable = false;
   try {
     erpnextDbReachable = await pingErpDb();
   } catch {
     erpnextDbReachable = false;
   }
-
   res.json({
     ok: true,
-    service: "green-leaf-integration-api",
     erpnextConfigured: Boolean(process.env.ERPNEXT_API_KEY && process.env.ERPNEXT_API_SECRET),
     erpnextDbReachable
   });
@@ -122,6 +141,17 @@ app.get("/api/catalog/facets", async (_req, res) => {
   }
 });
 
+app.get("/api/catalog/diagnostics", async (_req, res) => {
+  try {
+    res.json(await getCatalogDiagnostics());
+  } catch (error) {
+    res.status(503).json({
+      error: "erpnext_catalog_diagnostics_unavailable",
+      message: error instanceof Error ? error.message : "Unknown ERPNext diagnostics error"
+    });
+  }
+});
+
 app.get("/api/catalog/suggestions", async (req, res) => {
   try {
     const q = String(req.query.q || "").trim();
@@ -181,7 +211,9 @@ app.get("/api/storefront/manufacturers", async (_req, res) => {
 
 app.get("/api/storefront/customer-corner", async (_req, res) => {
   try {
-    res.json(await getWebsiteCustomerCornerSettings());
+    const result = await getWebsiteCustomerCornerSettings();
+    result.settings.loginEnabled = result.settings.loginEnabled && isAccountLoginAvailable();
+    res.json(result);
   } catch (error) {
     res.status(503).json({
       error: "erpnext_customer_corner_settings_unavailable",
@@ -321,13 +353,12 @@ app.post("/api/quote-requests", (req, res) => {
 
 app.get("/api/account/quotes", (req, res) => {
   const session = getAccountSession(req);
-  const email = (session?.email || String(req.query.email || "")).trim().toLowerCase();
-  if (!email) {
-    res.status(400).json({ error: "email_required" });
+  if (!session) {
+    res.status(401).json({ error: "not_authenticated" });
     return;
   }
 
-  getWebsiteQuotesByEmail(email, req.query.limit)
+  getCustomerQuotesForAccount(session.email, req.query.limit)
     .then((quotes) => res.json({ quotes }))
     .catch((error) => {
       res.status(503).json({
@@ -340,7 +371,7 @@ app.get("/api/account/quotes", (req, res) => {
 app.post("/api/account/login/start", (req, res) => {
   const result = startAccountLogin(req.body?.email);
   if (!result.ok) {
-    res.status(400).json(result);
+    res.status(result.error === "account_login_unavailable" ? 503 : 400).json(result);
     return;
   }
   res.json(result);

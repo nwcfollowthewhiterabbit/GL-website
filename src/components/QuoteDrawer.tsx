@@ -158,7 +158,7 @@ export function QuoteDrawer({
                 <ol className="quote-result__steps">
                   <li>Sales checks price, stock and lead time.</li>
                   <li>Buyer receives confirmation before payment.</li>
-                  <li>Payment link will be added after Windcave approval.</li>
+                  <li>A secure payment link can be issued after quote approval.</li>
                 </ol>
                 {quoteResult.missingCount ? (
                   <div className="quote-result__warning">
