@@ -122,9 +122,10 @@ async function main() {
   assert(!hostileCorsResponse.headers.get("access-control-allow-origin"), "Untrusted CORS origin was allowed");
 
   const pageResponse = await fetch(`${baseUrl}/catalog`);
-  for (const header of ["content-security-policy", "strict-transport-security", "x-content-type-options", "x-frame-options"]) {
+  for (const header of ["content-security-policy", "strict-transport-security", "x-content-type-options", "x-frame-options", "x-robots-tag"]) {
     assert(pageResponse.headers.get(header), `Missing security header: ${header}`);
   }
+  assert(pageResponse.headers.get("x-robots-tag").includes("noindex"), "Testing site indexing is not disabled");
 
   console.log("Smoke checks passed");
   console.log(`- Catalog search products: ${catalog.products.length} of ${catalog.total}`);
