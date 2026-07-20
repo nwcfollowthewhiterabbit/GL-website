@@ -77,7 +77,7 @@
         "fieldname": "payment_note",
         "label": "Payment Note",
         "fieldtype": "Small Text",
-        "default": "Secure payment link will be available after quote approval."
+        "default": "In-stock items use full payment; special-order items require a 70% deposit."
       }
     ]
   }

@@ -64,10 +64,10 @@ export function CatalogServiceBand({ onOpenQuote }: CatalogServiceBandProps) {
         <span>One operational workflow</span>
         <h2>From catalog browsing to resort-ready supply planning.</h2>
         <p>
-          Build a trade quote across kitchen equipment, buffet service, housekeeping, linen and fitout products. Green Leaf confirms price, stock and lead time from ERPNext.
+          Build an order basket across kitchen equipment, buffet service, housekeeping, linen and fitout products. In-stock items proceed to payment; other items are confirmed by Green Leaf sales.
         </p>
         <button type="button" className="catalog-service-band__button" onClick={onOpenQuote}>
-          Request trade quote <ArrowRight size={18} />
+          Open order basket <ArrowRight size={18} />
         </button>
       </div>
     </section>

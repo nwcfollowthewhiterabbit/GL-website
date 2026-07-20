@@ -11,7 +11,7 @@ export function ServiceContactSection({ onOpenQuote }: ServiceContactSectionProp
       <section className="shell section service-section" id="service">
         <div className="section-heading">
           <div>
-            <h2>Service after the quote.</h2>
+            <h2>Service after the order.</h2>
             <p>Green Leaf supports the operational side of hospitality supply, not only online product browsing.</p>
           </div>
         </div>
@@ -31,9 +31,9 @@ export function ServiceContactSection({ onOpenQuote }: ServiceContactSectionProp
               <Wrench size={20} />
             </span>
             <h3>Trade procurement</h3>
-            <p>Use the catalog to shortlist products, then Green Leaf confirms availability, alternatives and lead time.</p>
+            <p>Use the catalog to build an order. Available stock can proceed directly; low-stock and special-order items are confirmed by sales.</p>
             <div className="contact-strip">
-              <CheckCircle2 size={18} /> Built around quote-led B2B buying
+              <CheckCircle2 size={18} /> ERP stock-led B2B buying
             </div>
           </article>
           <article className="contact-card" id="contact">
@@ -83,10 +83,10 @@ export function ServiceContactSection({ onOpenQuote }: ServiceContactSectionProp
         <div className="shell final-cta__inner">
           <div>
             <span>Ready to source hospitality supplies?</span>
-            <h2>Build a trade quote and let Green Leaf confirm the details.</h2>
+            <h2>Build an order basket with live ERP stock and pricing.</h2>
           </div>
           <button className="primary-button" onClick={onOpenQuote}>
-            Request quote <ArrowRight size={18} />
+            Open order basket <ArrowRight size={18} />
           </button>
         </div>
       </section>

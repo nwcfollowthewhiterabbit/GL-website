@@ -1,5 +1,9 @@
 import { getErpPool } from "./erpnext-db.mjs";
 import { availableCustomFields, getCategoryRule, getCategoryRules } from "./storefront-rules.mjs";
+import {
+  CATALOG_DESCRIPTION_READY_SQL,
+  CATALOG_PRODUCT_READY_SQL
+} from "./catalog-publication-rules.mjs";
 
 const DEFAULT_PRICE_LIST = process.env.DEFAULT_PRICE_LIST || "Standard Selling";
 const EXCLUDED_WAREHOUSES = ["Showroom - GL", "Furniture Showroom (Upstairs) - GL"];
@@ -36,7 +40,7 @@ function numericOption(value) {
   return Number.isFinite(number) ? number : null;
 }
 
-function itemWhere({ q, category, categoryNames, categories, featured, includeHidden, includeWeakGroups, categoryRule, hasItemFields, minPrice, maxPrice }) {
+function itemWhere({ q, category, categoryNames, categories, featured, includeHidden, includeWeakGroups, categoryRule, hasItemFields, hasGroupFields, minPrice, maxPrice }) {
   const clauses = [
     "IFNULL(i.disabled, 0) = 0",
     "IFNULL(i.is_sales_item, 1) = 1",
@@ -49,17 +53,15 @@ function itemWhere({ q, category, categoryNames, categories, featured, includeHi
     clauses.push("IFNULL(i.website_show_on_storefront, 1) = 1");
   }
 
+  if (hasGroupFields.website_show_on_storefront) {
+    clauses.push("IFNULL(ig.website_show_on_storefront, 1) = 1");
+  }
+
   if (featured && hasItemFields.website_featured) {
     clauses.push("IFNULL(i.website_featured, 0) = 1");
   }
 
-  if (!includeHidden && !categoryRule.showProductsWithoutPrice && categoryRule.priceMode === "Price List") {
-    clauses.push("price.price_list_rate > 0");
-  }
-
-  if (!includeHidden && !categoryRule.showProductsWithoutImages) {
-    clauses.push("IFNULL(i.image, '') <> ''");
-  }
+  if (!includeHidden) clauses.push(CATALOG_PRODUCT_READY_SQL);
 
   if (!includeWeakGroups) {
     const excluded = EXCLUDED_STOREFRONT_GROUPS.map((_, index) => `:excludedGroup${index}`).join(", ");
@@ -147,6 +149,21 @@ function itemBaseSql(priceList = DEFAULT_PRICE_LIST) {
         AND LOWER(w.name) NOT LIKE '%showroom%'
       GROUP BY b.item_code
     ) stock ON stock.item_code = i.name
+    LEFT JOIN \`tabItem Group\` ig ON ig.name = i.item_group
+  `;
+}
+
+function catalogQualityBaseSql() {
+  return `
+    FROM \`tabItem\` i
+    LEFT JOIN (
+      SELECT item_code, MAX(price_list_rate) AS price_list_rate
+      FROM \`tabItem Price\`
+      WHERE price_list = :priceList
+        AND docstatus = 0
+        AND (valid_upto IS NULL OR valid_upto >= CURDATE())
+      GROUP BY item_code
+    ) price ON price.item_code = i.name
   `;
 }
 
@@ -184,17 +201,20 @@ export async function getCatalogProducts(options = {}) {
   }
 
   const priceList = String(options.priceList || categoryRule.priceList || DEFAULT_PRICE_LIST).trim() || DEFAULT_PRICE_LIST;
-  const hasItemFields = await availableCustomFields("Item", [
-    "website_show_on_storefront",
-    "website_price_mode_override",
-    "website_stock_display_override",
-    "website_sort_order",
-    "website_featured"
+  const [hasItemFields, hasGroupFields] = await Promise.all([
+    availableCustomFields("Item", [
+      "website_show_on_storefront",
+      "website_price_mode_override",
+      "website_stock_display_override",
+      "website_sort_order",
+      "website_featured"
+    ]),
+    availableCustomFields("Item Group", ["website_show_on_storefront"])
   ]);
 
   const base = itemBaseSql(priceList);
   const categoryNames = category ? await getItemGroupBranchNames(category) : [];
-  const where = itemWhere({ q, category, categoryNames, categories, featured, includeHidden, includeWeakGroups, categoryRule, hasItemFields, minPrice, maxPrice });
+  const where = itemWhere({ q, category, categoryNames, categories, featured, includeHidden, includeWeakGroups, categoryRule, hasItemFields, hasGroupFields, minPrice, maxPrice });
   const params = {
     ...baseParams(priceList),
     ...where.params,
@@ -397,8 +417,68 @@ export async function getCatalogItemGroups() {
 }
 
 export async function getCatalogProductBySku(sku) {
-  const result = await getCatalogProducts({ q: sku, includeHidden: "1", pageSize: 25 });
+  const result = await getCatalogProducts({ q: sku, pageSize: 25 });
   return result.products.find((product) => product.sku === sku) || null;
+}
+
+function normalizeQualityRows(rows, key) {
+  return rows.map((row) => ({
+    [key]: row[key] || "Unassigned",
+    total: Number(row.total || 0),
+    ready: Number(row.ready || 0),
+    missingImage: Number(row.missing_image || 0),
+    missingPrice: Number(row.missing_price || 0),
+    incompleteDescription: Number(row.incomplete_description || 0)
+  }));
+}
+
+export async function getCatalogQualityReport() {
+  const base = catalogQualityBaseSql();
+  const params = { priceList: DEFAULT_PRICE_LIST };
+  const where = `
+    IFNULL(i.disabled, 0) = 0
+    AND IFNULL(i.is_sales_item, 1) = 1
+    AND IFNULL(i.has_variants, 0) = 0
+  `;
+  const qualityColumns = `
+    COUNT(*) AS total,
+    SUM(CASE WHEN ${CATALOG_PRODUCT_READY_SQL} THEN 1 ELSE 0 END) AS ready,
+    SUM(CASE WHEN IFNULL(i.image, '') = '' THEN 1 ELSE 0 END) AS missing_image,
+    SUM(CASE WHEN IFNULL(price.price_list_rate, 0) <= 0 THEN 1 ELSE 0 END) AS missing_price,
+    SUM(CASE WHEN NOT (${CATALOG_DESCRIPTION_READY_SQL}) THEN 1 ELSE 0 END) AS incomplete_description
+  `;
+  const pool = getErpPool();
+  const [[summaryRows], [groupRows], [brandRows]] = await Promise.all([
+    pool.execute(`SELECT 'All products' AS scope, ${qualityColumns} ${base} WHERE ${where}`, params),
+    pool.execute(
+      `
+        SELECT COALESCE(NULLIF(i.item_group, ''), 'Unassigned') AS item_group, ${qualityColumns}
+        ${base}
+        WHERE ${where}
+        GROUP BY COALESCE(NULLIF(i.item_group, ''), 'Unassigned')
+        ORDER BY (total - ready) DESC, total DESC
+      `,
+      params
+    ),
+    pool.execute(
+      `
+        SELECT COALESCE(NULLIF(i.brand, ''), 'Unassigned') AS brand, ${qualityColumns}
+        ${base}
+        WHERE ${where}
+        GROUP BY COALESCE(NULLIF(i.brand, ''), 'Unassigned')
+        ORDER BY (total - ready) DESC, total DESC
+      `,
+      params
+    )
+  ]);
+
+  return {
+    generatedAt: new Date().toISOString(),
+    publicationRule: "Image, positive Standard Selling price, and a non-placeholder description of at least 24 characters",
+    summary: normalizeQualityRows(summaryRows, "scope")[0],
+    byItemGroup: normalizeQualityRows(groupRows, "item_group"),
+    byBrand: normalizeQualityRows(brandRows, "brand")
+  };
 }
 
 export async function getCatalogDiagnostics() {
@@ -409,7 +489,9 @@ export async function getCatalogDiagnostics() {
         SUM(CASE WHEN IFNULL(i.disabled, 0) = 0 THEN 1 ELSE 0 END) enabled_items,
         SUM(CASE WHEN IFNULL(i.image, '') = '' THEN 1 ELSE 0 END) without_image,
         SUM(CASE WHEN IFNULL(i.item_group, '') IN ('', 'All Item Groups') THEN 1 ELSE 0 END) weak_group,
-        SUM(CASE WHEN IFNULL(price.price_list_rate, 0) <= 0 THEN 1 ELSE 0 END) without_selling_price
+        SUM(CASE WHEN IFNULL(price.price_list_rate, 0) <= 0 THEN 1 ELSE 0 END) without_selling_price,
+        SUM(CASE WHEN IFNULL(i.disabled, 0) = 0 AND ${CATALOG_PRODUCT_READY_SQL} THEN 1 ELSE 0 END) publication_ready,
+        SUM(CASE WHEN NOT (${CATALOG_DESCRIPTION_READY_SQL}) THEN 1 ELSE 0 END) incomplete_description
       FROM \`tabItem\` i
       LEFT JOIN (
         SELECT item_code, MAX(price_list_rate) AS price_list_rate

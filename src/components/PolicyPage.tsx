@@ -19,21 +19,21 @@ const policyContent: Record<PolicySlug, PolicyContent> = {
   privacy: {
     eyebrow: "Customer information",
     title: "Privacy policy",
-    intro: "How Green Leaf Pacific handles information submitted through the catalog, quote requests and customer account.",
+    intro: "How Green Leaf Ltd, trading as Green Leaf Pacific, handles information submitted through the catalog, ordering process and customer account.",
     icon: ShieldCheck,
     sections: [
       {
         title: "Information we collect",
         items: [
-          "Business and contact details supplied with a quote request or account enquiry.",
-          "Products, quantities, delivery notes and correspondence connected with a quotation or order.",
+          "Business and contact details, including name, company, email, telephone number and delivery location.",
+          "Products, quantities, delivery instructions and correspondence connected with a quotation, order, payment or refund.",
           "Technical information needed to operate and protect the website, including request logs and security events."
         ]
       },
       {
         title: "How information is used",
         items: [
-          "To prepare quotations, confirm price and availability, arrange delivery and provide after-sales support.",
+          "To process orders and payments, confirm availability, arrange delivery and provide after-sales support.",
           "To maintain customer, quotation, order and invoice records in Green Leaf's business systems.",
           "To secure the website, investigate errors and meet legal, accounting and compliance obligations."
         ]
@@ -42,13 +42,13 @@ const policyContent: Record<PolicySlug, PolicyContent> = {
         title: "Payments and service providers",
         paragraphs: [
           "Online card payment is not currently active. When enabled, card details will be entered on an approved hosted payment page and will not be collected or stored by this website.",
-          "Information is shared only with service providers needed to operate the website, ERP records, delivery and approved payment processing."
+          "Information may be shared with ERP, website hosting, email, delivery and approved payment providers only where needed to provide the service. Payment providers handle card information under their own security and privacy obligations."
         ]
       },
       {
         title: "Access and enquiries",
         paragraphs: [
-          "Contact Green Leaf Pacific to ask about personal information associated with your business account or to request a correction. Records are retained only for operational, legal and accounting needs."
+          "Contact buy@greenleafpacific.com to ask about personal information associated with your business account or request a correction. Records are kept only for as long as reasonably required for service, security, legal, tax and accounting purposes. Marketing messages will require a separate opt-in."
         ]
       }
     ]
@@ -56,27 +56,29 @@ const policyContent: Record<PolicySlug, PolicyContent> = {
   terms: {
     eyebrow: "Trading information",
     title: "Website terms and conditions",
-    intro: "The catalog supports business purchasing and quotation requests for hospitality supplies, equipment and related services.",
+    intro: "These terms apply to purchases from Green Leaf Ltd, trading as Green Leaf Pacific, TIN 50-51812-0-2, in Fiji.",
     icon: FileText,
     sections: [
       {
-        title: "Catalog and quotations",
+        title: "Catalog prices",
         items: [
-          "Catalog information is provided to help customers identify suitable products and request a trade quotation.",
-          "Displayed prices are in Fijian dollars (FJD) and remain estimates until Green Leaf confirms the quotation.",
-          "A submitted website request is not an accepted order and does not reserve stock."
+          "All displayed prices and online transactions are in Fijian dollars (FJD).",
+          "Catalog prices exclude VAT. Applicable VAT and any delivery or service charge are shown before payment.",
+          "Product information, stock and prices are sourced from ERPNext but may change before an order is accepted."
         ]
       },
       {
-        title: "Final price and availability",
-        paragraphs: [
-          "Green Leaf confirms product availability, substitutions, taxes, delivery charges, lead time and the final payable total before requesting payment. The approved quotation or invoice is the controlling commercial document."
+        title: "Stock and payment path",
+        items: [
+          "In-stock items can proceed to full payment after customer and delivery details are provided.",
+          "Low-stock items require sales confirmation before a payment link is issued.",
+          "Special-order and non-stock items require an acceptable ETA and a 70% deposit; the balance is handled under the confirmed order terms."
         ]
       },
       {
         title: "Orders and fulfilment",
         paragraphs: [
-          "An order proceeds only after the customer accepts the confirmed commercial terms and Green Leaf accepts the order. Customers should review product specifications, quantities, delivery details and payment terms before acceptance."
+          "An order is accepted after Green Leaf validates the customer details, items, stock path and payable amount. Payment links remain valid for 30 days unless cancelled or replaced. If Green Leaf cannot fulfil an accepted paid order, the customer will be offered an appropriate alternative or refund."
         ]
       },
       {
@@ -90,33 +92,37 @@ const policyContent: Record<PolicySlug, PolicyContent> = {
   shipping: {
     eyebrow: "Order fulfilment",
     title: "Shipping and delivery policy",
-    intro: "Delivery arrangements are confirmed as part of each Green Leaf quotation because products range from consumables to commercial equipment and furniture.",
+    intro: "Delivery terms depend on order value, destination, stock status and product category.",
     icon: PackageCheck,
     sections: [
       {
-        title: "Delivery quotation",
-        paragraphs: [
-          "The website total covers selected products only. Freight, handling, taxes, installation and other applicable charges are confirmed before payment and shown on the approved quotation or invoice."
+        title: "Delivery charges",
+        items: [
+          "Orders over FJD 200 receive free delivery within Viti Levu or to the applicable shipper's yard for onward outer-island transport.",
+          "For orders of FJD 200 or less, the customer pays the delivery charge shown before payment.",
+          "VAT, installation, removal and any other applicable service charges are shown separately before payment."
         ]
       },
       {
         title: "Timing and availability",
-        paragraphs: [
-          "Green Leaf sales confirms stock and expected lead time after receiving the request. If an item cannot be supplied as requested, the customer will be contacted with an update or suitable alternatives before payment."
-        ]
-      },
-      {
-        title: "Delivery details",
         items: [
-          "Customers must provide an accessible delivery location and an authorised contact.",
-          "Large equipment, furniture, installation and inter-island deliveries may require a separate freight assessment.",
-          "Risk, inspection and acceptance arrangements are stated in the final quotation where applicable."
+          "In-stock products are normally delivered within 72 hours after order acceptance.",
+          "Special-order, imported, large equipment and furniture items normally require approximately two months and may take up to six months.",
+          "A more specific lead time may be displayed or confirmed for the relevant product category."
         ]
       },
       {
-        title: "International and restricted goods",
+        title: "Availability and outer islands",
+        items: [
+          "Customers must provide an accessible delivery location, telephone number and authorised contact.",
+          "If an item becomes unavailable, Green Leaf sales will contact the customer within two days.",
+          "For outer islands, Green Leaf delivers to the agreed shipper's yard; onward arrangements are confirmed before payment."
+        ]
+      },
+      {
+        title: "Unable to fulfil",
         paragraphs: [
-          "Export availability is confirmed case by case. Customs, biosecurity, forestry and destination-country restrictions may affect timing, charges or whether an item can be shipped."
+          "If Green Leaf cannot fulfil an order after payment, Green Leaf will contact the customer and arrange a refund. No separate export service is offered through this storefront unless confirmed in writing."
         ]
       }
     ]
@@ -124,31 +130,33 @@ const policyContent: Record<PolicySlug, PolicyContent> = {
   returns: {
     eyebrow: "After-sales support",
     title: "Returns, refunds and cancellations",
-    intro: "Requests are reviewed against the confirmed quotation, product condition, supplier terms and applicable warranty.",
+    intro: "Return requests must be made within 14 days and are subject to product condition, exclusions and approval.",
     icon: RotateCcw,
     sections: [
       {
-        title: "Before dispatch",
-        paragraphs: [
-          "Contact Green Leaf promptly to request a change or cancellation. A request is not confirmed until Green Leaf accepts it in writing; special-order, made-to-order or already dispatched goods may not be cancellable."
+        title: "Eligible returns",
+        items: [
+          "Change-of-mind returns may be accepted within 14 days with a 20% restocking fee.",
+          "Dispatched goods may be returned when approved, subject to the 20% restocking fee.",
+          "Installed equipment may be returned when approved, subject to the 20% restocking fee and an equipment removal charge."
         ]
       },
       {
         title: "Incorrect, damaged or faulty goods",
         paragraphs: [
-          "Inspect goods on delivery and contact Green Leaf as soon as possible with the order reference, item details, description of the issue and supporting photographs where relevant. Do not return goods without return instructions."
+          "Inspect goods on delivery and contact Green Leaf promptly with the order reference, affected item and quantity, a clear description of the issue, photographs or video where relevant, and the preferred contact details. Keep the goods and packaging available for inspection and do not return them without instructions."
         ]
       },
       {
         title: "Approved returns and refunds",
         paragraphs: [
-          "Green Leaf will confirm whether an approved matter will be resolved by replacement, repair, credit or refund. Any refund is returned through an approved method after the goods and transaction have been verified."
+          "Approved refunds are normally processed within seven days after the goods, fees and transaction are verified. Partial refunds are used where an approved restocking or equipment removal fee is deducted. Green Leaf will confirm the approved refund method with the customer."
         ]
       },
       {
         title: "Exclusions",
         paragraphs: [
-          "Change-of-mind returns, opened consumables, custom goods and special orders are not automatically accepted. The final quotation may contain product-specific cancellation, restocking or warranty conditions."
+          "Opened consumables, custom or made-to-order goods, special-order products and furniture cannot be returned unless faulty or otherwise required by applicable law. The customer pays return transport unless Green Leaf agrees to collect the goods. Returns and refunds require approval by the General Manager or Director of Sales."
         ]
       }
     ]
@@ -156,15 +164,16 @@ const policyContent: Record<PolicySlug, PolicyContent> = {
   "payment-security": {
     eyebrow: "Payment readiness",
     title: "Payment and security information",
-    intro: "Online card payment is being prepared for approved quotations and is not active on this testing storefront.",
+    intro: "Online card payment is being prepared and remains disabled on this testing storefront until Westpac approval and gateway credentials are received.",
     icon: LockKeyhole,
     sections: [
       {
-        title: "Current process",
+        title: "Planned order process",
         items: [
-          "Select products and send a quote request to Green Leaf sales.",
-          "Green Leaf confirms stock, lead time, taxes, delivery charges and the final FJD amount.",
-          "Payment instructions are provided only after the commercial details are confirmed."
+          "In-stock items proceed to full payment after customer, telephone and delivery details are collected.",
+          "Low-stock items require availability confirmation before Green Leaf sends a payment link.",
+          "Special-order and non-stock items require ETA acceptance and a 70% deposit.",
+          "Payment links expire after 30 days."
         ]
       },
       {

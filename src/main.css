@@ -3509,6 +3509,12 @@ textarea:focus-visible {
   font-size: 14px;
 }
 
+.quote-line__body small {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
 .qty-control {
   display: grid;
   grid-template-columns: repeat(4, 34px);
@@ -3708,6 +3714,31 @@ textarea:focus-visible {
 
 .quote-total strong {
   color: var(--ink);
+}
+
+.order-flow-note {
+  display: grid;
+  gap: 4px;
+  padding: 11px 12px;
+  border: 1px solid rgba(47, 107, 69, 0.22);
+  border-radius: 8px;
+  background: #edf6ed;
+}
+
+.order-flow-note.is-confirmation {
+  border-color: rgba(156, 89, 36, 0.24);
+  background: #fff8e6;
+}
+
+.order-flow-note strong {
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.order-flow-note span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .quote-empty {

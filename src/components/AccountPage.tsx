@@ -128,7 +128,7 @@ export function AccountPage({
               <ShoppingCart size={18} /> Browse catalog
             </a>
             <button className="secondary-button" type="button" onClick={onOpenQuote}>
-              <FileText size={18} /> Start quote
+              <FileText size={18} /> Start order
             </button>
           </div>
         </div>
@@ -283,7 +283,7 @@ export function AccountPage({
                 <strong>No quote history loaded</strong>
                 <p>{isAuthenticated ? "New website quote requests will appear here after ERPNext creates a quotation." : "Sign in to load quotation history for this customer account."}</p>
                 <button className="secondary-button" type="button" onClick={onOpenQuote}>
-                  Start quote <ArrowRight size={16} />
+                  Start order <ArrowRight size={16} />
                 </button>
               </div>
             )}
@@ -449,7 +449,7 @@ export function AccountPage({
           </div>
           <div className="account-roadmap">
             <span><ShoppingCart size={18} /> Select products in catalog</span>
-            <span><FileText size={18} /> Send quote request to ERPNext</span>
+            <span><FileText size={18} /> Prepare order in ERPNext</span>
             <span><Clock3 size={18} /> Sales confirms stock and lead time</span>
             <span><PackageCheck size={18} /> {settings.paymentNote}</span>
           </div>

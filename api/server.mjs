@@ -4,6 +4,7 @@ import express from "express";
 import {
   getCatalogDiagnostics,
   getCatalogItemGroups,
+  getCatalogQualityReport,
   getCatalogProductBySku,
   getCatalogProducts,
   getCatalogSuggestions,
@@ -47,6 +48,29 @@ import { catalogStats, categories, featuredProducts, manufacturers } from "../sr
 
 const app = express();
 const port = Number(process.env.API_PORT || 3000);
+
+function csvCell(value) {
+  return `"${String(value ?? "").replaceAll('"', '""')}"`;
+}
+
+function qualityReportCsv(report) {
+  const header = ["Level", "Name", "Total", "Ready", "Missing image", "Missing price", "Incomplete description"];
+  const row = (level, name, item) => [
+    level,
+    name,
+    item.total,
+    item.ready,
+    item.missingImage,
+    item.missingPrice,
+    item.incompleteDescription
+  ].map(csvCell).join(",");
+  return [
+    header.map(csvCell).join(","),
+    row("Summary", "All products", report.summary),
+    ...report.byItemGroup.map((item) => row("Item Group", item.item_group, item)),
+    ...report.byBrand.map((item) => row("Brand", item.brand, item))
+  ].join("\n");
+}
 
 app.disable("x-powered-by");
 app.set("trust proxy", 2);
@@ -511,6 +535,31 @@ app.get("/api/admin/catalog-diagnostics", async (_req, res) => {
     res.status(503).json({
       error: "erpnext_catalog_diagnostics_unavailable",
       message: error instanceof Error ? error.message : "Unknown ERPNext diagnostics error"
+    });
+  }
+});
+
+app.get("/api/admin/catalog-quality-report", async (_req, res) => {
+  try {
+    res.json(await getCatalogQualityReport());
+  } catch (error) {
+    res.status(503).json({
+      error: "erpnext_catalog_quality_report_unavailable",
+      message: error instanceof Error ? error.message : "Unknown ERPNext catalog quality report error"
+    });
+  }
+});
+
+app.get("/api/admin/catalog-quality-report.csv", async (_req, res) => {
+  try {
+    const report = await getCatalogQualityReport();
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="green-leaf-catalog-quality-${report.generatedAt.slice(0, 10)}.csv"`);
+    res.send(qualityReportCsv(report));
+  } catch (error) {
+    res.status(503).json({
+      error: "erpnext_catalog_quality_report_unavailable",
+      message: error instanceof Error ? error.message : "Unknown ERPNext catalog quality report error"
     });
   }
 });

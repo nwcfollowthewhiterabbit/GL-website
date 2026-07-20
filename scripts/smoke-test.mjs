@@ -1,7 +1,7 @@
 const baseUrl = (process.env.SMOKE_BASE_URL || "http://localhost:8080").replace(/\/+$/, "");
 
-async function readJson(path) {
-  const response = await fetch(`${baseUrl}${path}`);
+async function readJson(path, options) {
+  const response = await fetch(`${baseUrl}${path}`, options);
   const text = await response.text();
 
   if (!response.ok) {
@@ -105,6 +105,13 @@ async function main() {
   assert(sitemap.includes("/payment-security"), "Policy sitemap is incomplete");
 
   await expectStatus("/api/account/quotes?email=patch.fields%40example.com", 401);
+  const incompleteOrderResponse = await expectStatus("/api/quote-requests", 422, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ customer: { email: "buyer@example.com" }, lines: [{ sku: catalog.products[0].sku, qty: 1 }] })
+  });
+  const incompleteOrder = await incompleteOrderResponse.json();
+  assert(incompleteOrder.error === "customer_details_required", "Order API accepted incomplete customer details");
   const loginResponse = await expectStatus("/api/account/login/start", 503, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -113,8 +120,18 @@ async function main() {
   const loginResult = await loginResponse.json();
   assert(loginResult.error === "account_login_unavailable" && !loginResult.devCode, "Production login exposed a development code");
   await expectStatus("/api/admin/recent-quotes?limit=2", [401, 404]);
+  await expectStatus("/api/admin/catalog-quality-report", [401, 404]);
   await expectStatus("/api/admin/customer-access?limit=2", [401, 404]);
   await expectStatus("/api/sync/status", [401, 404]);
+
+  if (process.env.ADMIN_API_TOKEN) {
+    const qualityReport = await readJson("/api/admin/catalog-quality-report", {
+      headers: { Authorization: `Bearer ${process.env.ADMIN_API_TOKEN}` }
+    });
+    assert(qualityReport.summary?.ready > 0, "Catalog quality report has no publication-ready products");
+    assert(Array.isArray(qualityReport.byItemGroup) && qualityReport.byItemGroup.length > 0, "Catalog quality report has no item-group breakdown");
+    assert(Array.isArray(qualityReport.byBrand) && qualityReport.byBrand.length > 0, "Catalog quality report has no brand breakdown");
+  }
 
   const hostileCorsResponse = await fetch(`${baseUrl}/api/catalog/summary`, {
     headers: { Origin: "https://invalid-origin.example" }

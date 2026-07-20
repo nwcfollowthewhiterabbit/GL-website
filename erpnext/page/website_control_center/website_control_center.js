@@ -140,7 +140,7 @@ const PLANNED_CONTROLS = [
   {
     title: __("Westpac IPG Payments"),
     status: __("Waiting"),
-    text: __("Provider and sandbox credentials are pending. Planned flow: hosted payment page after quote/order confirmation.")
+    text: __("Provider and sandbox credentials are pending. In-stock items use full payment; special-order items require a 70% deposit after ETA confirmation.")
   },
   {
     title: __("Sync Health"),

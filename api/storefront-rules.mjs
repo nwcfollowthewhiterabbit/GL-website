@@ -1,4 +1,5 @@
 import { getErpPool } from "./erpnext-db.mjs";
+import { CATALOG_PRODUCT_READY_SQL } from "./catalog-publication-rules.mjs";
 
 const fieldCache = new Map();
 
@@ -66,14 +67,26 @@ export async function getCategoryRules() {
     `
       SELECT ig.name, ig.parent_item_group AS parent, ig.is_group, COUNT(i.name) AS item_count${selectFields}
       FROM \`tabItem Group\` ig
-      LEFT JOIN \`tabItem\` i
-        ON i.item_group = ig.name
-       AND IFNULL(i.disabled, 0) = 0
-       AND IFNULL(i.is_sales_item, 1) = 1
+      LEFT JOIN (
+        SELECT i.name, i.item_group
+        FROM \`tabItem\` i
+        LEFT JOIN (
+          SELECT item_code, MAX(price_list_rate) AS price_list_rate
+          FROM \`tabItem Price\`
+          WHERE price_list = :priceList
+            AND docstatus = 0
+            AND (valid_upto IS NULL OR valid_upto >= CURDATE())
+          GROUP BY item_code
+        ) price ON price.item_code = i.name
+        WHERE IFNULL(i.disabled, 0) = 0
+          AND IFNULL(i.is_sales_item, 1) = 1
+          AND IFNULL(i.has_variants, 0) = 0
+          AND ${CATALOG_PRODUCT_READY_SQL}
+      ) i ON i.item_group = ig.name
       GROUP BY ig.name, ig.parent_item_group, ig.is_group, ig.lft${selected.map((field) => `, ig.\`${field}\``).join("")}
       ORDER BY ${fields.website_sort_order ? "IFNULL(ig.website_sort_order, 0)," : ""} ig.lft
     `
-  );
+  , { priceList: process.env.DEFAULT_PRICE_LIST || "Standard Selling" });
 
   return rows.map(normalizeCategoryRule);
 }

@@ -34,12 +34,12 @@ export function ProductModal({ product, onClose, onAddToQuote }: ProductModalPro
             </div>
             <div>
               <dt>Price</dt>
-              <dd>{priceLabel(product)}</dd>
+              <dd>{priceLabel(product)} excl. VAT</dd>
             </div>
           </dl>
           <p>{plainTextDescription(product, "No product description available.", 1000)}</p>
           <button className="quote-button" onClick={() => onAddToQuote(product)}>
-            Add to quote
+            Add to basket
           </button>
         </div>
       </article>

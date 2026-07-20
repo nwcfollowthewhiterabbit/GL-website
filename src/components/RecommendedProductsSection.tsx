@@ -94,6 +94,7 @@ export function RecommendedProductsSection({ products, onSelectProduct }: Recomm
             />
             <span>{product.name}</span>
             <strong>{priceLabel(product)}</strong>
+            <small>Excl. VAT</small>
           </button>
         ))}
       </div>

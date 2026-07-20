@@ -128,16 +128,16 @@ Planned ERPNext endpoints:
 
 ## Pending Payment Gateway: Westpac IPG
 
-Status: waiting for Westpac to confirm the payment service provider, product and sandbox credentials.
+Status: commerce rules are confirmed; waiting for Westpac to confirm the payment service provider, product, PCI requirements and sandbox credentials.
 
 Recommended integration path:
 
 - Use an acquirer-approved hosted payment page / redirect flow, not direct card capture on the storefront.
-- Storefront API creates a provider payment session for a confirmed quote/order.
+- Storefront API creates a provider payment session for an eligible order.
 - Customer is redirected to the provider for card entry.
 - The provider returns the customer to the storefront and sends a server callback/webhook.
 - Storefront API verifies the transaction with the provider before updating ERPNext.
-- ERPNext should store payment status, provider transaction reference, and related quote/order/invoice links.
+- ERPNext should create a Payment Entry and store the provider transaction reference. The referenced Sales Order or Sales Invoice still needs to be confirmed against the selected provider flow.
 
 Expected implementation pieces once credentials are available:
 
@@ -148,8 +148,18 @@ Expected implementation pieces once credentials are available:
 - ERPNext payment update path, most likely `Payment Entry` or status fields on the related quotation/order/invoice.
 - Website Command Center settings for enabling online payments and selecting the payment flow.
 
-Open business decisions:
+Confirmed commerce rules:
 
-- Whether payment is available immediately from cart, or only after Green Leaf confirms price/stock/lead time.
-- Whether refunds are manual in the provider portal at launch or managed from ERPNext later.
-- Whether partial deposits are needed for B2B quotes.
+- In-stock quantities proceed to full payment after customer phone, email and delivery location are collected.
+- Low-stock quantities require sales confirmation before a payment link is issued.
+- Special-order and non-stock items require ETA acceptance and a 70% deposit.
+- Payment links remain valid for 30 days.
+- Catalog prices are in FJD and exclude VAT; VAT and any delivery charge are added before payment.
+- Orders over FJD 200 receive free delivery within Viti Levu or to the applicable outer-island shipper's yard.
+
+Remaining integration decisions:
+
+- Selected Westpac provider and hosted-checkout API.
+- Merchant/sandbox credentials, callback verification and required UAT.
+- Whether provider refunds are portal-only at launch or exposed through API.
+- Exact Sales Order or Sales Invoice reference used by ERPNext Payment Entry.

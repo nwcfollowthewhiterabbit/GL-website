@@ -1,5 +1,5 @@
-import { AlertTriangle, ArrowRight, Building2, CheckCircle2, ClipboardCheck, Mail, Minus, Phone, Plus, RotateCcw, Send, StickyNote, Trash2, UserRound } from "lucide-react";
-import { priceLabel, productImage, productPlaceholder } from "../lib/catalog";
+import { AlertTriangle, ArrowRight, Building2, CheckCircle2, ClipboardCheck, Mail, MapPin, Minus, Phone, Plus, RotateCcw, Send, StickyNote, Trash2, UserRound } from "lucide-react";
+import { isSpecialOrder, priceLabel, productImage, productPlaceholder, purchaseFlowLabel, requiresAvailabilityConfirmation } from "../lib/catalog";
 import type { QuoteLine, QuoteResult } from "../types";
 
 type QuoteDrawerProps = {
@@ -11,6 +11,7 @@ type QuoteDrawerProps = {
   buyerContact: string;
   quoteEmail: string;
   buyerPhone: string;
+  deliveryLocation: string;
   quoteNotes: string;
   quoteStatus: string;
   quoteResult: QuoteResult | null;
@@ -20,6 +21,7 @@ type QuoteDrawerProps = {
   onContactChange: (value: string) => void;
   onEmailChange: (value: string) => void;
   onPhoneChange: (value: string) => void;
+  onDeliveryLocationChange: (value: string) => void;
   onNotesChange: (value: string) => void;
   onSetLineQty: (sku: string, qty: number) => void;
   onRemoveLine: (sku: string) => void;
@@ -37,6 +39,7 @@ export function QuoteDrawer({
   buyerContact,
   quoteEmail,
   buyerPhone,
+  deliveryLocation,
   quoteNotes,
   quoteStatus,
   quoteResult,
@@ -46,6 +49,7 @@ export function QuoteDrawer({
   onContactChange,
   onEmailChange,
   onPhoneChange,
+  onDeliveryLocationChange,
   onNotesChange,
   onSetLineQty,
   onRemoveLine,
@@ -55,33 +59,43 @@ export function QuoteDrawer({
 }: QuoteDrawerProps) {
   const canSubmit = quoteLines.length > 0 && !isSubmitting && !quoteResult;
   const quoteTotalLabel = quoteTotal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const resultTitle = quoteResult?.dryRun ? "Quote validated" : quoteResult?.reused ? "Existing quotation" : "Quote request sent";
+  const basketRequiresConfirmation = quoteLines.some((line) => requiresAvailabilityConfirmation(line, line.qty));
+  const basketHasSpecialOrder = quoteLines.some(isSpecialOrder);
+  const requiresConfirmation = quoteResult?.requiresSalesConfirmation ?? basketRequiresConfirmation;
+  const hasSpecialOrder = quoteResult?.fulfillmentMode === "special_order" || basketHasSpecialOrder;
+  const resultTitle = quoteResult?.dryRun
+    ? "Order validated"
+    : quoteResult?.reused
+      ? "Existing ERP request"
+      : requiresConfirmation
+        ? "Availability request sent"
+        : "Order prepared";
 
   return (
     <>
       <button
         type="button"
         className={`quote-backdrop ${isOpen ? "is-open" : ""}`}
-        aria-label="Close quote basket"
+        aria-label="Close order basket"
         onClick={onClose}
         tabIndex={isOpen ? 0 : -1}
       />
-      <aside className={`quote-drawer ${isOpen ? "is-open" : ""}`} aria-label="Quote basket" aria-hidden={!isOpen}>
+      <aside className={`quote-drawer ${isOpen ? "is-open" : ""}`} aria-label="Order basket" aria-hidden={!isOpen}>
         <div className="quote-drawer__header">
           <div>
-            <span>Request for quote</span>
-            <h2>Trade quote</h2>
-            <p>{quoteResult ? "ERP quotation ready for Green Leaf sales" : `${quoteCount} item${quoteCount === 1 ? "" : "s"} selected for ERPNext quotation`}</p>
+            <span>{requiresConfirmation ? "Sales confirmation path" : "In-stock checkout path"}</span>
+            <h2>Order basket</h2>
+            <p>{quoteResult ? "ERP request recorded" : `${quoteCount} item${quoteCount === 1 ? "" : "s"} selected from the live ERP catalog`}</p>
           </div>
-          <button type="button" className="icon-button" onClick={onClose} aria-label="Close quote basket">
+          <button type="button" className="icon-button" onClick={onClose} aria-label="Close order basket">
             <ArrowRight />
           </button>
         </div>
 
-        <div className="quote-drawer__progress" aria-label="Quote request steps">
+        <div className="quote-drawer__progress" aria-label="Order steps">
           <span className={quoteLines.length || quoteResult ? "is-complete" : ""}>Products</span>
-          <span className={quoteCompany && quoteEmail ? "is-complete" : ""}>Buyer</span>
-          <span className={quoteResult ? "is-complete" : ""}>ERP quote</span>
+          <span className={quoteCompany && quoteEmail && buyerPhone && deliveryLocation ? "is-complete" : ""}>Details</span>
+          <span className={quoteResult ? "is-complete" : ""}>Payment</span>
         </div>
 
         <div className="quote-drawer__content">
@@ -107,6 +121,7 @@ export function QuoteDrawer({
                       <h3>{line.name}</h3>
                       <p>{line.sku}</p>
                       <strong>{priceLabel(line)}</strong>
+                      <small>{purchaseFlowLabel(line)}</small>
                     </div>
                     <div className="qty-control">
                       <button type="button" className="icon-button" onClick={() => onSetLineQty(line.sku, line.qty - 1)} disabled={isSubmitting || Boolean(quoteResult)} aria-label="Decrease quantity">
@@ -126,13 +141,13 @@ export function QuoteDrawer({
             ) : quoteResult ? (
               <div className="quote-confirmation-empty">
                 <ClipboardCheck size={22} />
-                <strong>Products moved into ERP quotation</strong>
-                <p>The sales team can now check pricing, stock and lead time in ERPNext.</p>
+                <strong>Order details recorded in ERPNext</strong>
+                <p>{requiresConfirmation ? "Sales will confirm stock or ETA before payment." : "The order is ready for the payment step once the gateway is activated."}</p>
               </div>
             ) : (
               <div className="quote-empty">
                 <strong>No products selected</strong>
-                <p>Add products from the catalog and send them to Green Leaf sales for price, stock and lead time confirmation.</p>
+                <p>Add products from the catalog. In-stock items proceed to checkout; low-stock and special-order items are confirmed first.</p>
                 <a className="secondary-button" href="/catalog" onClick={onClose}>
                   Browse catalog
                 </a>
@@ -156,9 +171,9 @@ export function QuoteDrawer({
                   {typeof quoteResult.validLineCount === "number" ? <span>{quoteResult.validLineCount} ERP line{quoteResult.validLineCount === 1 ? "" : "s"}</span> : null}
                 </div>
                 <ol className="quote-result__steps">
-                  <li>Sales checks price, stock and lead time.</li>
-                  <li>Buyer receives confirmation before payment.</li>
-                  <li>A secure payment link can be issued after quote approval.</li>
+                  {requiresConfirmation ? <li>Sales confirms stock or ETA before payment.</li> : <li>ERP stock is sufficient for the requested quantity.</li>}
+                  <li>{hasSpecialOrder ? "A 70% deposit applies to special-order items." : "Full payment applies to in-stock items."}</li>
+                  <li>The secure payment step will be enabled after Westpac gateway approval.</li>
                 </ol>
                 {quoteResult.missingCount ? (
                   <div className="quote-result__warning">
@@ -189,7 +204,7 @@ export function QuoteDrawer({
             ) : null}
             <div className="quote-drawer__section-title">
               <span>Buyer details</span>
-              <strong>{quoteTotalLabel} FJD est.</strong>
+              <strong>{quoteTotalLabel} FJD excl. VAT</strong>
             </div>
             <label className="field">
               <Building2 size={18} />
@@ -207,17 +222,31 @@ export function QuoteDrawer({
               <Phone size={18} />
               <input placeholder="Phone" value={buyerPhone} onChange={(event) => onPhoneChange(event.target.value)} />
             </label>
+            <label className="field">
+              <MapPin size={18} />
+              <input placeholder="Delivery location" value={deliveryLocation} onChange={(event) => onDeliveryLocationChange(event.target.value)} />
+            </label>
             <label className="field field--textarea">
               <StickyNote size={18} />
-              <textarea placeholder="Notes, delivery location, timing, substitutions" value={quoteNotes} onChange={(event) => onNotesChange(event.target.value)} />
+              <textarea placeholder="Order notes, timing, substitutions" value={quoteNotes} onChange={(event) => onNotesChange(event.target.value)} />
             </label>
             <div className="quote-total">
-              <span>Estimated product total</span>
+              <span>Product subtotal, excluding VAT</span>
               <strong>{quoteTotalLabel} FJD</strong>
+            </div>
+            <div className={`order-flow-note ${requiresConfirmation ? "is-confirmation" : "is-ready"}`}>
+              <strong>{requiresConfirmation ? "Confirmation required before payment" : "In-stock checkout path"}</strong>
+              <span>
+                {hasSpecialOrder
+                  ? "Sales confirms the ETA; a 70% deposit applies. Payment links remain valid for 30 days."
+                  : requiresConfirmation
+                    ? "Requested quantity exceeds confirmed stock. Sales will verify availability and issue a 30-day payment link."
+                    : "Full payment applies. VAT and any delivery charge will be added before payment."}
+              </span>
             </div>
             {quoteResult ? null : (
               <button type="button" className="quote-button" onClick={onSubmit} disabled={!canSubmit}>
-                {isSubmitting ? "Creating..." : "Send quote request"} <Send size={17} />
+                {isSubmitting ? "Creating..." : requiresConfirmation ? "Request confirmation" : "Prepare checkout"} <Send size={17} />
               </button>
             )}
             {quoteStatus ? <p className="quote-panel__status">{quoteStatus}</p> : null}

@@ -12,6 +12,7 @@ export function SiteFooter({ departments }: SiteFooterProps) {
         <div>
           <strong>Green Leaf Pacific</strong>
           <p>Hospitality supplies, furniture, equipment and service support for Fiji operations.</p>
+          <p>{legacyBrand.legalName} · TIN {legacyBrand.tin}</p>
         </div>
         <div>
           <span>Departments</span>
@@ -44,8 +45,8 @@ export function SiteFooter({ departments }: SiteFooterProps) {
         </div>
       </div>
       <div className="shell footer-bottom">
-        <span>Green Leaf Pacific storefront</span>
-        <span>Trade quote catalog · Currency FJD</span>
+        <span>{legacyBrand.legalName} trading as Green Leaf Pacific</span>
+        <span>Prices exclude VAT · Currency FJD</span>
         <span className="footer-credit">Website created by <a href="https://rabbitsystems.net" target="_blank" rel="noreferrer">rabbitsystems.net</a></span>
       </div>
     </footer>

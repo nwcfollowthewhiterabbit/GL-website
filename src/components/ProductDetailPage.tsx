@@ -95,19 +95,19 @@ export function ProductDetailPage({
               ) : null}
             </div>
 
-            <aside className="product-quote-panel" aria-label="Request quote for this product">
-              <span className="product-quote-panel__label">Trade quote</span>
+            <aside className="product-quote-panel" aria-label="Order this product">
+              <span className="product-quote-panel__label">Order preparation</span>
               <strong>{priceLabel(product)}</strong>
-              <p>Final price, stock and delivery timing are confirmed by Green Leaf sales.</p>
+              <p>Price excludes VAT. In-stock items proceed to payment; low-stock and special-order items are confirmed by sales first.</p>
               <button type="button" className="quote-button product-page__quote" onClick={() => onAddToQuote(product)}>
-                <ShoppingCart size={18} /> Add to quote
+                <ShoppingCart size={18} /> Add to basket
               </button>
               <div className="product-quote-panel__notes">
                 <span>
                   <CheckCircle2 size={16} /> ERP SKU validated
                 </span>
                 <span>
-                  <Clock3 size={16} /> Lead time confirmed after request
+                  <Clock3 size={16} /> In-stock delivery normally within 72 hours
                 </span>
                 <span>
                   <PackageCheck size={16} /> Commercial order handling

@@ -48,6 +48,7 @@ import {
   verifyAccountLogin
 } from "./lib/api";
 import { catalogPath, departmentCategoryPath, findCategoryBySlug, parseStorefrontRoute, productPath, type StorefrontRoute } from "./lib/routes";
+import { numericPrice } from "./lib/catalog";
 import type {
   CatalogDiagnostics,
   CatalogFacets,
@@ -79,7 +80,7 @@ const fallbackCustomerCornerSettings: CustomerCornerSettings = {
   introCopy: "Use one email login to track website quotations, ERP purchase history and the next action from Green Leaf sales.",
   salesEmail: "buy@greenleafpacific.com",
   salesPhone: "+679 670 2222",
-  paymentNote: "Secure payment link will be available after quote approval."
+  paymentNote: "In-stock items use full payment; special-order items require a 70% deposit."
 };
 
 function isValidEmail(value: string) {
@@ -92,7 +93,7 @@ function quotationName(data: QuoteRequestResponse) {
 }
 
 function quoteResultFromResponse(data: QuoteRequestResponse, email: string, options: Pick<QuoteResult, "reused" | "dryRun"> = {}): QuoteResult {
-  const name = quotationName(data) || data.id || "Validated quote request";
+  const name = quotationName(data) || data.id || "Validated order request";
   const missingSkus = (data.missing || []).map((line) => line.sku).filter(Boolean);
   return {
     name,
@@ -101,6 +102,9 @@ function quoteResultFromResponse(data: QuoteRequestResponse, email: string, opti
     missingSkus,
     validLineCount: data.validLines?.length,
     customerEmail: email,
+    fulfillmentMode: data.fulfillment?.mode,
+    requiresSalesConfirmation: data.fulfillment?.requiresSalesConfirmation,
+    depositPercent: data.fulfillment?.depositPercent,
     ...options
   };
 }
@@ -131,6 +135,7 @@ function App() {
   const [quoteOpen, setQuoteOpen] = useState(false);
   const [buyerContact, setBuyerContact] = useState("");
   const [buyerPhone, setBuyerPhone] = useState("");
+  const [deliveryLocation, setDeliveryLocation] = useState("");
   const [quoteNotes, setQuoteNotes] = useState("");
   const [itemGroups, setItemGroups] = useState<ItemGroup[]>([]);
   const [websiteDepartments, setWebsiteDepartments] = useState<WebsiteCategory[]>([]);
@@ -445,8 +450,7 @@ function App() {
 
   const quoteCount = quoteLines.reduce((sum, line) => sum + line.qty, 0);
   const quoteTotal = quoteLines.reduce((sum, line) => {
-    const price = typeof line.price === "number" ? line.price : 0;
-    return sum + price * line.qty;
+    return sum + numericPrice(line) * line.qty;
   }, 0);
 
   const visibleCategories = useMemo(() => {
@@ -592,6 +596,8 @@ function App() {
     if (!quoteCompany.trim()) return "Company name is required.";
     if (!quoteEmail.trim()) return "Buyer email is required.";
     if (!isValidEmail(quoteEmail)) return "Enter a valid buyer email.";
+    if (requireLines && !buyerPhone.trim()) return "Buyer phone is required.";
+    if (requireLines && !deliveryLocation.trim()) return "Delivery location is required.";
     return "";
   }
 
@@ -652,27 +658,28 @@ function App() {
 
     setQuoteSubmitting(true);
     setQuoteResult(null);
-    setQuoteStatus("Creating ERPNext quotation...");
+    setQuoteStatus("Preparing order in ERPNext...");
     try {
       const data = await createQuoteRequest({
         customer: {
           company: quoteCompany,
           contact: buyerContact,
           email: quoteEmail,
-          phone: buyerPhone
+          phone: buyerPhone,
+          location: deliveryLocation
         },
         lines: quoteLines.map((line) => ({ sku: line.sku, qty: line.qty })),
-        notes: quoteNotes || "Quote basket from storefront"
+        notes: quoteNotes || "Order basket from storefront"
       });
 
       const name = quotationName(data);
       if (name && typeof data.quotation !== "string") {
         setQuoteResult(quoteResultFromResponse(data, quoteEmail));
-        setQuoteStatus("Quote request sent. Green Leaf sales will confirm price, stock and lead time.");
+        setQuoteStatus(data.fulfillment?.requiresSalesConfirmation ? "Request sent. Green Leaf sales will confirm stock or ETA before payment." : "Order prepared. The payment step is pending Westpac gateway activation.");
         setQuoteLines([]);
       } else if (name) {
         setQuoteResult(quoteResultFromResponse(data, quoteEmail, { reused: true }));
-        setQuoteStatus("This quote request was already received. We opened the existing ERP quotation.");
+        setQuoteStatus("This order request was already received. We opened the existing ERP record.");
         setQuoteLines([]);
       } else if (data.mode === "validation_failed") {
         setQuoteStatus("No valid ERPNext items in basket.");
@@ -918,6 +925,7 @@ function App() {
         buyerContact={buyerContact}
         quoteEmail={quoteEmail}
         buyerPhone={buyerPhone}
+        deliveryLocation={deliveryLocation}
         quoteNotes={quoteNotes}
         quoteStatus={quoteStatus}
         isSubmitting={quoteSubmitting}
@@ -926,6 +934,7 @@ function App() {
         onContactChange={setBuyerContact}
         onEmailChange={setQuoteEmail}
         onPhoneChange={setBuyerPhone}
+        onDeliveryLocationChange={setDeliveryLocation}
         onNotesChange={setQuoteNotes}
         onSetLineQty={setLineQty}
         onRemoveLine={removeLine}

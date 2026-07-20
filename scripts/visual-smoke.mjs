@@ -167,6 +167,30 @@ async function main() {
     });
     assert(mobile.productCards > 0 && desktop.productCards > 0, "Catalog has no product cards");
 
+    await page.send("Runtime.evaluate", {
+      expression: `document.querySelector(".product-card .primary-button")?.click()`
+    });
+    await waitForSelector(page.send, ".quote-drawer.is-open");
+    const basketMobile = await captureViewport(page.send, "basket-mobile", {
+      width: 390,
+      height: 1200,
+      mobile: true
+    });
+    const basketDesktop = await captureViewport(page.send, "basket-desktop", {
+      width: 1440,
+      height: 1200,
+      mobile: false
+    });
+    const basketFields = await page.send("Runtime.evaluate", {
+      returnByValue: true,
+      expression: `({
+        hasLocation: Boolean(document.querySelector('input[placeholder="Delivery location"]')),
+        hasFlow: Boolean(document.querySelector(".order-flow-note"))
+      })`
+    });
+    assert(basketFields.result.result.value.hasLocation, "Order basket is missing delivery location");
+    assert(basketFields.result.result.value.hasFlow, "Order basket is missing fulfillment guidance");
+
     await page.send("Page.navigate", { url: `${baseUrl}/account?visual-smoke=1` });
     await waitForSelector(page.send, ".account-page");
     const accountMobile = await captureViewport(page.send, "account-mobile", {
@@ -199,6 +223,8 @@ async function main() {
     console.log("Visual smoke checks passed");
     console.log(`- Mobile width: ${mobile.innerWidth}, scroll width: ${mobile.scrollWidth}`);
     console.log(`- Desktop width: ${desktop.innerWidth}, scroll width: ${desktop.scrollWidth}`);
+    console.log(`- Basket mobile width: ${basketMobile.innerWidth}, scroll width: ${basketMobile.scrollWidth}`);
+    console.log(`- Basket desktop width: ${basketDesktop.innerWidth}, scroll width: ${basketDesktop.scrollWidth}`);
     console.log(`- Account mobile width: ${accountMobile.innerWidth}, scroll width: ${accountMobile.scrollWidth}`);
     console.log(`- Account desktop width: ${accountDesktop.innerWidth}, scroll width: ${accountDesktop.scrollWidth}`);
     console.log(`- Policy mobile width: ${policyMobile.innerWidth}, scroll width: ${policyMobile.scrollWidth}`);

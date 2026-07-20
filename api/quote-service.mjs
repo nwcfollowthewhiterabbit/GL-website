@@ -4,6 +4,7 @@ import { legacySyncRules } from "./legacy-sync-rules.mjs";
 
 const DEFAULTS = legacySyncRules.quote.defaults;
 const customFieldCache = new Map();
+const EXCLUDED_STOCK_WAREHOUSES = ["Showroom - GL", "Furniture Showroom (Upstairs) - GL"];
 
 function clean(value) {
   return String(value || "").trim();
@@ -49,6 +50,8 @@ async function getErpItemsBySku(skus, priceList = DEFAULTS.priceList) {
   const placeholders = skus.map((_, index) => `:sku${index}`).join(", ");
   const params = Object.fromEntries(skus.map((sku, index) => [`sku${index}`, sku]));
   params.priceList = priceList;
+  params.excludedWarehouse0 = EXCLUDED_STOCK_WAREHOUSES[0];
+  params.excludedWarehouse1 = EXCLUDED_STOCK_WAREHOUSES[1];
 
   const [rows] = await getErpPool().execute(
     `
@@ -57,7 +60,8 @@ async function getErpItemsBySku(skus, priceList = DEFAULTS.priceList) {
         i.item_name AS item_name,
         i.stock_uom,
         IFNULL(price.price_list_rate, 0) AS price,
-        IFNULL(price.currency, :currency) AS currency
+        IFNULL(price.currency, :currency) AS currency,
+        GREATEST(FLOOR(IFNULL(stock.actual_qty, 0)), 0) AS available_quantity
       FROM \`tabItem\` i
       LEFT JOIN (
         SELECT ip.item_code, ip.price_list_rate, ip.currency
@@ -72,6 +76,15 @@ async function getErpItemsBySku(skus, priceList = DEFAULTS.priceList) {
         ) latest ON latest.item_code = ip.item_code AND latest.modified = ip.modified
         WHERE ip.price_list = :priceList AND ip.docstatus = 0
       ) price ON price.item_code = i.name
+      LEFT JOIN (
+        SELECT b.item_code, SUM(b.actual_qty) AS actual_qty
+        FROM \`tabBin\` b
+        JOIN \`tabWarehouse\` w ON w.name = b.warehouse
+        WHERE IFNULL(w.disabled, 0) = 0
+          AND w.name NOT IN (:excludedWarehouse0, :excludedWarehouse1)
+          AND LOWER(w.name) NOT LIKE '%showroom%'
+        GROUP BY b.item_code
+      ) stock ON stock.item_code = i.name
       WHERE i.name IN (${placeholders})
         AND IFNULL(i.disabled, 0) = 0
     `,
@@ -152,7 +165,8 @@ export async function prepareQuoteRequest(payload = {}) {
     company: clean(customer.company),
     contact: clean(customer.contact),
     email: clean(customer.email).toLowerCase(),
-    phone: clean(customer.phone)
+    phone: clean(customer.phone),
+    location: clean(customer.location || payload.deliveryLocation)
   };
   const lines = normalizeLines(payload.lines);
   const skus = [...new Set(lines.map((line) => line.sku))];
@@ -174,9 +188,27 @@ export async function prepareQuoteRequest(payload = {}) {
       item_name: item.item_name || line.sku,
       qty: line.qty,
       rate,
-      uom: item.stock_uom || "Nos"
+      uom: item.stock_uom || "Nos",
+      availableQuantity: Number(item.available_quantity || 0),
+      fulfillmentStatus:
+        Number(item.available_quantity || 0) <= 0
+          ? "special_order"
+          : Number(item.available_quantity || 0) < line.qty
+            ? "low_stock"
+            : "in_stock"
     });
   }
+
+  const fulfillment = {
+    mode: validLines.some((line) => line.fulfillmentStatus === "special_order")
+      ? "special_order"
+      : validLines.some((line) => line.fulfillmentStatus === "low_stock")
+        ? "low_stock"
+        : "in_stock",
+    requiresSalesConfirmation: validLines.some((line) => line.fulfillmentStatus !== "in_stock"),
+    depositPercent: validLines.some((line) => line.fulfillmentStatus === "special_order") ? 70 : 100,
+    paymentLinkValidityDays: 30
+  };
 
   const duplicateQuotation = await existingQuotationByMarker(marker, id);
   const erpCustomer = await getOrCreateCustomer(normalizedCustomer);
@@ -187,6 +219,10 @@ export async function prepareQuoteRequest(payload = {}) {
     normalizedCustomer.contact ? `Contact: ${normalizedCustomer.contact}` : "",
     normalizedCustomer.email ? `Email: ${normalizedCustomer.email}` : "",
     normalizedCustomer.phone ? `Phone: ${normalizedCustomer.phone}` : "",
+    normalizedCustomer.location ? `Delivery location: ${normalizedCustomer.location}` : "",
+    `Website order path: ${fulfillment.mode}`,
+    `Payment terms: ${fulfillment.depositPercent}% initial payment; link valid for ${fulfillment.paymentLinkValidityDays} days`,
+    "Catalog prices exclude VAT; apply VAT and delivery charges before payment",
     clean(payload.notes) ? `Notes: ${clean(payload.notes)}` : "",
     missing.length ? `Missing SKU lines: ${missing.map((line) => line.sku).join(", ")}` : ""
   ].filter(Boolean);
@@ -224,6 +260,7 @@ export async function prepareQuoteRequest(payload = {}) {
       marker,
       customer: normalizedCustomer,
       lines,
+      fulfillment,
       missing,
       notes: clean(payload.notes)
     });
@@ -235,6 +272,7 @@ export async function prepareQuoteRequest(payload = {}) {
     customer: normalizedCustomer,
     erpCustomer,
     validLines,
+    fulfillment,
     missing,
     duplicateQuotation,
     quotationDoc,
@@ -243,6 +281,16 @@ export async function prepareQuoteRequest(payload = {}) {
 }
 
 export async function createQuoteRequest(payload = {}) {
+  const customer = payload.customer || {};
+  const requiredCustomerFields = ["company", "email", "phone", "location"].filter((field) => !clean(customer[field]));
+  if (requiredCustomerFields.length) {
+    return {
+      mode: "validation_failed",
+      error: "customer_details_required",
+      missingCustomerFields: requiredCustomerFields
+    };
+  }
+
   const prepared = await prepareQuoteRequest(payload);
 
   if (prepared.duplicateQuotation) {
@@ -251,7 +299,8 @@ export async function createQuoteRequest(payload = {}) {
       id: prepared.id,
       quotation: prepared.duplicateQuotation,
       missing: prepared.missing,
-      validLines: prepared.validLines
+      validLines: prepared.validLines,
+      fulfillment: prepared.fulfillment
     };
   }
 
@@ -273,6 +322,7 @@ export async function createQuoteRequest(payload = {}) {
       erpCustomer: prepared.erpCustomer,
       validLines: prepared.validLines,
       missing: prepared.missing,
+      fulfillment: prepared.fulfillment,
       nextAction: "configure_erpnext_rest_credentials"
     };
   }
@@ -289,7 +339,8 @@ export async function createQuoteRequest(payload = {}) {
     id: prepared.id,
     quotation: existing[0] || quotation,
     missing: prepared.missing,
-    validLines: prepared.validLines
+    validLines: prepared.validLines,
+    fulfillment: prepared.fulfillment
   };
 }
 

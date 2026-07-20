@@ -243,7 +243,12 @@ Acceptance criteria:
 - Anonymous users use Standard Selling pricing. Authenticated customers use the price list matching their customer group when available, otherwise Standard Selling.
 - Product-of-the-month pricing follows the same customer-specific price-list logic as the main catalog.
 - Product photos are uploaded by the new Website Content Manager role.
-- No-photo product visibility needs a global rule plus category-level overrides and item-level publish blocking.
+- Products without photos remain hidden regardless of category settings; item-level publish blocking still applies.
+- Public products must have an image, positive Standard Selling price and substantive description.
+- In-stock quantities use full payment; low-stock quantities require confirmation; special-order items use a 70% deposit after ETA acceptance.
+- Catalog prices are in FJD and exclude VAT.
+- Payment links expire after 30 days.
+- Orders over FJD 200 receive free delivery within Viti Levu or to the applicable shipper's yard.
 
 ## Remaining Open Questions
 

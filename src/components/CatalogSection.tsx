@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronRight, Clock3, DollarSign, Layers3, Search, ShoppingCart, X } from "lucide-react";
-import { availabilityLabel, availabilityTone, plainTextDescription, priceLabel, productImage, productPlaceholder } from "../lib/catalog";
+import { availabilityLabel, availabilityTone, plainTextDescription, priceLabel, productImage, productPlaceholder, purchaseFlowLabel } from "../lib/catalog";
 import type { CatalogDiagnostics, CatalogFacets, CatalogProduct, CatalogSuggestion, ItemGroup, WebsiteCategory } from "../types";
 
 type WebsiteCategoryView = WebsiteCategory & {
@@ -128,7 +128,7 @@ export function CatalogSection({
           <h2>Commercial catalog</h2>
           <p>
             {catalogState === "ready"
-              ? "Live ERPNext data with Standard Selling prices and showroom stock excluded."
+              ? "Live ERPNext data with Standard Selling prices excluding VAT. Only products with a valid price, image and description are published."
               : "Product cards are ready for live prices, quote-only products, lead times, and ERP item groups."}
           </p>
         </div>
@@ -336,7 +336,7 @@ export function CatalogSection({
                       <div>
                         <span className="price">{priceLabel(product)}</span>
                         <small>
-                          <Clock3 size={14} /> Lead time confirmed by sales
+                          <Clock3 size={14} /> {purchaseFlowLabel(product)}
                         </small>
                       </div>
                       <div className="product-card__actions">
@@ -344,7 +344,7 @@ export function CatalogSection({
                           Details
                         </button>
                         <button type="button" className="primary-button" onClick={() => onAddToQuote(product)}>
-                          <ShoppingCart size={18} /> Add
+                          <ShoppingCart size={18} /> Add to basket
                         </button>
                       </div>
                     </div>

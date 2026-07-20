@@ -46,7 +46,7 @@ export function SiteHeader({ departments, quoteCount, onOpenQuote }: SiteHeaderP
         <div className="shell topbar__inner">
           <div className="topbar__group">
             <MapPin />
-            <span>Nippon Complex Back Rd., Nadi, Fiji Islands</span>
+            <span>{legacyBrand.address}</span>
           </div>
           <div className="topbar__group">
             <Phone />
@@ -99,7 +99,7 @@ export function SiteHeader({ departments, quoteCount, onOpenQuote }: SiteHeaderP
               {quoteCount ? <span className="cart-badge">{quoteCount}</span> : null}
             </button>
             <button type="button" className="primary-button" onClick={onOpenQuote}>
-              Request quote <ArrowRight />
+              Order basket <ArrowRight />
             </button>
           </div>
         </div>
@@ -127,7 +127,7 @@ export function SiteHeader({ departments, quoteCount, onOpenQuote }: SiteHeaderP
             <a href="/catalog#service" onClick={closeMenu}>Service</a>
             <a href="/catalog#contact" onClick={closeMenu}>Contact</a>
             <a href="/account" onClick={closeMenu}>Account</a>
-            <button type="button" onClick={() => { closeMenu(); onOpenQuote(); }}>Request quote</button>
+            <button type="button" onClick={() => { closeMenu(); onOpenQuote(); }}>Order basket</button>
           </div>
         </div>
       </nav>

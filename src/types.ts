@@ -99,6 +99,8 @@ export type CatalogDiagnostics = {
     without_image: string | number;
     weak_group: string | number;
     without_selling_price: string | number;
+    publication_ready?: string | number;
+    incomplete_description?: string | number;
   };
   topGroups: Array<{ item_group: string; item_count: number }>;
 };
@@ -249,6 +251,7 @@ export type QuoteRequestPayload = {
     contact?: string;
     email?: string;
     phone?: string;
+    location?: string;
   };
   lines: Array<{ sku: string; qty: number }>;
   notes?: string;
@@ -265,8 +268,21 @@ export type QuoteRequestResponse = {
     customer?: string;
     grand_total?: number;
   };
-  validLines?: Array<{ item_code: string; qty: number; rate?: number; uom?: string }>;
+  validLines?: Array<{
+    item_code: string;
+    qty: number;
+    rate?: number;
+    uom?: string;
+    availableQuantity?: number;
+    fulfillmentStatus?: "in_stock" | "low_stock" | "special_order";
+  }>;
   missing?: Array<{ sku: string; qty?: number; reason?: string }>;
+  fulfillment?: {
+    mode: "in_stock" | "low_stock" | "special_order";
+    requiresSalesConfirmation: boolean;
+    depositPercent: number;
+    paymentLinkValidityDays: number;
+  };
 };
 
 export type QuoteResult = {
@@ -278,4 +294,7 @@ export type QuoteResult = {
   customerEmail?: string;
   reused?: boolean;
   dryRun?: boolean;
+  fulfillmentMode?: "in_stock" | "low_stock" | "special_order";
+  requiresSalesConfirmation?: boolean;
+  depositPercent?: number;
 };
