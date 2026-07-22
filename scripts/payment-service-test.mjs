@@ -16,6 +16,7 @@ assert.equal(disabled.provider, "windcave");
 assert.equal(disabled.integration, "hosted_payment_page");
 assert.equal(disabled.currency, "FJD");
 assert.equal(disabled.enabled, false);
+assert.equal(disabled.environment, "unconfigured");
 assert.deepEqual(disabled.cardBrands, ["visa", "mastercard", "american_express"]);
 
 process.env.PAYMENT_ENABLED = "true";

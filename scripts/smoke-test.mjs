@@ -51,6 +51,7 @@ async function main() {
   assert(paymentConfig.currency === "FJD", "Unexpected payment currency");
   assert(paymentConfig.cardDataHandledBy === "windcave", "Card data handling is not delegated to Windcave");
   assert(paymentConfig.enabled === false, "Testing payments should remain disabled before UAT credentials are installed");
+  assert(paymentConfig.environment === "unconfigured", "Unconfigured gateway should not report a live environment");
 
   const catalog = await readJson("/api/catalog/products?page=1&pageSize=2&q=Bath");
   assert(Array.isArray(catalog.products), "Catalog products response is invalid");

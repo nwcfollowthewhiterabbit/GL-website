@@ -13,6 +13,7 @@ function envFlag(value) {
 }
 
 function paymentEnvironment(apiBaseUrl) {
+  if (!apiBaseUrl) return "unconfigured";
   return apiBaseUrl.includes("uat.windcave.com") ? "uat" : "production";
 }
 
