@@ -1,5 +1,6 @@
 import { ArrowRight, FileText, LockKeyhole, Mail, PackageCheck, RotateCcw, ShieldCheck } from "lucide-react";
 import type { PolicySlug } from "../lib/routes";
+import { PaymentTrustMarks } from "./PaymentTrustMarks";
 
 type PolicySection = {
   title: string;
@@ -41,8 +42,8 @@ const policyContent: Record<PolicySlug, PolicyContent> = {
       {
         title: "Payments and service providers",
         paragraphs: [
-          "Online card payment is not currently active. When enabled, card details will be entered on an approved hosted payment page and will not be collected or stored by this website.",
-          "Information may be shared with ERP, website hosting, email, delivery and approved payment providers only where needed to provide the service. Payment providers handle card information under their own security and privacy obligations."
+          "Online card payments will be processed by Windcave using its Hosted Payment Page. Full card numbers and card verification codes are not collected, processed or stored by the Green Leaf Pacific website.",
+          "Information may be shared with ERP, website hosting, email, delivery and Windcave only where needed to provide the service. Windcave handles cardholder data within its own secure payment environment."
         ]
       },
       {
@@ -162,9 +163,9 @@ const policyContent: Record<PolicySlug, PolicyContent> = {
     ]
   },
   "payment-security": {
-    eyebrow: "Payment readiness",
+    eyebrow: "Secure card payments",
     title: "Payment and security information",
-    intro: "Online card payment is being prepared and remains disabled on this testing storefront until Westpac approval and gateway credentials are received.",
+    intro: "Westpac has approved Windcave Hosted Payment Page as the card payment method for Green Leaf Pacific. Payments remain disabled on this testing storefront until Windcave UAT credentials are installed.",
     icon: LockKeyhole,
     sections: [
       {
@@ -177,9 +178,16 @@ const policyContent: Record<PolicySlug, PolicyContent> = {
         ]
       },
       {
-        title: "Hosted card entry",
+        title: "Windcave Hosted Payment Page",
         paragraphs: [
-          "When online payment is activated, the customer will be transferred to an approved payment provider's secure hosted page. This website will not request, process or store full card numbers or card verification codes."
+          "At checkout, the customer is redirected to Windcave's secure hosted page to enter card details and is then returned to Green Leaf Pacific. The Green Leaf Pacific website does not request, receive or store full card numbers or card verification codes.",
+          "Transactions are processed in Fijian dollars (FJD). Visa, Mastercard and American Express are accepted. The hosted integration follows the PCI SAQ A model."
+        ]
+      },
+      {
+        title: "Card authentication",
+        paragraphs: [
+          "Where card authentication is required, the 3-D Secure step is handled within the Windcave hosted payment process. Green Leaf Pacific does not collect authentication credentials."
         ]
       },
       {
@@ -219,6 +227,7 @@ export function PolicyPage({ policy }: { policy: PolicySlug }) {
             <a href="/payment-security">Payment security</a>
           </nav>
           <div className="policy-page__content">
+            {policy === "payment-security" ? <PaymentTrustMarks /> : null}
             {content.sections.map((section) => (
               <section key={section.title}>
                 <h2>{section.title}</h2>

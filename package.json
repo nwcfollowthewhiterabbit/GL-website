@@ -9,6 +9,7 @@
     "dev:api": "node --watch api/server.mjs",
     "build": "vite build",
     "typecheck": "tsc --noEmit",
+    "test:payments": "node scripts/payment-service-test.mjs",
     "preview": "vite preview --host 0.0.0.0",
     "smoke": "node scripts/smoke-test.mjs",
     "visual:smoke": "node scripts/visual-smoke.mjs",

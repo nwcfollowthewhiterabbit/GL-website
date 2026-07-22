@@ -126,25 +126,26 @@ Planned ERPNext endpoints:
 - uses `Quotation.website_quote_id` for duplicate protection when the ERPNext custom field patch is applied
 - returns missing SKUs explicitly
 
-## Pending Payment Gateway: Westpac IPG
+## Payment Gateway: Westpac + Windcave HPP
 
-Status: commerce rules are confirmed; waiting for Westpac to confirm the payment service provider, product, PCI requirements and sandbox credentials.
+Status: Westpac confirmed Windcave Hosted Payment Page. The storefront and server adapter are prepared; activation remains off until Windcave UAT credentials are supplied and the final payable ERP document is selected.
 
 Recommended integration path:
 
-- Use an acquirer-approved hosted payment page / redirect flow, not direct card capture on the storefront.
+- Use Windcave Hosted Payment Page with a full-page redirect, not direct card capture or an embedded merchant card form.
 - Storefront API creates a provider payment session for an eligible order.
 - Customer is redirected to the provider for card entry.
 - The provider returns the customer to the storefront and sends a server callback/webhook.
 - Storefront API verifies the transaction with the provider before updating ERPNext.
 - ERPNext should create a Payment Entry and store the provider transaction reference. The referenced Sales Order or Sales Invoice still needs to be confirmed against the selected provider flow.
 
-Expected implementation pieces once credentials are available:
+Prepared implementation pieces:
 
-- Environment variables for provider test/live credentials.
-- `POST /api/payments/session` to create a hosted payment session.
-- `GET /payment/success` and `GET /payment/failure` storefront routes.
-- `POST /api/payments/callback` for server-side notification.
+- Environment variables for Windcave UAT/live credentials.
+- Server-side Windcave HPP session creation and session-result verification adapter.
+- Public `GET /api/payments/config` readiness endpoint with no secrets.
+- Callback paths reserved at `/payment/approved`, `/payment/declined` and `/payment/cancelled`.
+- Server notification URL reserved at `/api/payments/notification`.
 - ERPNext payment update path, most likely `Payment Entry` or status fields on the related quotation/order/invoice.
 - Website Command Center settings for enabling online payments and selecting the payment flow.
 
@@ -157,9 +158,19 @@ Confirmed commerce rules:
 - Catalog prices are in FJD and exclude VAT; VAT and any delivery charge are added before payment.
 - Orders over FJD 200 receive free delivery within Viti Levu or to the applicable outer-island shipper's yard.
 
-Remaining integration decisions:
+Westpac-confirmed gateway rules:
 
-- Selected Westpac provider and hosted-checkout API.
-- Merchant/sandbox credentials, callback verification and required UAT.
+- Provider: Windcave.
+- Integration: Hosted Payment Page; all cardholder data stays in Windcave.
+- Accepted cards: Visa, Mastercard and American Express.
+- Transaction and settlement currency: FJD.
+- PCI model: SAQ A for HPP; Windcave covers the hosted card-entry environment.
+- The non-indexed testing URL can be used for Westpac review.
+
+Remaining technical-stage inputs:
+
+- Windcave REST UAT username and API key.
+- Confirmation of the final ERP document and total used to create the HPP session after VAT and delivery are applied.
+- Activation of 3-D Secure on the Windcave REST username and UAT test execution.
 - Whether provider refunds are portal-only at launch or exposed through API.
 - Exact Sales Order or Sales Invoice reference used by ERPNext Payment Entry.

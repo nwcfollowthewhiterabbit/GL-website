@@ -13,6 +13,7 @@ import {
 import { pingErpDb } from "./erpnext-db.mjs";
 import { legacySyncRules } from "./legacy-sync-rules.mjs";
 import { createQuoteRequest, getRecentWebsiteQuotes } from "./quote-service.mjs";
+import { getPaymentConfig } from "./payment-service.mjs";
 import {
   getWebsiteBanners,
   getWebsiteCatalogs,
@@ -86,6 +87,10 @@ app.get("/health", (_req, res) => {
     ok: true,
     service: "green-leaf-integration-api"
   });
+});
+
+app.get("/api/payments/config", (_req, res) => {
+  res.json(getPaymentConfig());
 });
 
 app.get("/api/admin/health", async (_req, res) => {

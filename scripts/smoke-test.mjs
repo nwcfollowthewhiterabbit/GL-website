@@ -45,6 +45,13 @@ async function main() {
   assert(health.ok, "Health endpoint is not ok");
   assert(!("erpnextConfigured" in health), "Public health endpoint exposes configuration state");
 
+  const paymentConfig = await readJson("/api/payments/config");
+  assert(paymentConfig.provider === "windcave", "Windcave is not the configured payment provider");
+  assert(paymentConfig.integration === "hosted_payment_page", "Unexpected payment integration method");
+  assert(paymentConfig.currency === "FJD", "Unexpected payment currency");
+  assert(paymentConfig.cardDataHandledBy === "windcave", "Card data handling is not delegated to Windcave");
+  assert(paymentConfig.enabled === false, "Testing payments should remain disabled before UAT credentials are installed");
+
   const catalog = await readJson("/api/catalog/products?page=1&pageSize=2&q=Bath");
   assert(Array.isArray(catalog.products), "Catalog products response is invalid");
   assert(catalog.products.length > 0, "Catalog search returned no products");
@@ -145,6 +152,7 @@ async function main() {
   assert(pageResponse.headers.get("x-robots-tag").includes("noindex"), "Testing site indexing is not disabled");
 
   console.log("Smoke checks passed");
+  console.log(`- Payment path: ${paymentConfig.provider} ${paymentConfig.integration}, ${paymentConfig.status}`);
   console.log(`- Catalog search products: ${catalog.products.length} of ${catalog.total}`);
   console.log(`- Website departments source: ${departments.source}`);
   console.log(`- Website banners source: ${banners.source}`);

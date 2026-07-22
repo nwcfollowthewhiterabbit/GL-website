@@ -1,5 +1,6 @@
 import { legacyBrand } from "../data/legacyContent";
 import type { WebsiteCategory } from "../types";
+import { PaymentTrustMarks } from "./PaymentTrustMarks";
 
 type SiteFooterProps = {
   departments: WebsiteCategory[];
@@ -48,6 +49,9 @@ export function SiteFooter({ departments }: SiteFooterProps) {
         <span>{legacyBrand.legalName} trading as Green Leaf Pacific</span>
         <span>Prices exclude VAT · Currency FJD</span>
         <span className="footer-credit">Website created by <a href="https://rabbitsystems.net" target="_blank" rel="noreferrer">rabbitsystems.net</a></span>
+      </div>
+      <div className="shell footer-payment">
+        <PaymentTrustMarks compact />
       </div>
     </footer>
   );

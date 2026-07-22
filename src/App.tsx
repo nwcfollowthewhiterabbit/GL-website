@@ -675,7 +675,7 @@ function App() {
       const name = quotationName(data);
       if (name && typeof data.quotation !== "string") {
         setQuoteResult(quoteResultFromResponse(data, quoteEmail));
-        setQuoteStatus(data.fulfillment?.requiresSalesConfirmation ? "Request sent. Green Leaf sales will confirm stock or ETA before payment." : "Order prepared. The payment step is pending Westpac gateway activation.");
+        setQuoteStatus(data.fulfillment?.requiresSalesConfirmation ? "Request sent. Green Leaf sales will confirm stock or ETA before payment." : "Order prepared. Secure Windcave checkout is the approved payment path and will open after UAT activation.");
         setQuoteLines([]);
       } else if (name) {
         setQuoteResult(quoteResultFromResponse(data, quoteEmail, { reused: true }));

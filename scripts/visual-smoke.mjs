@@ -185,11 +185,13 @@ async function main() {
       returnByValue: true,
       expression: `({
         hasLocation: Boolean(document.querySelector('input[placeholder="Delivery location"]')),
-        hasFlow: Boolean(document.querySelector(".order-flow-note"))
+        hasFlow: Boolean(document.querySelector(".order-flow-note")),
+        hasPaymentTrust: Boolean(document.querySelector(".quote-form .payment-trust"))
       })`
     });
     assert(basketFields.result.result.value.hasLocation, "Order basket is missing delivery location");
     assert(basketFields.result.result.value.hasFlow, "Order basket is missing fulfillment guidance");
+    assert(basketFields.result.result.value.hasPaymentTrust, "Order basket is missing Windcave payment information");
 
     await page.send("Page.navigate", { url: `${baseUrl}/account?visual-smoke=1` });
     await waitForSelector(page.send, ".account-page");
@@ -219,6 +221,21 @@ async function main() {
     assert(policyMobile.heading === "Privacy policy", "Privacy page heading is missing");
     assert(policyDesktop.heading === "Privacy policy", "Privacy page heading is missing");
 
+    await page.send("Page.navigate", { url: `${baseUrl}/payment-security?visual-smoke=1` });
+    await waitForSelector(page.send, ".policy-page .payment-trust");
+    const paymentMobile = await captureViewport(page.send, "payment-security-mobile", {
+      width: 390,
+      height: 1200,
+      mobile: true
+    });
+    const paymentDesktop = await captureViewport(page.send, "payment-security-desktop", {
+      width: 1440,
+      height: 1200,
+      mobile: false
+    });
+    assert(paymentMobile.heading === "Payment and security information", "Payment page heading is missing");
+    assert(paymentDesktop.heading === "Payment and security information", "Payment page heading is missing");
+
     page.close();
     console.log("Visual smoke checks passed");
     console.log(`- Mobile width: ${mobile.innerWidth}, scroll width: ${mobile.scrollWidth}`);
@@ -229,6 +246,8 @@ async function main() {
     console.log(`- Account desktop width: ${accountDesktop.innerWidth}, scroll width: ${accountDesktop.scrollWidth}`);
     console.log(`- Policy mobile width: ${policyMobile.innerWidth}, scroll width: ${policyMobile.scrollWidth}`);
     console.log(`- Policy desktop width: ${policyDesktop.innerWidth}, scroll width: ${policyDesktop.scrollWidth}`);
+    console.log(`- Payment mobile width: ${paymentMobile.innerWidth}, scroll width: ${paymentMobile.scrollWidth}`);
+    console.log(`- Payment desktop width: ${paymentDesktop.innerWidth}, scroll width: ${paymentDesktop.scrollWidth}`);
     console.log(`- Screenshots written to ${outputDir}/`);
   } finally {
     chrome.kill("SIGTERM");

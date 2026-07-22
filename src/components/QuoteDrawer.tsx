@@ -1,6 +1,7 @@
 import { AlertTriangle, ArrowRight, Building2, CheckCircle2, ClipboardCheck, Mail, MapPin, Minus, Phone, Plus, RotateCcw, Send, StickyNote, Trash2, UserRound } from "lucide-react";
 import { isSpecialOrder, priceLabel, productImage, productPlaceholder, purchaseFlowLabel, requiresAvailabilityConfirmation } from "../lib/catalog";
 import type { QuoteLine, QuoteResult } from "../types";
+import { PaymentTrustMarks } from "./PaymentTrustMarks";
 
 type QuoteDrawerProps = {
   isOpen: boolean;
@@ -142,7 +143,7 @@ export function QuoteDrawer({
               <div className="quote-confirmation-empty">
                 <ClipboardCheck size={22} />
                 <strong>Order details recorded in ERPNext</strong>
-                <p>{requiresConfirmation ? "Sales will confirm stock or ETA before payment." : "The order is ready for the payment step once the gateway is activated."}</p>
+                <p>{requiresConfirmation ? "Sales will confirm stock or ETA before payment." : "The order is ready for secure Windcave checkout once payment testing is activated."}</p>
               </div>
             ) : (
               <div className="quote-empty">
@@ -173,7 +174,7 @@ export function QuoteDrawer({
                 <ol className="quote-result__steps">
                   {requiresConfirmation ? <li>Sales confirms stock or ETA before payment.</li> : <li>ERP stock is sufficient for the requested quantity.</li>}
                   <li>{hasSpecialOrder ? "A 70% deposit applies to special-order items." : "Full payment applies to in-stock items."}</li>
-                  <li>The secure payment step will be enabled after Westpac gateway approval.</li>
+                  <li>Card entry takes place only on Windcave's secure hosted payment page.</li>
                 </ol>
                 {quoteResult.missingCount ? (
                   <div className="quote-result__warning">
@@ -244,6 +245,7 @@ export function QuoteDrawer({
                     : "Full payment applies. VAT and any delivery charge will be added before payment."}
               </span>
             </div>
+            <PaymentTrustMarks compact />
             {quoteResult ? null : (
               <button type="button" className="quote-button" onClick={onSubmit} disabled={!canSubmit}>
                 {isSubmitting ? "Creating..." : requiresConfirmation ? "Request confirmation" : "Prepare checkout"} <Send size={17} />
