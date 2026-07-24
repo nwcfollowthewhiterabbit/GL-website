@@ -36,12 +36,7 @@ async function itemLine() {
   const item = await first("Item", [["name", "=", itemCode]], ["name", "item_name", "stock_uom"]);
   if (!item) throw new Error(`Test item ${itemCode} was not found`);
 
-  const itemPrice = await first(
-    "Item Price",
-    [["item_code", "=", itemCode], ["price_list", "=", priceList], ["selling", "=", 1]],
-    ["price_list_rate", "currency"]
-  );
-  const rate = Number(itemPrice?.price_list_rate || 100);
+  const rate = Number(process.env.ACCOUNT_TEST_ITEM_RATE || 2030);
   return { item_code: item.name, qty: 2, rate };
 }
 
@@ -114,16 +109,18 @@ async function ensureSalesInvoice(customer, line) {
 async function main() {
   const customer = await ensureCustomer();
   const line = await itemLine();
-  const [quotation, order, invoice] = await Promise.all([
-    ensureQuotation(customer, line),
-    ensureSalesOrder(customer, line),
-    ensureSalesInvoice(customer, line)
-  ]);
+  const quotation = await ensureQuotation(customer, line);
+  const order = await ensureSalesOrder(customer, line);
+  const invoice = process.env.ACCOUNT_TEST_CREATE_INVOICE === "true"
+    ? await ensureSalesInvoice(customer, line)
+    : null;
 
   console.log(`Test account customer: ${customer.name}`);
   console.log(`Quotation: ${quotation.name} (${quotation.status || "Draft"})`);
   console.log(`Sales Order: ${order.name} (${order.status || "Draft"})`);
-  console.log(`Sales Invoice: ${invoice.name} (${invoice.status || "Draft"})`);
+  console.log(invoice
+    ? `Sales Invoice: ${invoice.name} (${invoice.status || "Draft"})`
+    : "Sales Invoice: skipped (integration user has no invoice permission)");
 }
 
 main().catch((error) => {
