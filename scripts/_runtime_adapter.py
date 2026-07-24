@@ -316,9 +316,9 @@ git -C "$repo" merge-base --is-ancestor HEAD "$expected"
 git -C "$repo" merge --ff-only "$expected"
 "$compose" -f "$repo/docker-compose.yml" build "$@"
 if [ "$migrate_schema" = "true" ]; then
-  "$compose" -f "$repo/docker-compose.yml" run --rm api npm run erpnext:migrate-website
+  "$compose" -f "$repo/docker-compose.yml" run --rm -T api npm run erpnext:migrate-website
 else
-  "$compose" -f "$repo/docker-compose.yml" run --rm api npm run erpnext:check-website-migrations
+  "$compose" -f "$repo/docker-compose.yml" run --rm -T api npm run erpnext:check-website-migrations
 fi
 "$compose" -f "$repo/docker-compose.yml" up -d --no-build "$@"
 test "$(git -C "$repo" rev-parse HEAD)" = "$expected"
@@ -418,7 +418,7 @@ rm -rf "$repo/public/uploads" "$repo/uploads"
 tar -C "$repo" -xzf "$archive" --no-same-owner --no-same-permissions
 "$compose" -f "$repo/docker-compose.yml" build "$@"
 if node -e 'const p=require(process.argv[1]); process.exit(p.scripts?.["erpnext:check-website-migrations"] ? 0 : 1)' "$repo/package.json"; then
-  "$compose" -f "$repo/docker-compose.yml" run --rm api npm run erpnext:check-website-migrations
+  "$compose" -f "$repo/docker-compose.yml" run --rm -T api npm run erpnext:check-website-migrations
 fi
 "$compose" -f "$repo/docker-compose.yml" up -d --no-build "$@"
 python3 - "$plan" <<'PY'

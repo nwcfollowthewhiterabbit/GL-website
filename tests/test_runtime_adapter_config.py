@@ -55,6 +55,7 @@ class RuntimeAdapterConfigurationTests(unittest.TestCase):
         build = DEPLOY_SCRIPT.index('"$compose" -f "$repo/docker-compose.yml" build')
         migrate = DEPLOY_SCRIPT.index("npm run erpnext:migrate-website")
         start = DEPLOY_SCRIPT.index('"$compose" -f "$repo/docker-compose.yml" up -d --no-build')
+        self.assertIn("run --rm -T api", DEPLOY_SCRIPT)
         self.assertLess(build, migrate)
         self.assertLess(migrate, start)
 

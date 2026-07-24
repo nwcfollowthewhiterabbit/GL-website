@@ -39,7 +39,7 @@ backup, ERP application migration или restart ERP containers.
 4. Зафиксировать website rollback commit и server configuration backup.
 5. На host выполнить fast-forward pull в repository path.
 6. Выполнить `docker-compose build api web monitor`.
-7. Выполнить `docker-compose run --rm api npm run erpnext:migrate-website`.
+7. Выполнить `docker-compose run --rm -T api npm run erpnext:migrate-website`.
 8. Выполнить `docker-compose up -d --no-build api web monitor`.
 9. Проверить web/API/monitor containers и API logs.
 10. Выполнить public smoke и visual smoke.
