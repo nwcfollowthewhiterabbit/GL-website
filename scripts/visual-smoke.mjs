@@ -39,9 +39,21 @@ async function connectToPage(url) {
   const ws = new WebSocket(page.webSocketDebuggerUrl);
   let messageId = 0;
   const pending = new Map();
+  const runtimeErrors = [];
 
   ws.onmessage = (event) => {
     const message = JSON.parse(event.data);
+    if (message.method === "Runtime.exceptionThrown") {
+      runtimeErrors.push(message.params?.exceptionDetails?.text || "Uncaught runtime exception");
+    }
+    if (message.method === "Runtime.consoleAPICalled" && message.params?.type === "error") {
+      runtimeErrors.push(
+        message.params.args
+          ?.map((argument) => argument.value || argument.description || "")
+          .filter(Boolean)
+          .join(" ") || "Console error"
+      );
+    }
     if (message.id && pending.has(message.id)) {
       pending.get(message.id)(message);
       pending.delete(message.id);
@@ -61,7 +73,7 @@ async function connectToPage(url) {
   await send("Page.enable");
   await send("Runtime.enable");
 
-  return { send, close: () => ws.close() };
+  return { send, runtimeErrors, close: () => ws.close() };
 }
 
 async function captureViewport(send, name, viewport) {
@@ -295,6 +307,7 @@ async function main() {
       expression: `document.querySelector(".about-page a[href='/how-we-operate']")?.getAttribute("href") || ""`
     });
     assert(aboutLink.result.result.value === "/how-we-operate", "About Us contextual link is missing");
+    assert(page.runtimeErrors.length === 0, `Browser runtime errors: ${page.runtimeErrors.join(" | ")}`);
 
     page.close();
     console.log("Visual smoke checks passed");
