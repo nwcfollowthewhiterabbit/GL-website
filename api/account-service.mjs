@@ -35,21 +35,8 @@ function nowSql() {
   return new Date().toISOString().slice(0, 19).replace("T", " ");
 }
 
-function randomName(prefix) {
-  return `${prefix}-${crypto.randomBytes(5).toString("hex")}`;
-}
-
 function stableName(prefix, value) {
   return `${prefix}-${crypto.createHash("sha1").update(value).digest("hex").slice(0, 16)}`;
-}
-
-function splitNameFromEmail(email) {
-  const local = email.split("@")[0] || "Website";
-  const parts = local.replace(/[._-]+/g, " ").split(" ").filter(Boolean);
-  return {
-    firstName: parts[0] ? parts[0].charAt(0).toUpperCase() + parts[0].slice(1) : "Website",
-    lastName: parts.slice(1).join(" ")
-  };
 }
 
 function sessionSecret() {
@@ -277,6 +264,18 @@ export async function resolveCustomerAccessByEmail(emailValue) {
   };
 }
 
+export function isProvisionedWebsiteCustomerAccess(access, customerValue) {
+  const customer = clean(customerValue);
+  return Boolean(
+    customer &&
+      access?.user?.enabled &&
+      access.user.userType === "Website User" &&
+      access.user.roles.includes(WEBSITE_CUSTOMER_ROLE) &&
+      access.customerNames.includes(customer) &&
+      access.contacts.some((contact) => normalizeEmail(contact.user) === normalizeEmail(access.email))
+  );
+}
+
 export function isDocumentWithinCustomerAccess(document, access) {
   const documentEmail = normalizeEmail(document?.websiteCustomerEmail);
   const customer = clean(document?.customer);
@@ -329,7 +328,7 @@ async function ensureWebsiteCredentialTable() {
   await credentialTableReady;
 }
 
-export async function setWebsiteCustomerPassword({ customer, email, password, firstName = "", lastName = "" }) {
+export async function setWebsiteCustomerPassword({ customer, email, password }) {
   const customerName = clean(customer);
   const normalizedEmail = normalizeEmail(email);
   if (!customerName) return { ok: false, error: "customer_required" };
@@ -340,9 +339,7 @@ export async function setWebsiteCustomerPassword({ customer, email, password, fi
 
   const access = await linkWebsiteCustomerAccess({
     customer: customerName,
-    email: normalizedEmail,
-    firstName,
-    lastName
+    email: normalizedEmail
   });
   if (!access.ok) return access;
 
@@ -401,7 +398,7 @@ export async function authenticateAccountPassword(emailValue, password) {
     passwordMatches(passwordValue(password), credential.password_hash),
     resolveCustomerAccessByEmail(email)
   ]);
-  if (!matches || !access.customerNames.includes(credential.customer)) {
+  if (!matches || !isProvisionedWebsiteCustomerAccess(access, credential.customer)) {
     return { ok: false, error: "invalid_credentials" };
   }
 
@@ -740,157 +737,26 @@ export async function getAccountInvoiceDetailByEmail(emailValue, invoiceName) {
   };
 }
 
-async function ensureWebsiteCustomerRole() {
-  const now = nowSql();
-  await getErpPool().execute(
-    `
-      INSERT INTO \`tabRole\`
-        (name, creation, modified, modified_by, owner, docstatus, idx, role_name, desk_access, disabled, is_custom)
-      VALUES
-        (:role, :now, :now, 'Administrator', 'Administrator', 0, 0, :role, 0, 0, 1)
-      ON DUPLICATE KEY UPDATE
-        modified = VALUES(modified),
-        role_name = VALUES(role_name),
-        desk_access = 0,
-        disabled = 0
-    `,
-    { role: WEBSITE_CUSTOMER_ROLE, now }
-  );
-}
-
-async function ensureUser(email, firstName = "", lastName = "") {
-  const now = nowSql();
-  const fallbackName = splitNameFromEmail(email);
-  const first = clean(firstName) || fallbackName.firstName;
-  const last = clean(lastName) || fallbackName.lastName;
-  const fullName = [first, last].filter(Boolean).join(" ") || email;
-
-  await getErpPool().execute(
-    `
-      INSERT INTO \`tabUser\`
-        (name, creation, modified, modified_by, owner, docstatus, idx, enabled, email, first_name, last_name, full_name,
-         user_type, send_welcome_email, thread_notify, simultaneous_sessions, logout_all_sessions)
-      VALUES
-        (:email, :now, :now, 'Administrator', 'Administrator', 0, 0, 1, :email, :first, :last, :fullName,
-         'Website User', 0, 1, 2, 1)
-      ON DUPLICATE KEY UPDATE
-        modified = VALUES(modified),
-        enabled = 1,
-        email = VALUES(email),
-        first_name = IFNULL(NULLIF(first_name, ''), VALUES(first_name)),
-        last_name = IFNULL(NULLIF(last_name, ''), VALUES(last_name)),
-        full_name = IFNULL(NULLIF(full_name, ''), VALUES(full_name)),
-        user_type = 'Website User'
-    `,
-    { email, now, first, last, fullName }
-  );
-
-  await ensureWebsiteCustomerRole();
-  await getErpPool().execute(
-    `
-      INSERT INTO \`tabHas Role\`
-        (name, creation, modified, modified_by, owner, docstatus, idx, parent, parentfield, parenttype, role)
-      VALUES
-        (:name, :now, :now, 'Administrator', 'Administrator', 0, 1, :email, 'roles', 'User', :role)
-      ON DUPLICATE KEY UPDATE modified = VALUES(modified), role = VALUES(role)
-    `,
-    { name: stableName("user-role", `${email}-${WEBSITE_CUSTOMER_ROLE}`), now, email, role: WEBSITE_CUSTOMER_ROLE }
-  );
-}
-
-async function ensureContact(customerName, email, firstName = "", lastName = "") {
-  const now = nowSql();
-  const fallbackName = splitNameFromEmail(email);
-  const first = clean(firstName) || fallbackName.firstName;
-  const last = clean(lastName) || fallbackName.lastName;
-
-  const [existing] = await getErpPool().execute(
-    `
-      SELECT DISTINCT c.name
-      FROM \`tabContact\` c
-      LEFT JOIN \`tabContact Email\` ce ON ce.parent = c.name
-      WHERE LOWER(IFNULL(c.email_id, '')) = :email
-         OR LOWER(IFNULL(ce.email_id, '')) = :email
-         OR LOWER(IFNULL(c.user, '')) = :email
-      ORDER BY c.modified DESC
-      LIMIT 1
-    `,
-    { email }
-  );
-  const contactName = existing[0]?.name || randomName("website-contact");
-
-  if (!existing[0]) {
-    await getErpPool().execute(
-      `
-        INSERT INTO \`tabContact\`
-          (name, creation, modified, modified_by, owner, docstatus, idx, first_name, last_name, email_id, user, status,
-           is_primary_contact)
-        VALUES
-          (:name, :now, :now, 'Administrator', 'Administrator', 0, 0, :first, :last, :email, :email, 'Passive', 1)
-      `,
-      { name: contactName, now, first, last, email }
-    );
-  } else {
-    await getErpPool().execute(
-      `
-        UPDATE \`tabContact\`
-        SET modified = :now,
-            email_id = IFNULL(NULLIF(email_id, ''), :email),
-            user = IFNULL(NULLIF(user, ''), :email)
-        WHERE name = :name
-      `,
-      { now, email, name: contactName }
-    );
-  }
-
-  await getErpPool().execute(
-    `
-      INSERT INTO \`tabContact Email\`
-        (name, creation, modified, modified_by, owner, docstatus, idx, parent, parentfield, parenttype, email_id, is_primary)
-      VALUES
-        (:name, :now, :now, 'Administrator', 'Administrator', 0, 1, :contact, 'email_ids', 'Contact', :email, 1)
-      ON DUPLICATE KEY UPDATE modified = VALUES(modified), email_id = VALUES(email_id), is_primary = 1
-    `,
-    { name: stableName("contact-email", `${contactName}-${email}`), now, contact: contactName, email }
-  );
-
-  await getErpPool().execute(
-    `
-      INSERT INTO \`tabDynamic Link\`
-        (name, creation, modified, modified_by, owner, docstatus, idx, parent, parentfield, parenttype,
-         link_doctype, link_name, link_title)
-      VALUES
-        (:name, :now, :now, 'Administrator', 'Administrator', 0, 1, :contact, 'links', 'Contact',
-         'Customer', :customer, :customer)
-      ON DUPLICATE KEY UPDATE modified = VALUES(modified), link_name = VALUES(link_name), link_title = VALUES(link_title)
-    `,
-    { name: stableName("contact-link", `${contactName}-Customer-${customerName}`), now, contact: contactName, customer: customerName }
-  );
-
-  return contactName;
-}
-
-export async function linkWebsiteCustomerAccess({ customer, email, firstName = "", lastName = "" }) {
+export async function linkWebsiteCustomerAccess({ customer, email }) {
   const customerName = clean(customer);
   const normalizedEmail = normalizeEmail(email);
   if (!customerName) return { ok: false, error: "customer_required" };
   if (!isValidEmail(normalizedEmail)) return { ok: false, error: "invalid_email" };
 
-  const [customers] = await getErpPool().execute(
-    "SELECT name, customer_name FROM `tabCustomer` WHERE name = :customer LIMIT 1",
-    { customer: customerName }
-  );
-  if (!customers[0]) return { ok: false, error: "customer_not_found" };
+  const access = await resolveCustomerAccessByEmail(normalizedEmail);
+  const customerRecord = access.customers.find((entry) => entry.name === customerName);
+  if (!customerRecord) return { ok: false, error: "customer_not_found" };
+  if (!isProvisionedWebsiteCustomerAccess(access, customerName)) {
+    return { ok: false, error: "erp_customer_access_provisioning_required" };
+  }
 
-  await ensureUser(normalizedEmail, firstName, lastName);
-  const contact = await ensureContact(customerName, normalizedEmail, firstName, lastName);
   return {
     ok: true,
-    customer: customers[0].name,
-    customerName: customers[0].customer_name || customers[0].name,
+    customer: customerRecord.name,
+    customerName: customerRecord.customerName,
     email: normalizedEmail,
-    contact,
-    user: normalizedEmail,
+    contact: access.contacts[0]?.name || "",
+    user: access.user.name,
     role: WEBSITE_CUSTOMER_ROLE
   };
 }
@@ -898,10 +764,6 @@ export async function linkWebsiteCustomerAccess({ customer, email, firstName = "
 export async function disableWebsiteCustomerAccess(emailValue) {
   const email = normalizeEmail(emailValue);
   if (!isValidEmail(email)) return { ok: false, error: "invalid_email" };
-  await getErpPool().execute(
-    "UPDATE `tabUser` SET enabled = 0, modified = :now WHERE LOWER(name) = :email OR LOWER(email) = :email",
-    { email, now: nowSql() }
-  );
   await ensureWebsiteCredentialTable();
   await getErpPool().execute(
     `
@@ -925,11 +787,12 @@ export async function enableWebsiteCustomerAccess(emailValue) {
   );
   if (!credentials[0]) return { ok: false, error: "credential_not_found" };
 
+  const access = await resolveCustomerAccessByEmail(email);
+  if (!isProvisionedWebsiteCustomerAccess(access, credentials[0].customer)) {
+    return { ok: false, error: "erp_customer_access_provisioning_required" };
+  }
+
   const now = nowSql();
-  await getErpPool().execute(
-    "UPDATE `tabUser` SET enabled = 1, modified = :now WHERE LOWER(name) = :email OR LOWER(email) = :email",
-    { email, now }
-  );
   await getErpPool().execute(
     `
       UPDATE \`${WEBSITE_CREDENTIAL_TABLE}\`

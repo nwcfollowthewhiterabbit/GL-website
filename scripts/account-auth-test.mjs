@@ -10,7 +10,8 @@ const {
   createAccountSessionToken,
   getAccountSession,
   isAccountSessionCurrent,
-  isAccountLoginAvailable
+  isAccountLoginAvailable,
+  isProvisionedWebsiteCustomerAccess
 } = await import("../api/account-service.mjs");
 
 assert.equal(isAccountLoginAvailable(), true);
@@ -33,6 +34,29 @@ assert.equal(
 );
 assert.equal(
   isAccountSessionCurrent(session, { enabled: 0, user_enabled: 1, session_version: 3 }),
+  false
+);
+
+const provisionedAccess = {
+  email: "buyer@example.com",
+  user: {
+    enabled: true,
+    userType: "Website User",
+    roles: ["Website Customer"]
+  },
+  customerNames: ["CUSTOMER-0001"],
+  contacts: [{ user: "buyer@example.com" }]
+};
+assert.equal(isProvisionedWebsiteCustomerAccess(provisionedAccess, "CUSTOMER-0001"), true);
+assert.equal(
+  isProvisionedWebsiteCustomerAccess(
+    { ...provisionedAccess, user: { ...provisionedAccess.user, roles: ["System Manager"] } },
+    "CUSTOMER-0001"
+  ),
+  false
+);
+assert.equal(
+  isProvisionedWebsiteCustomerAccess({ ...provisionedAccess, contacts: [{ user: "" }] }, "CUSTOMER-0001"),
   false
 );
 

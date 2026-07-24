@@ -31,6 +31,13 @@
   hooks; account/payment CSS разделен по модулям.
 - CI проверяет Python-контракт репозитория, TypeScript, account/payment tests и
   production build.
+- Quote pricing теперь всегда берется из опубликованной ERP price list; цены,
+  hidden products и произвольные price lists из public request не принимаются.
+- Website runtime использует non-root/read-only containers и отдельного
+  least-privilege ERP database user. Сайт больше не изменяет системные
+  ERPNext User, Role и Contact tables.
+- Public API errors больше не раскрывают внутренние database/runtime messages;
+  catalog и file proxy получили rate и resource limits.
 
 ### Known limitations
 
@@ -39,3 +46,5 @@
 - Внешний alert recipient и controlled restore drill требуют operations
   configuration/evidence.
 - Самостоятельная регистрация клиента пока не реализована.
+- ERPNext/Frappe v14 требует планового обновления на поддерживаемую major
+  version до production launch.

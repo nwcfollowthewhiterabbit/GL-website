@@ -1,11 +1,18 @@
 import { getErpPool } from "./erpnext-db.mjs";
 import { createDoc, hasErpnextRestCredentials, listDoc } from "./erpnext-rest.mjs";
+import { EXCLUDED_STOREFRONT_GROUPS } from "./catalog-service.mjs";
+import { CATALOG_PRODUCT_READY_SQL } from "./catalog-publication-rules.mjs";
 import { legacySyncRules } from "./legacy-sync-rules.mjs";
+import { availableCustomFields } from "./storefront-rules.mjs";
 
 const DEFAULTS = legacySyncRules.quote.defaults;
 const customFieldCache = new Map();
 const inFlightQuoteRequests = new Map();
 const EXCLUDED_STOCK_WAREHOUSES = ["Showroom - GL", "Furniture Showroom (Upstairs) - GL"];
+const MAX_QUOTE_LINES = 50;
+const MAX_QUOTE_QUANTITY = 1000;
+const MAX_CUSTOMER_FIELD_LENGTH = 200;
+const MAX_NOTES_LENGTH = 2000;
 
 function clean(value) {
   return String(value || "").trim();
@@ -45,13 +52,25 @@ async function hasCustomFields(dt, fieldnames) {
 function normalizeLines(lines) {
   if (!Array.isArray(lines)) return [];
   return lines
+    .slice(0, MAX_QUOTE_LINES)
     .map((line) => ({
       sku: clean(line.sku || line.item_code || line.itemCode),
       qty: Number(line.qty || line.quantity || 1),
-      rate: line.rate === undefined || line.rate === null || line.rate === "" ? null : Number(line.rate),
-      note: clean(line.note)
+      note: clean(line.note).slice(0, 500)
     }))
-    .filter((line) => line.sku && Number.isFinite(line.qty) && line.qty > 0);
+    .filter(
+      (line) =>
+        line.sku &&
+        line.sku.length <= 140 &&
+        Number.isFinite(line.qty) &&
+        line.qty > 0 &&
+        line.qty <= MAX_QUOTE_QUANTITY
+    );
+}
+
+export function trustedQuoteRate(item) {
+  const rate = Number(item?.price);
+  return Number.isFinite(rate) && rate > 0 ? rate : 0;
 }
 
 async function getErpItemsBySku(skus, priceList = DEFAULTS.priceList) {
@@ -59,9 +78,30 @@ async function getErpItemsBySku(skus, priceList = DEFAULTS.priceList) {
 
   const placeholders = skus.map((_, index) => `:sku${index}`).join(", ");
   const params = Object.fromEntries(skus.map((sku, index) => [`sku${index}`, sku]));
+  const excludedGroups = EXCLUDED_STOREFRONT_GROUPS.map((_, index) => `:excludedGroup${index}`).join(", ");
+  EXCLUDED_STOREFRONT_GROUPS.forEach((group, index) => {
+    params[`excludedGroup${index}`] = group;
+  });
   params.priceList = priceList;
   params.excludedWarehouse0 = EXCLUDED_STOCK_WAREHOUSES[0];
   params.excludedWarehouse1 = EXCLUDED_STOCK_WAREHOUSES[1];
+  const [itemFields, groupFields] = await Promise.all([
+    availableCustomFields("Item", ["website_show_on_storefront"]),
+    availableCustomFields("Item Group", ["website_show_on_storefront"])
+  ]);
+  const publicationClauses = [
+    "IFNULL(i.disabled, 0) = 0",
+    "IFNULL(i.is_sales_item, 1) = 1",
+    "IFNULL(i.has_variants, 0) = 0",
+    `IFNULL(i.item_group, '') NOT IN (${excludedGroups})`,
+    CATALOG_PRODUCT_READY_SQL
+  ];
+  if (itemFields.website_show_on_storefront) {
+    publicationClauses.push("IFNULL(i.website_show_on_storefront, 1) = 1");
+  }
+  if (groupFields.website_show_on_storefront) {
+    publicationClauses.push("IFNULL(ig.website_show_on_storefront, 1) = 1");
+  }
 
   const [rows] = await getErpPool().execute(
     `
@@ -95,8 +135,9 @@ async function getErpItemsBySku(skus, priceList = DEFAULTS.priceList) {
           AND LOWER(w.name) NOT LIKE '%showroom%'
         GROUP BY b.item_code
       ) stock ON stock.item_code = i.name
+      LEFT JOIN \`tabItem Group\` ig ON ig.name = i.item_group
       WHERE i.name IN (${placeholders})
-        AND IFNULL(i.disabled, 0) = 0
+        AND ${publicationClauses.join("\n        AND ")}
     `,
     { ...params, currency: process.env.DEFAULT_CURRENCY || "FJD" }
   );
@@ -192,12 +233,11 @@ export async function prepareQuoteRequest(payload = {}) {
       continue;
     }
 
-    const rate = line.rate !== null && Number.isFinite(line.rate) ? line.rate : Number(item.price || 0);
     validLines.push({
       item_code: line.sku,
       item_name: item.item_name || line.sku,
       qty: line.qty,
-      rate,
+      rate: trustedQuoteRate(item),
       uom: item.stock_uom || "Nos",
       availableQuantity: Number(item.available_quantity || 0),
       fulfillmentStatus:
@@ -299,6 +339,19 @@ async function createQuoteRequestOnce(payload = {}) {
       error: "customer_details_required",
       missingCustomerFields: requiredCustomerFields
     };
+  }
+  const invalidCustomerFields = ["company", "email", "phone", "location"].filter(
+    (field) => clean(customer[field]).length > MAX_CUSTOMER_FIELD_LENGTH
+  );
+  if (
+    invalidCustomerFields.length ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean(customer.email)) ||
+    !Array.isArray(payload.lines) ||
+    payload.lines.length < 1 ||
+    payload.lines.length > MAX_QUOTE_LINES ||
+    clean(payload.notes).length > MAX_NOTES_LENGTH
+  ) {
+    return { mode: "validation_failed", error: "invalid_quote_payload" };
   }
 
   const prepared = await prepareQuoteRequest(payload);

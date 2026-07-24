@@ -122,11 +122,13 @@ async function main() {
   const credential = await setWebsiteCustomerPassword({
     customer: customer.name,
     email,
-    password,
-    firstName: "Demo",
-    lastName: "Customer"
+    password
   });
-  if (!credential.ok) throw new Error(`Unable to create website credential: ${credential.error}`);
+  if (!credential.ok) {
+    throw new Error(
+      `Unable to create website credential: ${credential.error}. Provision the Website User, Website Customer role, Contact, and Customer link in ERPNext first.`
+    );
+  }
 
   console.log(`Test account customer: ${customer.name}`);
   console.log(`Quotation: ${quotation.name} (${quotation.status || "Draft"})`);

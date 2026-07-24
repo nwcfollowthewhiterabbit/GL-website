@@ -7,7 +7,7 @@ import {
 
 const DEFAULT_PRICE_LIST = process.env.DEFAULT_PRICE_LIST || "Standard Selling";
 const EXCLUDED_WAREHOUSES = ["Showroom - GL", "Furniture Showroom (Upstairs) - GL"];
-const EXCLUDED_STOREFRONT_GROUPS = [
+export const EXCLUDED_STOREFRONT_GROUPS = [
   "Expences",
   "Freight",
   "Fuel",
@@ -179,15 +179,18 @@ function baseParams(priceList = DEFAULT_PRICE_LIST) {
 }
 
 export async function getCatalogProducts(options = {}) {
-  const page = normalizePage(options.page, 1, 100000);
+  const page = normalizePage(options.page, 1, 1000);
   const pageSize = normalizePage(options.pageSize, 24, 100);
   const offset = (page - 1) * pageSize;
-  const q = String(options.q || "").trim();
-  const category = String(options.category || "").trim();
+  const q = String(options.q || "").trim().slice(0, 100);
+  const category = String(options.category || "").trim().slice(0, 140);
   const featured = String(options.featured || "") === "1";
-  const categories = parseCategoryList(options.categories).filter((item) => item !== category);
-  const includeHidden = String(options.includeHidden || "") === "1";
-  const includeWeakGroups = String(options.includeWeakGroups || "") === "1";
+  const categories = parseCategoryList(options.categories)
+    .slice(0, 50)
+    .map((item) => item.slice(0, 140))
+    .filter((item) => item !== category);
+  const includeHidden = false;
+  const includeWeakGroups = false;
   const sort = String(options.sort || "featured").trim();
   const minPrice = numericOption(options.minPrice);
   const maxPrice = numericOption(options.maxPrice);
@@ -203,7 +206,7 @@ export async function getCatalogProducts(options = {}) {
     };
   }
 
-  const priceList = String(options.priceList || categoryRule.priceList || DEFAULT_PRICE_LIST).trim() || DEFAULT_PRICE_LIST;
+  const priceList = String(categoryRule.priceList || DEFAULT_PRICE_LIST).trim() || DEFAULT_PRICE_LIST;
   const [hasItemFields, hasGroupFields] = await Promise.all([
     availableCustomFields("Item", [
       "website_show_on_storefront",

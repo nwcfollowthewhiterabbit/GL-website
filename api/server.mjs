@@ -1,6 +1,8 @@
 import cors from "cors";
 import "dotenv/config";
 import express from "express";
+import { Readable, Transform } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import {
   getCatalogDiagnostics,
   getCatalogItemGroups,
@@ -59,7 +61,9 @@ import {
 import {
   accountLoginLimiter,
   adminLimiter,
+  catalogLimiter,
   corsOptions,
+  fileProxyLimiter,
   paymentNotificationLimiter,
   paymentSessionLimiter,
   quoteRequestLimiter,
@@ -99,11 +103,26 @@ app.use(cors(corsOptions));
 app.use(express.json({ limit: "1mb" }));
 app.use(requestMetrics);
 app.use("/api/account/login", accountLoginLimiter);
+app.use("/api/catalog", catalogLimiter);
+app.use("/api/storefront", catalogLimiter);
+app.use("/api/files", fileProxyLimiter);
 app.use("/api/quote-requests", quoteRequestLimiter);
 app.use("/api/payments/notification", paymentNotificationLimiter);
 app.use("/api/payments/session", paymentSessionLimiter);
 app.use("/api/admin", adminLimiter, requireAdminToken);
 app.use("/api/sync", adminLimiter, requireAdminToken);
+
+function serviceFailure(res, code, error, status = 503) {
+  logEvent("error", "api_request_failed", {
+    code,
+    cause: error?.code || error?.name || "unknown"
+  });
+  if (res.headersSent) {
+    res.destroy();
+    return;
+  }
+  res.status(status).json({ error: code });
+}
 
 app.get("/health", (_req, res) => {
   res.json({
@@ -196,10 +215,7 @@ app.get("/api/catalog/products", async (req, res) => {
     const result = await getCatalogProducts(req.query);
     res.json(result);
   } catch (error) {
-    res.status(503).json({
-      error: "erpnext_catalog_unavailable",
-      message: error instanceof Error ? error.message : "Unknown ERPNext catalog error"
-    });
+    serviceFailure(res, "erpnext_catalog_unavailable", error);
   }
 });
 
@@ -221,10 +237,7 @@ app.get("/api/catalog/facets", async (_req, res) => {
       topGroups: diagnostics.topGroups
     });
   } catch (error) {
-    res.status(503).json({
-      error: "erpnext_catalog_facets_unavailable",
-      message: error instanceof Error ? error.message : "Unknown ERPNext facets error"
-    });
+    serviceFailure(res, "erpnext_catalog_facets_unavailable", error);
   }
 });
 
@@ -232,10 +245,7 @@ app.get("/api/catalog/diagnostics", async (_req, res) => {
   try {
     res.json(await getCatalogDiagnostics());
   } catch (error) {
-    res.status(503).json({
-      error: "erpnext_catalog_diagnostics_unavailable",
-      message: error instanceof Error ? error.message : "Unknown ERPNext diagnostics error"
-    });
+    serviceFailure(res, "erpnext_catalog_diagnostics_unavailable", error);
   }
 });
 
@@ -245,10 +255,7 @@ app.get("/api/catalog/suggestions", async (req, res) => {
     const limit = Math.min(Math.max(Number.parseInt(String(req.query.limit || "8"), 10) || 8, 1), 12);
     res.json({ suggestions: await getCatalogSuggestions(q, limit) });
   } catch (error) {
-    res.status(503).json({
-      error: "erpnext_catalog_suggestions_unavailable",
-      message: error instanceof Error ? error.message : "Unknown ERPNext catalog suggestions error"
-    });
+    serviceFailure(res, "erpnext_catalog_suggestions_unavailable", error);
   }
 });
 
@@ -256,10 +263,7 @@ app.get("/api/storefront/departments", async (_req, res) => {
   try {
     res.json(applyStorefrontFallbackPolicy(await getWebsiteDepartments(), "departments"));
   } catch (error) {
-    res.status(503).json({
-      error: "erpnext_website_departments_unavailable",
-      message: error instanceof Error ? error.message : "Unknown ERPNext website department error"
-    });
+    serviceFailure(res, "erpnext_website_departments_unavailable", error);
   }
 });
 
@@ -267,10 +271,7 @@ app.get("/api/storefront/banners", async (_req, res) => {
   try {
     res.json(applyStorefrontFallbackPolicy(await getWebsiteBanners(), "banners"));
   } catch (error) {
-    res.status(503).json({
-      error: "erpnext_website_banners_unavailable",
-      message: error instanceof Error ? error.message : "Unknown ERPNext website banner error"
-    });
+    serviceFailure(res, "erpnext_website_banners_unavailable", error);
   }
 });
 
@@ -278,10 +279,7 @@ app.get("/api/storefront/catalogs", async (_req, res) => {
   try {
     res.json(applyStorefrontFallbackPolicy(await getWebsiteCatalogs(), "catalogs"));
   } catch (error) {
-    res.status(503).json({
-      error: "erpnext_website_catalogs_unavailable",
-      message: error instanceof Error ? error.message : "Unknown ERPNext website catalog error"
-    });
+    serviceFailure(res, "erpnext_website_catalogs_unavailable", error);
   }
 });
 
@@ -289,10 +287,7 @@ app.get("/api/storefront/manufacturers", async (_req, res) => {
   try {
     res.json(applyStorefrontFallbackPolicy(await getWebsiteManufacturers(), "manufacturers"));
   } catch (error) {
-    res.status(503).json({
-      error: "erpnext_website_manufacturers_unavailable",
-      message: error instanceof Error ? error.message : "Unknown ERPNext website manufacturer error"
-    });
+    serviceFailure(res, "erpnext_website_manufacturers_unavailable", error);
   }
 });
 
@@ -302,10 +297,7 @@ app.get("/api/storefront/customer-corner", async (_req, res) => {
     result.settings.loginEnabled = result.settings.loginEnabled && isAccountLoginAvailable();
     res.json(applyStorefrontFallbackPolicy(result, "customerCorner"));
   } catch (error) {
-    res.status(503).json({
-      error: "erpnext_customer_corner_settings_unavailable",
-      message: error instanceof Error ? error.message : "Unknown ERPNext customer corner settings error"
-    });
+    serviceFailure(res, "erpnext_customer_corner_settings_unavailable", error);
   }
 });
 
@@ -320,10 +312,7 @@ app.get("/api/storefront/diagnostics", async (_req, res) => {
     ]);
     res.json(createStorefrontDiagnostics({ departments, banners, catalogs, manufacturers, customerCorner }));
   } catch (error) {
-    res.status(503).json({
-      error: "erpnext_storefront_diagnostics_unavailable",
-      message: error instanceof Error ? error.message : "Unknown ERPNext storefront diagnostics error"
-    });
+    serviceFailure(res, "erpnext_storefront_diagnostics_unavailable", error);
   }
 });
 
@@ -342,10 +331,7 @@ app.get("/api/catalog/product", async (req, res) => {
     }
     res.json({ product });
   } catch (error) {
-    res.status(503).json({
-      error: "erpnext_catalog_unavailable",
-      message: error instanceof Error ? error.message : "Unknown ERPNext catalog error"
-    });
+    serviceFailure(res, "erpnext_catalog_unavailable", error);
   }
 });
 
@@ -372,10 +358,7 @@ app.get("/api/catalog/related", async (req, res) => {
       products: result.products.filter((item) => item.sku !== sku).slice(0, limit)
     });
   } catch (error) {
-    res.status(503).json({
-      error: "erpnext_related_products_unavailable",
-      message: error instanceof Error ? error.message : "Unknown ERPNext related products error"
-    });
+    serviceFailure(res, "erpnext_related_products_unavailable", error);
   }
 });
 
@@ -384,10 +367,7 @@ app.get("/api/catalog/featured", async (req, res) => {
     const limit = Math.min(Math.max(Number.parseInt(String(req.query.limit || "8"), 10) || 8, 1), 24);
     res.json(await getFeaturedCatalogProducts(limit));
   } catch (error) {
-    res.status(503).json({
-      error: "erpnext_featured_products_unavailable",
-      message: error instanceof Error ? error.message : "Unknown ERPNext featured product error"
-    });
+    serviceFailure(res, "erpnext_featured_products_unavailable", error);
   }
 });
 
@@ -400,10 +380,7 @@ app.get("/api/catalog/products/:sku", async (req, res) => {
     }
     res.json({ product });
   } catch (error) {
-    res.status(503).json({
-      error: "erpnext_catalog_unavailable",
-      message: error instanceof Error ? error.message : "Unknown ERPNext catalog error"
-    });
+    serviceFailure(res, "erpnext_catalog_unavailable", error);
   }
 });
 
@@ -411,34 +388,46 @@ app.get("/api/catalog/item-groups", async (_req, res) => {
   try {
     res.json({ itemGroups: await getCatalogItemGroups() });
   } catch (error) {
-    res.status(503).json({
-      error: "erpnext_item_groups_unavailable",
-      message: error instanceof Error ? error.message : "Unknown ERPNext item group error"
-    });
+    serviceFailure(res, "erpnext_item_groups_unavailable", error);
   }
 });
 
 app.get("/api/files/:filename", async (req, res) => {
   try {
+    if (!req.params.filename || req.params.filename.length > 180) {
+      res.status(400).json({ error: "invalid_filename" });
+      return;
+    }
     const base = (process.env.ERPNEXT_BASE_URL || "http://erp-greenleafpacific-local-frontend-1:8080").replace(/\/+$/, "");
     const upstream = await fetch(`${base}/files/${encodeURIComponent(req.params.filename)}`, {
-      headers: process.env.ERPNEXT_SITE_NAME ? { "X-Frappe-Site-Name": process.env.ERPNEXT_SITE_NAME } : {}
+      headers: process.env.ERPNEXT_SITE_NAME ? { "X-Frappe-Site-Name": process.env.ERPNEXT_SITE_NAME } : {},
+      signal: AbortSignal.timeout(10_000)
     });
 
     if (!upstream.ok || !upstream.body) {
-      res.status(upstream.status || 404).end();
+      res.status(upstream.status === 404 ? 404 : 502).end();
+      return;
+    }
+
+    const maxBytes = 25 * 1024 * 1024;
+    const contentLength = Number(upstream.headers.get("content-length") || 0);
+    if (contentLength > maxBytes) {
+      res.status(413).json({ error: "file_too_large" });
       return;
     }
 
     res.setHeader("Content-Type", upstream.headers.get("content-type") || "application/octet-stream");
     res.setHeader("Cache-Control", "public, max-age=86400");
-    const buffer = Buffer.from(await upstream.arrayBuffer());
-    res.send(buffer);
-  } catch (error) {
-    res.status(404).json({
-      error: "erpnext_file_unavailable",
-      message: error instanceof Error ? error.message : "Unknown ERPNext file error"
+    let receivedBytes = 0;
+    const byteLimiter = new Transform({
+      transform(chunk, _encoding, callback) {
+        receivedBytes += chunk.length;
+        callback(receivedBytes <= maxBytes ? null : new Error("upstream_file_exceeds_limit"), chunk);
+      }
     });
+    await pipeline(Readable.fromWeb(upstream.body), byteLimiter, res);
+  } catch (error) {
+    serviceFailure(res, "erpnext_file_unavailable", error, 404);
   }
 });
 
@@ -449,10 +438,7 @@ app.post("/api/quote-requests", (req, res) => {
       res.status(status).json(result);
     })
     .catch((error) => {
-      res.status(503).json({
-        error: "erpnext_quote_unavailable",
-        message: error instanceof Error ? error.message : "Unknown ERPNext quote error"
-      });
+      serviceFailure(res, "erpnext_quote_unavailable", error);
     });
 });
 
@@ -466,10 +452,7 @@ app.get("/api/account/quotes", async (req, res) => {
   getCustomerQuotesForAccount(session.email, req.query.limit)
     .then((quotes) => res.json({ quotes }))
     .catch((error) => {
-      res.status(503).json({
-        error: "erpnext_account_quotes_unavailable",
-        message: error instanceof Error ? error.message : "Unknown ERPNext account quote error"
-      });
+      serviceFailure(res, "erpnext_account_quotes_unavailable", error);
     });
 });
 
@@ -503,10 +486,7 @@ app.get("/api/account/session", async (req, res) => {
     ]);
     res.json({ account: { email: session.email, profile, quotes, orders, invoices } });
   } catch (error) {
-    res.status(503).json({
-      error: "erpnext_account_unavailable",
-      message: error instanceof Error ? error.message : "Unknown ERPNext account error"
-    });
+    serviceFailure(res, "erpnext_account_unavailable", error);
   }
 });
 
@@ -525,10 +505,7 @@ app.get("/api/account/invoices/:name", async (req, res) => {
     }
     res.json({ invoice });
   } catch (error) {
-    res.status(503).json({
-      error: "erpnext_account_invoice_detail_unavailable",
-      message: error instanceof Error ? error.message : "Unknown ERPNext invoice detail error"
-    });
+    serviceFailure(res, "erpnext_account_invoice_detail_unavailable", error);
   }
 });
 
@@ -547,10 +524,7 @@ app.get("/api/account/quotes/:name", async (req, res) => {
     }
     res.json({ quote });
   } catch (error) {
-    res.status(503).json({
-      error: "erpnext_account_quote_detail_unavailable",
-      message: error instanceof Error ? error.message : "Unknown ERPNext quote detail error"
-    });
+    serviceFailure(res, "erpnext_account_quote_detail_unavailable", error);
   }
 });
 
@@ -569,10 +543,7 @@ app.get("/api/account/orders/:name", async (req, res) => {
     }
     res.json({ order });
   } catch (error) {
-    res.status(503).json({
-      error: "erpnext_account_order_detail_unavailable",
-      message: error instanceof Error ? error.message : "Unknown ERPNext order detail error"
-    });
+    serviceFailure(res, "erpnext_account_order_detail_unavailable", error);
   }
 });
 
@@ -611,10 +582,7 @@ app.get("/api/admin/catalog-diagnostics", async (_req, res) => {
   try {
     res.json(await getCatalogDiagnostics());
   } catch (error) {
-    res.status(503).json({
-      error: "erpnext_catalog_diagnostics_unavailable",
-      message: error instanceof Error ? error.message : "Unknown ERPNext diagnostics error"
-    });
+    serviceFailure(res, "erpnext_catalog_diagnostics_unavailable", error);
   }
 });
 
@@ -622,10 +590,7 @@ app.get("/api/admin/catalog-quality-report", async (_req, res) => {
   try {
     res.json(await getCatalogQualityReport());
   } catch (error) {
-    res.status(503).json({
-      error: "erpnext_catalog_quality_report_unavailable",
-      message: error instanceof Error ? error.message : "Unknown ERPNext catalog quality report error"
-    });
+    serviceFailure(res, "erpnext_catalog_quality_report_unavailable", error);
   }
 });
 
@@ -636,10 +601,7 @@ app.get("/api/admin/catalog-quality-report.csv", async (_req, res) => {
     res.setHeader("Content-Disposition", `attachment; filename="green-leaf-catalog-quality-${report.generatedAt.slice(0, 10)}.csv"`);
     res.send(qualityReportCsv(report));
   } catch (error) {
-    res.status(503).json({
-      error: "erpnext_catalog_quality_report_unavailable",
-      message: error instanceof Error ? error.message : "Unknown ERPNext catalog quality report error"
-    });
+    serviceFailure(res, "erpnext_catalog_quality_report_unavailable", error);
   }
 });
 
@@ -647,10 +609,7 @@ app.get("/api/admin/recent-quotes", async (req, res) => {
   try {
     res.json({ quotes: await getRecentWebsiteQuotes(req.query.limit) });
   } catch (error) {
-    res.status(503).json({
-      error: "erpnext_recent_quotes_unavailable",
-      message: error instanceof Error ? error.message : "Unknown ERPNext recent quotes error"
-    });
+    serviceFailure(res, "erpnext_recent_quotes_unavailable", error);
   }
 });
 
@@ -658,10 +617,7 @@ app.get("/api/admin/customer-access", async (req, res) => {
   try {
     res.json({ customers: await getWebsiteCustomerAccessList({ q: req.query.q, limit: req.query.limit }) });
   } catch (error) {
-    res.status(503).json({
-      error: "erpnext_customer_access_unavailable",
-      message: error instanceof Error ? error.message : "Unknown ERPNext customer access error"
-    });
+    serviceFailure(res, "erpnext_customer_access_unavailable", error);
   }
 });
 
@@ -670,10 +626,7 @@ app.post("/api/admin/customer-access/link", async (req, res) => {
     const result = await linkWebsiteCustomerAccess(req.body || {});
     res.status(result.ok ? 200 : 400).json(result);
   } catch (error) {
-    res.status(503).json({
-      error: "erpnext_customer_access_link_unavailable",
-      message: error instanceof Error ? error.message : "Unknown ERPNext customer access link error"
-    });
+    serviceFailure(res, "erpnext_customer_access_link_unavailable", error);
   }
 });
 
@@ -682,10 +635,7 @@ app.post("/api/admin/customer-access/password", async (req, res) => {
     const result = await setWebsiteCustomerPassword(req.body || {});
     res.status(result.ok ? 200 : 400).json(result);
   } catch (error) {
-    res.status(503).json({
-      error: "erpnext_customer_password_update_unavailable",
-      message: error instanceof Error ? error.message : "Unknown customer password update error"
-    });
+    serviceFailure(res, "erpnext_customer_password_update_unavailable", error);
   }
 });
 
@@ -694,10 +644,7 @@ app.post("/api/admin/customer-access/disable", async (req, res) => {
     const result = await disableWebsiteCustomerAccess(req.body?.email);
     res.status(result.ok ? 200 : 400).json(result);
   } catch (error) {
-    res.status(503).json({
-      error: "erpnext_customer_access_disable_unavailable",
-      message: error instanceof Error ? error.message : "Unknown ERPNext customer access disable error"
-    });
+    serviceFailure(res, "erpnext_customer_access_disable_unavailable", error);
   }
 });
 
@@ -706,10 +653,7 @@ app.post("/api/admin/customer-access/enable", async (req, res) => {
     const result = await enableWebsiteCustomerAccess(req.body?.email);
     res.status(result.ok ? 200 : 400).json(result);
   } catch (error) {
-    res.status(503).json({
-      error: "erpnext_customer_access_enable_unavailable",
-      message: error instanceof Error ? error.message : "Unknown ERPNext customer access enable error"
-    });
+    serviceFailure(res, "erpnext_customer_access_enable_unavailable", error);
   }
 });
 

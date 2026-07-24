@@ -52,6 +52,11 @@ backup, ERP application migration или restart ERP containers.
 - Не перезапускать и не изменять ERP stack.
 - Не включать payment/indexing автоматически.
 - Артефакт должен строиться из отправленного commit.
+- Production-mode API требует explicit `ERPNEXT_DB_USER` и
+  `ERPNEXT_DB_PASSWORD`; root user и `DB_ROOT_PASSWORD` fail closed.
+- Database user должен иметь `SELECT` на ERP site database и write/DDL только
+  на `tabWebsite Customer Credential`, `tabWebsite Payment Event` и
+  `tabGL Website Schema Migration`.
 
 First-instance deploy остается отдельной операцией и намеренно возвращает
 blocked для существующего testing target.

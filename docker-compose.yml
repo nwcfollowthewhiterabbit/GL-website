@@ -10,6 +10,14 @@ services:
     networks:
       - default
       - erp_testing
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
     restart: unless-stopped
 
   web:
@@ -17,7 +25,17 @@ services:
     depends_on:
       - api
     ports:
-      - "127.0.0.1:8094:80"
+      - "127.0.0.1:8094:8080"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m
+      - /var/cache/nginx:rw,noexec,nosuid,size=32m
+      - /var/run:rw,noexec,nosuid,size=8m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 64
     restart: unless-stopped
 
   monitor:
@@ -25,14 +43,23 @@ services:
       context: .
       dockerfile: Dockerfile.api
     command: ["node", "scripts/monitor-runtime.mjs"]
-    env_file:
-      - .env
     environment:
       MONITOR_INTERNAL_URL: http://api:3000
+      MONITOR_INTERVAL_SECONDS: ${MONITOR_INTERVAL_SECONDS:-60}
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
+      ALERT_WEBHOOK_BEARER_TOKEN: ${ALERT_WEBHOOK_BEARER_TOKEN:-}
     depends_on:
       - api
     networks:
       - default
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 64
     restart: unless-stopped
 
 networks:

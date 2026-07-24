@@ -22,7 +22,7 @@ const {
   paymentSessionMatchesEvent
 } = await import("../api/payment-orchestration-service.mjs");
 const { websiteMigrationIds } = await import("../api/migrations/runner.mjs");
-const { normalizeQuoteRequestId, quoteMarkerFromId } = await import("../api/quote-service.mjs");
+const { normalizeQuoteRequestId, quoteMarkerFromId, trustedQuoteRate } = await import("../api/quote-service.mjs");
 const {
   applyStorefrontFallbackPolicy,
   createStorefrontDiagnostics
@@ -50,6 +50,11 @@ assert.equal(
 
 assert.equal(normalizeQuoteRequestId(" GLQ/123% "), "GLQ-123");
 assert.equal(quoteMarkerFromId("GLQ/123%"), "Green Leaf Website Quote #GLQ-123");
+assert.equal(
+  trustedQuoteRate({ price: 52.75, rate: 0.01 }),
+  52.75,
+  "quote prices must come from the trusted ERP price"
+);
 
 const approvedNotification = await verifyWindcaveNotification(
   { sessionId: "00001200030240010c9e7ceadd26a6d8", state: "declined" },

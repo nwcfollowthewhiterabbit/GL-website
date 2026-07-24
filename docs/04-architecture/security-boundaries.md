@@ -17,6 +17,9 @@ Windcave Hosted Payment Page. Callback обязательно подтвержд
 ## Customer data
 
 - Account documents разрешаются из authenticated email через ERP links.
+- ERPNext `Website User`, `Website Customer` role, Contact и Customer link
+  создаются штатно в ERPNext. Website API только проверяет эту связь и хранит
+  собственный password hash.
 - Cookie: `HttpOnly`, `Secure`, `SameSite=Lax`.
 - Login имеет rate limit.
 - Password hash отделен от storefront session secret.
@@ -26,6 +29,13 @@ Windcave Hosted Payment Page. Callback обязательно подтвержд
 
 Website Docker Compose stack и ERP stack имеют разные ownership boundaries.
 Обычный website deploy не выполняет ERP backup, migration или restart.
+
+- Website API подключается к MariaDB только отдельным non-root user.
+- User имеет read-only доступ к ERP data и write/DDL только к versioned
+  website-owned tables.
+- API, web и monitor работают non-root, с read-only root filesystem, dropped
+  Linux capabilities и `no-new-privileges`.
+- Monitor получает только alert/monitor variables, а не полный website `.env`.
 
 ## Public testing
 
