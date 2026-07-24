@@ -306,7 +306,11 @@ export function CatalogSection({
             </div>
           ) : null}
 
-          {products.length ? (
+          {catalogState === "loading" ? (
+            <div className="catalog-empty" role="status" aria-live="polite">
+              <strong>Loading products...</strong>
+            </div>
+          ) : products.length ? (
             <div className="product-grid">
               {products.map((product) => (
                 <article className="product-card" key={product.sku}>

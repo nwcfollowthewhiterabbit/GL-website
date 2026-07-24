@@ -79,14 +79,15 @@ async function connectToPage(url) {
   return { send, runtimeErrors, close: () => ws.close() };
 }
 
-async function captureViewport(send, name, viewport) {
+async function captureViewport(send, name, viewport, readySelector = "") {
   await send("Emulation.setDeviceMetricsOverride", {
     width: viewport.width,
     height: viewport.height,
     deviceScaleFactor: 1,
     mobile: viewport.mobile
   });
-  await wait(1600);
+  if (readySelector) await waitForStableSelector(send, readySelector);
+  await wait(readySelector ? 200 : 1600);
 
   const metrics = await send("Runtime.evaluate", {
     returnByValue: true,
@@ -129,6 +130,25 @@ async function waitForSelector(send, selector, timeoutMs = 15000) {
     await wait(250);
   }
   throw new Error(`Timed out waiting for ${selector}`);
+}
+
+async function waitForStableSelector(send, selector, timeoutMs = 20000, stableMs = 1500) {
+  const deadline = Date.now() + timeoutMs;
+  let stableSince = 0;
+  while (Date.now() < deadline) {
+    const result = await send("Runtime.evaluate", {
+      returnByValue: true,
+      expression: `Boolean(document.querySelector(${JSON.stringify(selector)}))`
+    });
+    if (result.result.result.value) {
+      stableSince ||= Date.now();
+      if (Date.now() - stableSince >= stableMs) return;
+    } else {
+      stableSince = 0;
+    }
+    await wait(250);
+  }
+  throw new Error(`Timed out waiting for stable ${selector}`);
 }
 
 async function scrollToSelector(send, selector) {
@@ -174,12 +194,12 @@ async function main() {
       width: 390,
       height: 1200,
       mobile: true
-    });
+    }, ".product-card");
     const desktop = await captureViewport(page.send, "catalog-desktop", {
       width: 1440,
       height: 1200,
       mobile: false
-    });
+    }, ".product-card");
     assert(mobile.productCards > 0 && desktop.productCards > 0, "Catalog has no product cards");
 
     await page.send("Runtime.evaluate", {
