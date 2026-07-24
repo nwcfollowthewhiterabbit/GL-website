@@ -2,6 +2,8 @@ export type StorefrontRoute =
   | { view: "catalog"; categorySlug?: string; itemGroupSlug?: string; search?: string }
   | { view: "product"; sku: string }
   | { view: "account" }
+  | { view: "about" }
+  | { view: "how-we-operate" }
   | { view: "policy"; policy: PolicySlug }
   | { view: "not-found" };
 
@@ -73,6 +75,14 @@ export function parseStorefrontRoute(pathname = window.location.pathname, search
 
   if (path === "/account") {
     return { view: "account" };
+  }
+
+  if (path === "/about-us" || path === "/about") {
+    return { view: "about" };
+  }
+
+  if (path === "/how-we-operate") {
+    return { view: "how-we-operate" };
   }
 
   const policy = policyPaths.get(path);

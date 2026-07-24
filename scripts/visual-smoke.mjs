@@ -236,6 +236,66 @@ async function main() {
     assert(paymentMobile.heading === "Payment and security information", "Payment page heading is missing");
     assert(paymentDesktop.heading === "Payment and security information", "Payment page heading is missing");
 
+    await page.send("Page.navigate", { url: `${baseUrl}/how-we-operate?visual-smoke=1` });
+    await waitForSelector(page.send, ".operations-page");
+    const operationsMobile = await captureViewport(page.send, "how-we-operate-mobile", {
+      width: 390,
+      height: 1200,
+      mobile: true
+    });
+    const mobileOperationsState = await page.send("Runtime.evaluate", {
+      returnByValue: true,
+      expression: `(() => {
+        const process = document.querySelector(".operations-process");
+        const hero = document.querySelector(".operations-hero__image");
+        return {
+          h1Count: document.querySelectorAll(".operations-page h1").length,
+          processSteps: document.querySelectorAll(".operations-process li").length,
+          processColumns: process ? getComputedStyle(process).gridTemplateColumns : "",
+          heroLoaded: Boolean(hero?.naturalWidth),
+          rabbitAttribution: document.querySelector(".operations-attribution a")?.getAttribute("href") || "",
+          footerRabbitLink: Boolean(document.querySelector(".footer a[href*='rabbitsystems.net']"))
+        };
+      })()`
+    });
+    const operationsDesktop = await captureViewport(page.send, "how-we-operate-desktop", {
+      width: 1440,
+      height: 1200,
+      mobile: false
+    });
+    const desktopProcess = await page.send("Runtime.evaluate", {
+      returnByValue: true,
+      expression: `getComputedStyle(document.querySelector(".operations-process")).gridTemplateColumns`
+    });
+    const operationsState = mobileOperationsState.result.result.value;
+    assert(operationsMobile.heading === "One connected operation behind every Green Leaf order", "Operations H1 is missing");
+    assert(operationsDesktop.heading === "One connected operation behind every Green Leaf order", "Operations H1 is missing");
+    assert(operationsState.h1Count === 1, "Operations page must contain exactly one H1");
+    assert(operationsState.processSteps === 8, "Operations process is incomplete");
+    assert(operationsState.processColumns.split(" ").length === 1, "Operations process is not vertical on mobile");
+    assert(desktopProcess.result.result.value.split(" ").length === 8, "Operations process is not horizontal on desktop");
+    assert(operationsState.heroLoaded, "Operations hero image did not load");
+    assert(operationsState.rabbitAttribution.includes("/cases/ecommerce-erp-sync"), "Rabbit Systems attribution is incorrect");
+    assert(!operationsState.footerRabbitLink, "Rabbit Systems must not be linked from the global footer");
+
+    await page.send("Page.navigate", { url: `${baseUrl}/about-us?visual-smoke=1` });
+    await waitForSelector(page.send, ".about-page");
+    const aboutMobile = await captureViewport(page.send, "about-mobile", {
+      width: 390,
+      height: 1200,
+      mobile: true
+    });
+    const aboutDesktop = await captureViewport(page.send, "about-desktop", {
+      width: 1440,
+      height: 1200,
+      mobile: false
+    });
+    const aboutLink = await page.send("Runtime.evaluate", {
+      returnByValue: true,
+      expression: `document.querySelector(".about-page a[href='/how-we-operate']")?.getAttribute("href") || ""`
+    });
+    assert(aboutLink.result.result.value === "/how-we-operate", "About Us contextual link is missing");
+
     page.close();
     console.log("Visual smoke checks passed");
     console.log(`- Mobile width: ${mobile.innerWidth}, scroll width: ${mobile.scrollWidth}`);
@@ -248,6 +308,10 @@ async function main() {
     console.log(`- Policy desktop width: ${policyDesktop.innerWidth}, scroll width: ${policyDesktop.scrollWidth}`);
     console.log(`- Payment mobile width: ${paymentMobile.innerWidth}, scroll width: ${paymentMobile.scrollWidth}`);
     console.log(`- Payment desktop width: ${paymentDesktop.innerWidth}, scroll width: ${paymentDesktop.scrollWidth}`);
+    console.log(`- Operations mobile width: ${operationsMobile.innerWidth}, scroll width: ${operationsMobile.scrollWidth}`);
+    console.log(`- Operations desktop width: ${operationsDesktop.innerWidth}, scroll width: ${operationsDesktop.scrollWidth}`);
+    console.log(`- About mobile width: ${aboutMobile.innerWidth}, scroll width: ${aboutMobile.scrollWidth}`);
+    console.log(`- About desktop width: ${aboutDesktop.innerWidth}, scroll width: ${aboutDesktop.scrollWidth}`);
     console.log(`- Screenshots written to ${outputDir}/`);
   } finally {
     chrome.kill("SIGTERM");

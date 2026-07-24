@@ -7,7 +7,7 @@
     "api": "node api/server.mjs",
     "dev": "vite --host 0.0.0.0",
     "dev:api": "node --watch api/server.mjs",
-    "build": "vite build",
+    "build": "vite build && node scripts/build-editorial-pages.mjs",
     "typecheck": "tsc --noEmit",
     "test:payments": "node scripts/payment-service-test.mjs",
     "preview": "vite preview --host 0.0.0.0",

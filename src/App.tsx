@@ -1,11 +1,12 @@
 import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { flushSync } from "react-dom";
-import { createRoot } from "react-dom/client";
+import { AboutPage } from "./components/AboutPage";
 import { AccountPage } from "./components/AccountPage";
 import { CatalogDownloadsSection } from "./components/CatalogDownloadsSection";
 import { CatalogServiceBand } from "./components/CatalogServiceBand";
 import { CatalogSection } from "./components/CatalogSection";
 import { HeroSection } from "./components/HeroSection";
+import { HowWeOperatePage } from "./components/HowWeOperatePage";
 import { LegacyContentSection } from "./components/LegacyContentSection";
 import { NotFoundPage, PolicyPage } from "./components/PolicyPage";
 import { ProductDetailPage } from "./components/ProductDetailPage";
@@ -124,7 +125,11 @@ function scrollToPageTopInstantly() {
   body.style.scrollBehavior = bodyScrollBehavior;
 }
 
-function App() {
+type AppProps = {
+  initialRoute?: StorefrontRoute;
+};
+
+export function App({ initialRoute }: AppProps = {}) {
   const [erpProducts, setErpProducts] = useState<CatalogProduct[]>([]);
   const [catalogTotal, setCatalogTotal] = useState<number | null>(null);
   const [catalogState, setCatalogState] = useState<"loading" | "ready" | "fallback">("loading");
@@ -151,7 +156,7 @@ function App() {
   const [activeWebsiteCategory, setActiveWebsiteCategory] = useState("");
   const [page, setPage] = useState(1);
   const [diagnostics, setDiagnostics] = useState<CatalogDiagnostics | null>(null);
-  const [route, setRoute] = useState<StorefrontRoute>(() => parseStorefrontRoute());
+  const [route, setRoute] = useState<StorefrontRoute>(() => initialRoute || parseStorefrontRoute());
   const [activeProduct, setActiveProduct] = useState<CatalogProduct | null>(null);
   const [previewProduct, setPreviewProduct] = useState<CatalogProduct | null>(null);
   const [productLoading, setProductLoading] = useState(false);
@@ -197,6 +202,10 @@ function App() {
     const pageTitle =
       route.view === "policy"
         ? `${route.policy.replace(/-/g, " ")} | Green Leaf Pacific`
+        : route.view === "how-we-operate"
+          ? "How Green Leaf Runs Connected Sales, Inventory and Service Operations"
+          : route.view === "about"
+            ? "About Green Leaf Pacific"
         : route.view === "account"
           ? "Customer account | Green Leaf Pacific"
           : route.view === "product" && activeProduct
@@ -835,6 +844,10 @@ function App() {
       ) : null}
       {route.view === "policy" ? (
         <PolicyPage policy={route.policy} />
+      ) : route.view === "how-we-operate" ? (
+        <HowWeOperatePage />
+      ) : route.view === "about" ? (
+        <AboutPage />
       ) : route.view === "not-found" ? (
         <NotFoundPage />
       ) : route.view === "account" ? (
@@ -913,7 +926,9 @@ function App() {
       ) : null}
       {route.view === "catalog" || route.view === "account" ? <CatalogDownloadsSection catalogs={catalogDownloads} /> : null}
       {route.view === "catalog" || route.view === "account" ? <LegacyContentSection manufacturers={manufacturerLogos} /> : null}
-      <ServiceContactSection onOpenQuote={() => setQuoteOpen(true)} />
+      {route.view === "how-we-operate" || route.view === "about" ? null : (
+        <ServiceContactSection onOpenQuote={() => setQuoteOpen(true)} />
+      )}
       <SiteFooter departments={websiteNavigationCategories} />
       <ProductModal product={previewProduct} onClose={() => setPreviewProduct(null)} onAddToQuote={addToQuote} />
       <QuoteDrawer
@@ -953,5 +968,3 @@ function App() {
     </main>
   );
 }
-
-createRoot(document.getElementById("root")!).render(<App />);

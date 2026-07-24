@@ -99,6 +99,16 @@ async function main() {
   const accountPage = await readText("/account");
   assert(accountPage.includes('<div id="root"></div>'), "Account route did not return the SPA shell");
 
+  const operationsPage = await readText("/how-we-operate");
+  assert(operationsPage.includes("One connected operation behind every Green Leaf order"), "How We Operate copy is not server-rendered");
+  assert(operationsPage.includes('href="https://rabbitsystems.net/cases/ecommerce-erp-sync"'), "Implementation attribution link is missing");
+  assert(operationsPage.includes('rel="canonical" href="https://testing.greenleafpacific.com/how-we-operate"'), "How We Operate canonical is missing");
+  assert(operationsPage.includes('"@type":"WebPage"'), "How We Operate structured data is missing");
+  assert((operationsPage.match(/<h1[ >]/g) || []).length === 1, "How We Operate must have exactly one server-rendered H1");
+
+  const aboutPage = await readText("/about-us");
+  assert(aboutPage.includes('href="/how-we-operate"'), "About Us does not link to How We Operate");
+
   const diagnostics = await readJson("/api/catalog/diagnostics");
   assert(diagnostics.storefrontRules?.defaultCurrency === "FJD", "Public catalog diagnostics are invalid");
 
@@ -111,6 +121,7 @@ async function main() {
   assert(robots.includes("Disallow: /"), "Testing robots policy is missing");
   const sitemap = await readText("/sitemap.xml");
   assert(sitemap.includes("/payment-security"), "Policy sitemap is incomplete");
+  assert(sitemap.includes("/how-we-operate"), "How We Operate is missing from the sitemap");
 
   await expectStatus("/api/account/quotes?email=patch.fields%40example.com", 401);
   const incompleteOrderResponse = await expectStatus("/api/quote-requests", 422, {
@@ -164,6 +175,7 @@ async function main() {
   console.log(`- Related products: ${related.products.length}`);
   console.log(`- Featured products: ${featured.products.length} from ${featured.source}`);
   console.log("- Category route shell: ok");
+  console.log("- Server-rendered editorial routes, canonical and structured data: ok");
   console.log("- Policy routes and static compliance files: ok");
   console.log("- Account, admin and sync route protection: ok");
   console.log("- CORS and security headers: ok");

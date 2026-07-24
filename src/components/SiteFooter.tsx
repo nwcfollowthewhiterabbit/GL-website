@@ -24,10 +24,10 @@ export function SiteFooter({ departments }: SiteFooterProps) {
           ))}
         </div>
         <div>
-          <span>Company</span>
+          <span>Information</span>
+          <a href="/about-us">About Us</a>
+          <a href="/how-we-operate">How We Operate</a>
           <a href="/catalog#catalogs">Catalogues</a>
-          <a href="/catalog#brands">Brands</a>
-          <a href="/catalog#service">Service</a>
           <a href="/account">Account</a>
         </div>
         <div>
@@ -48,7 +48,6 @@ export function SiteFooter({ departments }: SiteFooterProps) {
       <div className="shell footer-bottom">
         <span>{legacyBrand.legalName} trading as Green Leaf Pacific</span>
         <span>Prices exclude VAT · Currency FJD</span>
-        <span className="footer-credit">Website created by <a href="https://rabbitsystems.net" target="_blank" rel="noreferrer">rabbitsystems.net</a></span>
       </div>
       <div className="shell footer-payment">
         <PaymentTrustMarks compact />
