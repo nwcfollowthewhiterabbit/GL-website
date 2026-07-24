@@ -40,4 +40,13 @@ const reused = verifyAccountLogin("buyer@example.com", started.devCode);
 assert.equal(reused.ok, false);
 assert.equal(reused.error, "code_expired");
 
+process.env.ACCOUNT_DEV_LOGIN = "false";
+process.env.ACCOUNT_TEST_LOGIN_ENABLED = "true";
+process.env.ACCOUNT_TEST_LOGIN_EMAIL = "customer-demo@example.com";
+process.env.ACCOUNT_TEST_LOGIN_CODE = "12345678";
+assert.equal(isAccountLoginAvailable(), true);
+
+process.env.ACCOUNT_TEST_LOGIN_CODE = "123";
+assert.equal(isAccountLoginAvailable(), false);
+
 console.log("Account authentication tests passed.");

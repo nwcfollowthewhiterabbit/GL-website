@@ -98,6 +98,12 @@ SMTP_PASSWORD=<mail password>
 
 Use `ACCOUNT_DEV_LOGIN=true` only outside production. It returns the OTP in the API response for local account-flow testing.
 
+For a public testing site without email delivery, use `ACCOUNT_TEST_LOGIN_*` only with a dedicated synthetic ERP customer. Seed the synthetic draft documents with:
+
+```bash
+npm run erpnext:seed-test-account
+```
+
 ## Current Discovered Sources
 
 - Old OpenCart/PHP copy: `/Users/bc/woocommerce/greenleafpacific-local`

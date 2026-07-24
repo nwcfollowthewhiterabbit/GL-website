@@ -2200,6 +2200,7 @@ textarea:focus-visible {
 .account-status--under-review,
 .account-status--confirmed,
 .account-status--partially-delivered,
+.account-status--preparing,
 .account-status--payment-due {
   background: #f6f0dc;
   color: #735f20;

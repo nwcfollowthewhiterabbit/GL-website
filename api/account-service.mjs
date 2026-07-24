@@ -8,13 +8,26 @@ const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const WEBSITE_CUSTOMER_ROLE = "Website Customer";
 export const ACCOUNT_SESSION_COOKIE = "gl_account_session";
 
+function isTestingLoginAvailable() {
+  return Boolean(
+    process.env.ACCOUNT_TEST_LOGIN_ENABLED === "true" &&
+      isValidEmail(process.env.ACCOUNT_TEST_LOGIN_EMAIL) &&
+      clean(process.env.ACCOUNT_TEST_LOGIN_CODE).length >= 6 &&
+      sessionSecret().length >= 32
+  );
+}
+
+function isProductionEmailLoginAvailable() {
+  return Boolean(
+    process.env.ACCOUNT_LOGIN_ENABLED === "true" &&
+      sessionSecret().length >= 32 &&
+      isAccountEmailDeliveryConfigured()
+  );
+}
+
 export function isAccountLoginAvailable() {
   const developmentLogin = process.env.NODE_ENV !== "production" && process.env.ACCOUNT_DEV_LOGIN === "true";
-  const productionLogin =
-    process.env.ACCOUNT_LOGIN_ENABLED === "true" &&
-    sessionSecret().length >= 32 &&
-    isAccountEmailDeliveryConfigured();
-  return developmentLogin || productionLogin;
+  return developmentLogin || isTestingLoginAvailable() || isProductionEmailLoginAvailable();
 }
 
 function clean(value) {
@@ -288,6 +301,20 @@ export async function startAccountLogin(emailValue) {
   }
 
   const developmentLogin = process.env.NODE_ENV !== "production" && process.env.ACCOUNT_DEV_LOGIN === "true";
+  const testingLogin = isTestingLoginAvailable();
+  const testingEmail = normalizeEmail(process.env.ACCOUNT_TEST_LOGIN_EMAIL);
+  const testingIdentity = testingLogin && email === testingEmail;
+  const productionEmailLogin = isProductionEmailLoginAvailable();
+
+  if (!developmentLogin && !testingIdentity && !productionEmailLogin) {
+    return {
+      ok: true,
+      email,
+      expiresInSeconds: Math.floor(CODE_TTL_MS / 1000),
+      delivery: "testing_access"
+    };
+  }
+
   if (!developmentLogin) {
     const access = await resolveCustomerAccessByEmail(email);
     if (!access.customerNames.length) {
@@ -295,19 +322,21 @@ export async function startAccountLogin(emailValue) {
         ok: true,
         email,
         expiresInSeconds: Math.floor(CODE_TTL_MS / 1000),
-        delivery: "email"
+        delivery: testingIdentity ? "testing_access" : "email"
       };
     }
   }
 
-  const code = String(crypto.randomInt(100000, 999999));
+  const code = testingIdentity
+    ? clean(process.env.ACCOUNT_TEST_LOGIN_CODE)
+    : String(crypto.randomInt(100000, 999999));
   loginCodes.set(email, {
     codeHash: hash(`${email}:${code}`),
     expiresAt: nowMs() + CODE_TTL_MS,
     attempts: 0
   });
 
-  if (!developmentLogin) {
+  if (!developmentLogin && !testingIdentity) {
     try {
       await sendAccountLoginCode({
         email,
@@ -324,7 +353,7 @@ export async function startAccountLogin(emailValue) {
     ok: true,
     email,
     expiresInSeconds: Math.floor(CODE_TTL_MS / 1000),
-    delivery: developmentLogin ? "development_response" : "email",
+    delivery: developmentLogin ? "development_response" : testingIdentity ? "testing_access" : "email",
     devCode: developmentLogin ? code : undefined
   };
 }

@@ -100,6 +100,7 @@ function customerStatus(
     return { label: status || "Under review", detail: "The quotation is being processed." };
   }
 
+  if (normalized === "draft") return { label: "Preparing", detail: "The invoice is being prepared." };
   if (normalized === "paid" || Number(values.outstandingAmount || 0) <= 0) {
     return { label: "Paid", detail: "No payment is outstanding." };
   }

@@ -22,6 +22,8 @@
     "erpnext:seed-departments:docker": "docker compose exec api npm run erpnext:seed-departments",
     "erpnext:seed-banners": "node scripts/erpnext-seed-website-banners.mjs",
     "erpnext:seed-banners:docker": "docker compose exec api npm run erpnext:seed-banners",
+    "erpnext:seed-test-account": "node scripts/erpnext-seed-test-account.mjs",
+    "erpnext:seed-test-account:docker": "docker compose exec api npm run erpnext:seed-test-account",
     "erpnext:seed-assets": "node scripts/erpnext-seed-website-assets.mjs",
     "erpnext:seed-assets:docker": "docker compose exec api npm run erpnext:seed-assets",
     "erpnext:seed-catalogs": "node scripts/erpnext-seed-website-assets.mjs",

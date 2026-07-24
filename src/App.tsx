@@ -713,7 +713,13 @@ export function App({ initialRoute }: AppProps = {}) {
       }
       setAccountEmail(result.email || accountEmail);
       setAccountDevCode(result.devCode || "");
-      setAccountStatus(result.devCode ? "Code generated for local testing." : "Check your email for the login code.");
+      setAccountStatus(
+        result.devCode
+          ? "Code generated for local testing."
+          : result.delivery === "testing_access"
+            ? "Enter the testing access code."
+            : "Check your email for the login code."
+      );
     } catch {
       setAccountStatus("Login code could not be sent.");
     } finally {
