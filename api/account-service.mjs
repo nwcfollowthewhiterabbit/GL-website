@@ -440,7 +440,7 @@ export async function getVerifiedAccountSession(req) {
   await ensureWebsiteCredentialTable();
   const [rows] = await getErpPool().execute(
     `
-      SELECT credential.enabled, credential.session_version, IFNULL(user.enabled, 0) AS user_enabled
+      SELECT credential.customer, credential.enabled, credential.session_version, IFNULL(user.enabled, 0) AS user_enabled
       FROM \`${WEBSITE_CREDENTIAL_TABLE}\` credential
       LEFT JOIN \`tabUser\` user
         ON LOWER(user.name) = LOWER(credential.email) OR LOWER(user.email) = LOWER(credential.email)
@@ -449,7 +449,11 @@ export async function getVerifiedAccountSession(req) {
     `,
     { email: session.email }
   );
-  return isAccountSessionCurrent(session, rows[0]) ? session : null;
+  const credential = rows[0];
+  if (!isAccountSessionCurrent(session, credential)) return null;
+
+  const access = await resolveCustomerAccessByEmail(session.email);
+  return isProvisionedWebsiteCustomerAccess(access, credential.customer) ? session : null;
 }
 
 export function endAccountSession() {
