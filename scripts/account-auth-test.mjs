@@ -6,6 +6,7 @@ process.env.ACCOUNT_SESSION_SECRET = "test-account-session-secret-at-least-32-ch
 
 const {
   ACCOUNT_SESSION_COOKIE,
+  accountSessionCookieOptions,
   getAccountSession,
   isAccountLoginAvailable,
   startAccountLogin,
@@ -13,6 +14,7 @@ const {
 } = await import("../api/account-service.mjs");
 
 assert.equal(isAccountLoginAvailable(), true);
+assert.equal(accountSessionCookieOptions({ headers: { "x-forwarded-proto": "https" } }).secure, true);
 
 const started = await startAccountLogin("buyer@example.com");
 assert.equal(started.ok, true);

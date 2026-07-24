@@ -129,7 +129,7 @@ export function accountSessionCookieOptions(req) {
   const forwardedProto = clean(req.headers["x-forwarded-proto"]).split(",")[0];
   return {
     httpOnly: true,
-    secure: req.secure || forwardedProto === "https",
+    secure: process.env.NODE_ENV === "production" || req.secure || forwardedProto === "https",
     sameSite: "lax",
     maxAge: SESSION_TTL_MS,
     path: "/"
