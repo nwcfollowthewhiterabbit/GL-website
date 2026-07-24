@@ -229,7 +229,6 @@ export type AccountLoginStartResponse = {
 
 export type AccountLoginVerifyResponse = {
   ok: boolean;
-  token?: string;
   email?: string;
   expiresAt?: string;
   error?: string;

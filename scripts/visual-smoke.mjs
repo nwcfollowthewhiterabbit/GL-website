@@ -205,18 +205,120 @@ async function main() {
     assert(basketFields.result.result.value.hasFlow, "Order basket is missing fulfillment guidance");
     assert(basketFields.result.result.value.hasPaymentTrust, "Order basket is missing Windcave payment information");
 
+    await page.send("Page.addScriptToEvaluateOnNewDocument", {
+      source: `(() => {
+        const originalFetch = window.fetch.bind(window);
+        const json = (value) => new Response(JSON.stringify(value), {
+          status: 200,
+          headers: { "Content-Type": "application/json" }
+        });
+        window.fetch = (input, options) => {
+          const url = typeof input === "string" ? input : input.url;
+          if (url === "/api/storefront/customer-corner") {
+            return Promise.resolve(json({
+              source: "visual_smoke",
+              settings: {
+                enabled: true,
+                loginEnabled: true,
+                showQuoteHistory: true,
+                showPurchaseHistory: true,
+                title: "Your Green Leaf account",
+                introCopy: "Orders, quotations and invoices connected to your customer record.",
+                salesEmail: "buy@greenleafpacific.com",
+                salesPhone: "+679 670 2222",
+                paymentNote: ""
+              }
+            }));
+          }
+          if (url === "/api/account/session") {
+            return Promise.resolve(json({
+              account: {
+                email: "buyer@example.com",
+                profile: {
+                  name: "VISUAL-CUSTOMER",
+                  customerName: "Island Resort Supplies",
+                  email: "buyer@example.com",
+                  phone: "+679 700 0000",
+                  group: "Commercial",
+                  territory: "Nadi"
+                },
+                orders: [{
+                  name: "SO-TEST-0001",
+                  customer: "Island Resort Supplies",
+                  transactionDate: "2026-07-20",
+                  deliveryDate: "2026-07-30",
+                  grandTotal: 1240,
+                  status: "To Deliver and Bill",
+                  perDelivered: 0,
+                  perBilled: 0,
+                  creation: "2026-07-20"
+                }],
+                quotes: [{
+                  name: "QTN-TEST-0001",
+                  customer: "Island Resort Supplies",
+                  transactionDate: "2026-07-18",
+                  validTill: "2026-08-18",
+                  grandTotal: 1240,
+                  status: "Open",
+                  creation: "2026-07-18",
+                  marker: "Website quotation"
+                }],
+                invoices: [{
+                  name: "ACC-SINV-TEST-0001",
+                  customer: "Island Resort Supplies",
+                  postingDate: "2026-07-21",
+                  dueDate: "2026-08-21",
+                  grandTotal: 1240,
+                  outstandingAmount: 1240,
+                  status: "Unpaid",
+                  creation: "2026-07-21"
+                }]
+              }
+            }));
+          }
+          return originalFetch(input, options);
+        };
+      })();`
+    });
     await page.send("Page.navigate", { url: `${baseUrl}/account?visual-smoke=1` });
-    await waitForSelector(page.send, ".account-page");
+    await waitForSelector(page.send, ".account-tab");
+    await page.send("Emulation.setDeviceMetricsOverride", {
+      width: 390,
+      height: 1200,
+      deviceScaleFactor: 1,
+      mobile: true
+    });
+    await scrollToSelector(page.send, ".account-tabs");
     const accountMobile = await captureViewport(page.send, "account-mobile", {
       width: 390,
       height: 1200,
       mobile: true
     });
+    await page.send("Emulation.setDeviceMetricsOverride", {
+      width: 1440,
+      height: 1200,
+      deviceScaleFactor: 1,
+      mobile: false
+    });
+    await scrollToSelector(page.send, ".account-tabs");
     const accountDesktop = await captureViewport(page.send, "account-desktop", {
       width: 1440,
       height: 1200,
       mobile: false
     });
+    const accountState = await page.send("Runtime.evaluate", {
+      returnByValue: true,
+      expression: `({
+        activeTab: document.querySelector(".account-tab--active")?.textContent?.trim() || "",
+        orderName: document.querySelector(".account-quotes article strong")?.textContent?.trim() || "",
+        orderStatus: document.querySelector(".account-status")?.textContent?.trim() || "",
+        tabCount: document.querySelectorAll(".account-tab").length
+      })`
+    });
+    assert(accountState.result.result.value.activeTab.startsWith("Orders"), "Orders are not the default account view");
+    assert(accountState.result.result.value.orderName === "SO-TEST-0001", "Account order history did not render");
+    assert(accountState.result.result.value.orderStatus === "Confirmed", "ERP order status was not translated for the customer");
+    assert(accountState.result.result.value.tabCount === 3, "Account history tabs are incomplete");
 
     await page.send("Page.navigate", { url: `${baseUrl}/privacy?visual-smoke=1` });
     await waitForSelector(page.send, ".policy-page");

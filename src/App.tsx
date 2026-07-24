@@ -171,7 +171,6 @@ export function App({ initialRoute }: AppProps = {}) {
   const [accountEmail, setAccountEmail] = useState("");
   const [accountCode, setAccountCode] = useState("");
   const [accountDevCode, setAccountDevCode] = useState("");
-  const [accountToken, setAccountToken] = useState("");
   const [accountSession, setAccountSession] = useState<AccountSession | null>(null);
   const [accountQuotes, setAccountQuotes] = useState<RecentQuote[]>([]);
   const [accountStatus, setAccountStatus] = useState("");
@@ -425,14 +424,9 @@ export function App({ initialRoute }: AppProps = {}) {
   }, []);
 
   useEffect(() => {
-    const savedToken = window.localStorage.getItem("greenleaf.accountToken") || "";
-    if (savedToken) setAccountToken(savedToken);
-  }, []);
-
-  useEffect(() => {
-    if (!accountToken) return;
+    if (route.view !== "account") return;
     setAccountLoading(true);
-    fetchAccountSession(accountToken)
+    fetchAccountSession()
       .then((account) => {
         setAccountSession(account);
         setAccountEmail(account.email);
@@ -440,13 +434,10 @@ export function App({ initialRoute }: AppProps = {}) {
         setAccountStatus("");
       })
       .catch(() => {
-        window.localStorage.removeItem("greenleaf.accountToken");
-        setAccountToken("");
         setAccountSession(null);
-        setAccountStatus("Account session expired. Send a new login code.");
       })
       .finally(() => setAccountLoading(false));
-  }, [accountToken]);
+  }, [route.view]);
 
   useEffect(() => {
     window.localStorage.setItem("greenleaf.quoteLines", JSON.stringify(quoteLines));
@@ -744,12 +735,14 @@ export function App({ initialRoute }: AppProps = {}) {
     setAccountStatus("Verifying login code...");
     try {
       const result = await verifyAccountLogin(accountEmail, accountCode);
-      if (!result.ok || !result.token) {
+      if (!result.ok) {
         setAccountStatus("Invalid or expired login code.");
         return;
       }
-      window.localStorage.setItem("greenleaf.accountToken", result.token);
-      setAccountToken(result.token);
+      const account = await fetchAccountSession();
+      setAccountSession(account);
+      setAccountEmail(account.email);
+      setAccountQuotes(account.quotes || []);
       setAccountCode("");
       setAccountDevCode("");
       setAccountStatus("Signed in.");
@@ -761,9 +754,9 @@ export function App({ initialRoute }: AppProps = {}) {
   }
 
   function refreshAccount() {
-    if (!accountToken) return;
+    if (!accountSession) return;
     setAccountLoading(true);
-    fetchAccountSession(accountToken)
+    fetchAccountSession()
       .then((account) => {
         setAccountSession(account);
         setAccountQuotes(account.quotes || []);
@@ -774,14 +767,14 @@ export function App({ initialRoute }: AppProps = {}) {
   }
 
   async function viewAccountQuote(name: string) {
-    if (!accountToken) {
+    if (!accountSession) {
       setAccountStatus("Sign in to view quotation details.");
       return;
     }
     setAccountDetailLoading(true);
     setAccountStatus("Loading quotation details...");
     try {
-      setAccountDetail(await fetchAccountQuoteDetail(accountToken, name));
+      setAccountDetail(await fetchAccountQuoteDetail(name));
       setAccountStatus("");
     } catch {
       setAccountStatus("Quotation details could not be loaded.");
@@ -791,14 +784,14 @@ export function App({ initialRoute }: AppProps = {}) {
   }
 
   async function viewAccountOrder(name: string) {
-    if (!accountToken) {
+    if (!accountSession) {
       setAccountStatus("Sign in to view order details.");
       return;
     }
     setAccountDetailLoading(true);
     setAccountStatus("Loading order details...");
     try {
-      setAccountDetail(await fetchAccountOrderDetail(accountToken, name));
+      setAccountDetail(await fetchAccountOrderDetail(name));
       setAccountStatus("");
     } catch {
       setAccountStatus("Order details could not be loaded.");
@@ -808,14 +801,14 @@ export function App({ initialRoute }: AppProps = {}) {
   }
 
   async function viewAccountInvoice(name: string) {
-    if (!accountToken) {
+    if (!accountSession) {
       setAccountStatus("Sign in to view invoice details.");
       return;
     }
     setAccountDetailLoading(true);
     setAccountStatus("Loading invoice details...");
     try {
-      setAccountDetail(await fetchAccountInvoiceDetail(accountToken, name));
+      setAccountDetail(await fetchAccountInvoiceDetail(name));
       setAccountStatus("");
     } catch {
       setAccountStatus("Invoice details could not be loaded.");
@@ -825,9 +818,7 @@ export function App({ initialRoute }: AppProps = {}) {
   }
 
   async function signOutAccount() {
-    if (accountToken) await logoutAccount(accountToken).catch(() => undefined);
-    window.localStorage.removeItem("greenleaf.accountToken");
-    setAccountToken("");
+    await logoutAccount().catch(() => undefined);
     setAccountSession(null);
     setAccountQuotes([]);
     setAccountDetail(null);
@@ -859,7 +850,7 @@ export function App({ initialRoute }: AppProps = {}) {
           status={accountStatus}
           devCode={accountDevCode}
           isLoading={accountLoading}
-          isAuthenticated={Boolean(accountToken && accountSession)}
+          isAuthenticated={Boolean(accountSession)}
           settings={customerCornerSettings}
           onEmailChange={setAccountEmail}
           onCodeChange={setAccountCode}

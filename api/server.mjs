@@ -22,6 +22,8 @@ import {
   getWebsiteManufacturers
 } from "./storefront-control-service.mjs";
 import {
+  ACCOUNT_SESSION_COOKIE,
+  accountSessionCookieOptions,
   disableWebsiteCustomerAccess,
   endAccountSession,
   getAccountInvoiceDetailByEmail,
@@ -397,13 +399,17 @@ app.get("/api/account/quotes", (req, res) => {
     });
 });
 
-app.post("/api/account/login/start", (req, res) => {
-  const result = startAccountLogin(req.body?.email);
-  if (!result.ok) {
-    res.status(result.error === "account_login_unavailable" ? 503 : 400).json(result);
-    return;
+app.post("/api/account/login/start", async (req, res) => {
+  try {
+    const result = await startAccountLogin(req.body?.email);
+    if (!result.ok) {
+      res.status(result.error === "account_login_unavailable" ? 503 : 400).json(result);
+      return;
+    }
+    res.json(result);
+  } catch {
+    res.status(503).json({ ok: false, error: "account_email_delivery_failed" });
   }
-  res.json(result);
 });
 
 app.post("/api/account/login/verify", (req, res) => {
@@ -412,7 +418,8 @@ app.post("/api/account/login/verify", (req, res) => {
     res.status(401).json(result);
     return;
   }
-  res.json(result);
+  res.cookie(ACCOUNT_SESSION_COOKIE, result.token, accountSessionCookieOptions(req));
+  res.json({ ok: true, email: result.email, expiresAt: result.expiresAt });
 });
 
 app.get("/api/account/session", async (req, res) => {
@@ -505,9 +512,11 @@ app.get("/api/account/orders/:name", async (req, res) => {
 });
 
 app.post("/api/account/logout", (req, res) => {
-  const header = String(req.headers.authorization || "");
-  const token = header.toLowerCase().startsWith("bearer ") ? header.slice(7).trim() : "";
-  endAccountSession(token);
+  endAccountSession();
+  res.clearCookie(ACCOUNT_SESSION_COOKIE, {
+    ...accountSessionCookieOptions(req),
+    maxAge: undefined
+  });
   res.json({ ok: true });
 });
 

@@ -1,14 +1,20 @@
 import crypto from "node:crypto";
 import { getErpPool } from "./erpnext-db.mjs";
+import { isAccountEmailDeliveryConfigured, sendAccountLoginCode } from "./account-mailer.mjs";
 
 const loginCodes = new Map();
-const sessions = new Map();
 const CODE_TTL_MS = 10 * 60 * 1000;
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const WEBSITE_CUSTOMER_ROLE = "Website Customer";
+export const ACCOUNT_SESSION_COOKIE = "gl_account_session";
 
 export function isAccountLoginAvailable() {
-  return process.env.NODE_ENV !== "production" && process.env.ACCOUNT_DEV_LOGIN === "true";
+  const developmentLogin = process.env.NODE_ENV !== "production" && process.env.ACCOUNT_DEV_LOGIN === "true";
+  const productionLogin =
+    process.env.ACCOUNT_LOGIN_ENABLED === "true" &&
+    sessionSecret().length >= 32 &&
+    isAccountEmailDeliveryConfigured();
+  return developmentLogin || productionLogin;
 }
 
 function clean(value) {
@@ -53,9 +59,68 @@ function purgeExpired() {
   for (const [email, entry] of loginCodes.entries()) {
     if (entry.expiresAt <= time) loginCodes.delete(email);
   }
-  for (const [token, session] of sessions.entries()) {
-    if (session.expiresAt <= time) sessions.delete(token);
+}
+
+function sessionSecret() {
+  return clean(process.env.ACCOUNT_SESSION_SECRET) || "development-account-session-secret";
+}
+
+function hash(value) {
+  return crypto.createHmac("sha256", sessionSecret()).update(value).digest("base64url");
+}
+
+function safeEqual(leftValue, rightValue) {
+  const left = Buffer.from(String(leftValue || ""));
+  const right = Buffer.from(String(rightValue || ""));
+  return left.length === right.length && crypto.timingSafeEqual(left, right);
+}
+
+function sessionToken(email) {
+  const payload = Buffer.from(
+    JSON.stringify({
+      email,
+      issuedAt: nowMs(),
+      expiresAt: nowMs() + SESSION_TTL_MS,
+      nonce: crypto.randomBytes(12).toString("base64url")
+    })
+  ).toString("base64url");
+  return `${payload}.${hash(payload)}`;
+}
+
+function sessionFromToken(tokenValue) {
+  const token = clean(tokenValue);
+  const [payload, signature, ...extra] = token.split(".");
+  if (!payload || !signature || extra.length || !safeEqual(hash(payload), signature)) return null;
+
+  try {
+    const parsed = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+    const email = normalizeEmail(parsed.email);
+    const expiresAt = Number(parsed.expiresAt || 0);
+    if (!isValidEmail(email) || !expiresAt || expiresAt <= nowMs()) return null;
+    return { email, token, createdAt: new Date(Number(parsed.issuedAt || nowMs())).toISOString(), expiresAt };
+  } catch {
+    return null;
   }
+}
+
+function cookieValue(req) {
+  const cookies = String(req.headers.cookie || "").split(";");
+  for (const cookie of cookies) {
+    const [name, ...value] = cookie.trim().split("=");
+    if (name === ACCOUNT_SESSION_COOKIE) return decodeURIComponent(value.join("="));
+  }
+  return "";
+}
+
+export function accountSessionCookieOptions(req) {
+  const forwardedProto = clean(req.headers["x-forwarded-proto"]).split(",")[0];
+  return {
+    httpOnly: true,
+    secure: req.secure || forwardedProto === "https",
+    sameSite: "lax",
+    maxAge: SESSION_TTL_MS,
+    path: "/"
+  };
 }
 
 function placeholders(values, prefix = "value") {
@@ -212,7 +277,7 @@ export async function resolveCustomerAccessByEmail(emailValue) {
   };
 }
 
-export function startAccountLogin(emailValue) {
+export async function startAccountLogin(emailValue) {
   purgeExpired();
   if (!isAccountLoginAvailable()) {
     return { ok: false, error: "account_login_unavailable" };
@@ -222,19 +287,45 @@ export function startAccountLogin(emailValue) {
     return { ok: false, error: "invalid_email" };
   }
 
+  const developmentLogin = process.env.NODE_ENV !== "production" && process.env.ACCOUNT_DEV_LOGIN === "true";
+  if (!developmentLogin) {
+    const access = await resolveCustomerAccessByEmail(email);
+    if (!access.customerNames.length) {
+      return {
+        ok: true,
+        email,
+        expiresInSeconds: Math.floor(CODE_TTL_MS / 1000),
+        delivery: "email"
+      };
+    }
+  }
+
   const code = String(crypto.randomInt(100000, 999999));
   loginCodes.set(email, {
-    codeHash: crypto.createHash("sha256").update(code).digest("hex"),
+    codeHash: hash(`${email}:${code}`),
     expiresAt: nowMs() + CODE_TTL_MS,
     attempts: 0
   });
+
+  if (!developmentLogin) {
+    try {
+      await sendAccountLoginCode({
+        email,
+        code,
+        expiresInMinutes: Math.floor(CODE_TTL_MS / 60_000)
+      });
+    } catch (error) {
+      loginCodes.delete(email);
+      throw error;
+    }
+  }
 
   return {
     ok: true,
     email,
     expiresInSeconds: Math.floor(CODE_TTL_MS / 1000),
-    delivery: "development_response",
-    devCode: code
+    delivery: developmentLogin ? "development_response" : "email",
+    devCode: developmentLogin ? code : undefined
   };
 }
 
@@ -251,18 +342,12 @@ export function verifyAccountLogin(emailValue, codeValue) {
   }
 
   entry.attempts += 1;
-  const codeHash = crypto.createHash("sha256").update(code).digest("hex");
-  if (codeHash !== entry.codeHash) return { ok: false, error: "invalid_code" };
+  const codeHash = hash(`${email}:${code}`);
+  if (!safeEqual(codeHash, entry.codeHash)) return { ok: false, error: "invalid_code" };
 
   loginCodes.delete(email);
-  const token = crypto.randomBytes(32).toString("base64url");
-  const session = {
-    email,
-    token,
-    createdAt: new Date().toISOString(),
-    expiresAt: nowMs() + SESSION_TTL_MS
-  };
-  sessions.set(token, session);
+  const token = sessionToken(email);
+  const session = sessionFromToken(token);
 
   return {
     ok: true,
@@ -273,16 +358,13 @@ export function verifyAccountLogin(emailValue, codeValue) {
 }
 
 export function getAccountSession(req) {
-  purgeExpired();
   const header = clean(req.headers.authorization);
-  const token = header.toLowerCase().startsWith("bearer ") ? header.slice(7).trim() : "";
-  if (!token) return null;
-  return sessions.get(token) || null;
+  const bearerToken = header.toLowerCase().startsWith("bearer ") ? header.slice(7).trim() : "";
+  return sessionFromToken(cookieValue(req) || bearerToken);
 }
 
-export function endAccountSession(tokenValue) {
-  const token = clean(tokenValue);
-  if (token) sessions.delete(token);
+export function endAccountSession() {
+  return undefined;
 }
 
 export async function getCustomerProfileByEmail(emailValue) {

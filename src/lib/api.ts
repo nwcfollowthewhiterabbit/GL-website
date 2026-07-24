@@ -130,46 +130,37 @@ export async function verifyAccountLogin(email: string, code: string): Promise<A
   return response.json();
 }
 
-export async function fetchAccountSession(token: string) {
-  const response = await fetch("/api/account/session", {
-    headers: { Authorization: `Bearer ${token}` }
-  });
+export async function fetchAccountSession() {
+  const response = await fetch("/api/account/session");
   if (!response.ok) throw new Error("account_session_failed");
   const data = (await response.json()) as { account: AccountSession };
   return data.account;
 }
 
-export async function fetchAccountQuoteDetail(token: string, name: string) {
-  const response = await fetch(`/api/account/quotes/${encodeURIComponent(name)}`, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
+export async function fetchAccountQuoteDetail(name: string) {
+  const response = await fetch(`/api/account/quotes/${encodeURIComponent(name)}`);
   if (!response.ok) throw new Error("account_quote_detail_failed");
   const data = (await response.json()) as { quote: AccountQuoteDetail };
   return data.quote;
 }
 
-export async function fetchAccountOrderDetail(token: string, name: string) {
-  const response = await fetch(`/api/account/orders/${encodeURIComponent(name)}`, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
+export async function fetchAccountOrderDetail(name: string) {
+  const response = await fetch(`/api/account/orders/${encodeURIComponent(name)}`);
   if (!response.ok) throw new Error("account_order_detail_failed");
   const data = (await response.json()) as { order: AccountOrderDetail };
   return data.order;
 }
 
-export async function fetchAccountInvoiceDetail(token: string, name: string) {
-  const response = await fetch(`/api/account/invoices/${encodeURIComponent(name)}`, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
+export async function fetchAccountInvoiceDetail(name: string) {
+  const response = await fetch(`/api/account/invoices/${encodeURIComponent(name)}`);
   if (!response.ok) throw new Error("account_invoice_detail_failed");
   const data = (await response.json()) as { invoice: AccountInvoiceDetail };
   return data.invoice;
 }
 
-export async function logoutAccount(token: string) {
+export async function logoutAccount() {
   await fetch("/api/account/logout", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token}` }
+    method: "POST"
   });
 }
 

@@ -1851,8 +1851,8 @@ textarea:focus-visible {
   max-width: 720px;
   margin: 18px 0 14px;
   color: var(--ink);
-  font-size: 48px;
-  line-height: 1.02;
+  font-size: 40px;
+  line-height: 1.08;
 }
 
 .account-hero p {
@@ -1979,6 +1979,56 @@ textarea:focus-visible {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
+}
+
+.account-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f2f5f0;
+}
+
+.account-tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #526158;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.account-tab:hover {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.64);
+}
+
+.account-tab--active {
+  color: var(--leaf-dark);
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(23, 35, 27, 0.08);
+}
+
+.account-tab span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 7px;
+  border-radius: 12px;
+  background: #e5ece3;
+  color: #34463a;
+  font-size: 12px;
 }
 
 .account-panel {
@@ -2111,6 +2161,13 @@ textarea:focus-visible {
   font-weight: 800;
 }
 
+.account-quotes .account-status-copy {
+  color: #53645a;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
 .account-quotes strong {
   color: var(--ink);
 }
@@ -2130,14 +2187,26 @@ textarea:focus-visible {
 }
 
 .account-status--ordered,
+.account-status--order-created,
 .account-status--completed,
+.account-status--paid,
 .account-status--submitted,
 .account-status--to-deliver-and-bill {
   background: #eaf5ee;
   color: var(--leaf-dark);
 }
 
+.account-status--awaiting-confirmation,
+.account-status--under-review,
+.account-status--confirmed,
+.account-status--partially-delivered,
+.account-status--payment-due {
+  background: #f6f0dc;
+  color: #735f20;
+}
+
 .account-status--cancelled,
+.account-status--not-proceeding,
 .account-status--expired {
   background: #f8ece8;
   color: #8b3d2f;
@@ -4932,6 +5001,14 @@ textarea:focus-visible {
 
   .account-roadmap {
     grid-template-columns: 1fr;
+  }
+
+  .account-tabs {
+    grid-template-columns: 1fr;
+  }
+
+  .account-tab {
+    justify-content: flex-start;
   }
 
   .filter-panel__section--rules {

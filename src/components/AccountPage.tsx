@@ -1,14 +1,15 @@
+import { useState } from "react";
 import {
   ArrowRight,
   Building2,
   CheckCircle2,
-  Clock3,
+  Eye,
   FileText,
-  History,
   LogOut,
   Mail,
   MapPin,
   PackageCheck,
+  ReceiptText,
   RefreshCcw,
   ShieldCheck,
   ShoppingCart,
@@ -60,6 +61,55 @@ function percent(value?: number) {
   return `${Math.max(0, Math.min(100, Math.round(Number(value || 0))))}%`;
 }
 
+type AccountTab = "orders" | "quotes" | "invoices";
+type DocumentType = "order" | "quote" | "invoice";
+
+function customerStatus(
+  type: DocumentType,
+  statusValue?: string,
+  values: { perDelivered?: number; perBilled?: number; outstandingAmount?: number } = {}
+) {
+  const status = String(statusValue || "").trim();
+  const normalized = status.toLowerCase();
+
+  if (normalized.includes("cancel")) return { label: "Cancelled", detail: "This document is no longer active." };
+  if (normalized.includes("closed")) return { label: "Closed", detail: "No further action is expected." };
+
+  if (type === "order") {
+    if (normalized === "completed" || Number(values.perDelivered || 0) >= 100) {
+      return { label: "Completed", detail: "The order has been delivered." };
+    }
+    if (Number(values.perDelivered || 0) > 0) {
+      return { label: "Partially delivered", detail: `${percent(values.perDelivered)} delivered.` };
+    }
+    if (normalized.includes("hold")) return { label: "On hold", detail: "Green Leaf will contact you with the next update." };
+    if (normalized === "draft") return { label: "Awaiting confirmation", detail: "The order is being reviewed." };
+    if (normalized.includes("deliver") || normalized.includes("bill")) {
+      return { label: "Confirmed", detail: "The order is being prepared for delivery." };
+    }
+    return { label: status || "In progress", detail: "The order is being processed." };
+  }
+
+  if (type === "quote") {
+    if (normalized === "ordered") return { label: "Order created", detail: "The quotation has been converted to an order." };
+    if (normalized.includes("expire")) return { label: "Expired", detail: "Contact Green Leaf to request an updated quotation." };
+    if (normalized === "lost") return { label: "Not proceeding", detail: "The quotation was closed without an order." };
+    if (normalized === "open" || normalized === "draft") {
+      return { label: "Under review", detail: "Green Leaf is reviewing pricing and availability." };
+    }
+    return { label: status || "Under review", detail: "The quotation is being processed." };
+  }
+
+  if (normalized === "paid" || Number(values.outstandingAmount || 0) <= 0) {
+    return { label: "Paid", detail: "No payment is outstanding." };
+  }
+  if (normalized.includes("overdue")) return { label: "Overdue", detail: `${money(Number(values.outstandingAmount || 0))} FJD outstanding.` };
+  if (normalized.includes("unpaid") || normalized.includes("outstanding")) {
+    return { label: "Payment due", detail: `${money(Number(values.outstandingAmount || 0))} FJD outstanding.` };
+  }
+  return { label: status || "Issued", detail: `${money(Number(values.outstandingAmount || 0))} FJD outstanding.` };
+}
+
 export function AccountPage({
   email,
   code,
@@ -93,6 +143,7 @@ export function AccountPage({
   const latestInvoice = invoices[0];
   const quotesVisible = settings.showQuoteHistory;
   const ordersVisible = settings.showPurchaseHistory;
+  const [activeTab, setActiveTab] = useState<AccountTab>("orders");
 
   if (!settings.enabled) {
     return (
@@ -191,7 +242,7 @@ export function AccountPage({
         </aside>
       </div>
 
-      <div className="account-summary">
+      {isAuthenticated ? <div className="account-summary">
         <article>
           <span>Customer</span>
           <strong>{account?.profile?.customerName || account?.email || email || "Not signed in"}</strong>
@@ -200,26 +251,26 @@ export function AccountPage({
         <article>
           <span>Website quotes</span>
           <strong>{quotesVisible ? accountQuotes.length : "Off"}</strong>
-          <small>{quotesVisible && latestQuote ? `Latest ${shortDate(latestQuote.creation || latestQuote.transactionDate)}` : "Managed in ERP"}</small>
+          <small>{quotesVisible && latestQuote ? `Latest ${shortDate(latestQuote.creation || latestQuote.transactionDate)}` : "No records"}</small>
         </article>
         <article>
-          <span>Purchase orders</span>
+          <span>Orders</span>
           <strong>{ordersVisible ? orders.length : "Off"}</strong>
-          <small>{ordersVisible && latestOrder ? `Latest ${shortDate(latestOrder.creation || latestOrder.transactionDate)}` : "Managed in ERP"}</small>
+          <small>{ordersVisible && latestOrder ? `Latest ${shortDate(latestOrder.creation || latestOrder.transactionDate)}` : "No records"}</small>
         </article>
         <article>
           <span>Invoices</span>
           <strong>{ordersVisible ? invoices.length : "Off"}</strong>
-          <small>{ordersVisible && latestInvoice ? `Latest ${shortDate(latestInvoice.creation || latestInvoice.postingDate)}` : "Managed in ERP"}</small>
+          <small>{ordersVisible && latestInvoice ? `Latest ${shortDate(latestInvoice.creation || latestInvoice.postingDate)}` : "No records"}</small>
         </article>
-      </div>
+      </div> : null}
 
-      <div className="account-content">
+      {isAuthenticated ? <div className="account-content">
         {isAuthenticated ? (
           <section className="account-panel account-panel--profile">
             <div className="account-panel__head">
               <div>
-                <span>ERP customer record</span>
+                <span>Customer account</span>
                 <h3>Company profile</h3>
               </div>
               <UserRound size={22} />
@@ -250,11 +301,35 @@ export function AccountPage({
           </section>
         ) : null}
 
-        {quotesVisible ? (
+        <nav className="account-tabs account-panel--wide" aria-label="Account history">
+          <button
+            className={activeTab === "orders" ? "account-tab account-tab--active" : "account-tab"}
+            type="button"
+            onClick={() => setActiveTab("orders")}
+          >
+            <PackageCheck size={18} /> Orders <span>{orders.length}</span>
+          </button>
+          <button
+            className={activeTab === "quotes" ? "account-tab account-tab--active" : "account-tab"}
+            type="button"
+            onClick={() => setActiveTab("quotes")}
+          >
+            <FileText size={18} /> Quotations <span>{accountQuotes.length}</span>
+          </button>
+          <button
+            className={activeTab === "invoices" ? "account-tab account-tab--active" : "account-tab"}
+            type="button"
+            onClick={() => setActiveTab("invoices")}
+          >
+            <ReceiptText size={18} /> Invoices <span>{invoices.length}</span>
+          </button>
+        </nav>
+
+        {quotesVisible && activeTab === "quotes" ? (
         <section className="account-panel account-panel--wide">
           <div className="account-panel__head">
             <div>
-              <span>ERPNext quotations</span>
+              <span>Quotations</span>
               <h3>Quote history</h3>
             </div>
             <FileText size={22} />
@@ -262,26 +337,27 @@ export function AccountPage({
 
           <div className="account-quotes">
             {accountQuotes.length ? (
-              accountQuotes.map((quote) => (
-                <article key={quote.name}>
+              accountQuotes.map((quote) => {
+                const displayStatus = customerStatus("quote", quote.status);
+                return <article key={quote.name}>
                   <div>
                     <strong>{quote.name}</strong>
                     <span>{quote.customer}</span>
                     <small>{quote.marker || quote.orderType || "Website quotation"}</small>
                   </div>
-                  <span className={statusClass(quote.status)}>{quote.status}</span>
-                  <span>Valid until {shortDate(quote.validTill)}</span>
+                  <span className={statusClass(displayStatus.label)} title={`ERP status: ${quote.status}`}>{displayStatus.label}</span>
+                  <span className="account-status-copy">{displayStatus.detail}</span>
                   <strong>{money(quote.grandTotal)} FJD</strong>
                   <button className="secondary-button" type="button" onClick={() => onViewQuote(quote.name)} disabled={!isAuthenticated || isDetailLoading}>
-                    View details
+                    <Eye size={16} /> View
                   </button>
-                </article>
-              ))
+                </article>;
+              })
             ) : (
               <div className="account-empty">
                 <FileText size={24} />
                 <strong>No quote history loaded</strong>
-                <p>{isAuthenticated ? "New website quote requests will appear here after ERPNext creates a quotation." : "Sign in to load quotation history for this customer account."}</p>
+                <p>{isAuthenticated ? "New quote requests will appear here after Green Leaf prepares the quotation." : "Sign in to load quotation history for this customer account."}</p>
                 <button className="secondary-button" type="button" onClick={onOpenQuote}>
                   Start order <ArrowRight size={16} />
                 </button>
@@ -291,11 +367,11 @@ export function AccountPage({
         </section>
         ) : null}
 
-        {ordersVisible ? (
+        {ordersVisible && activeTab === "invoices" ? (
         <section className="account-panel account-panel--wide">
           <div className="account-panel__head">
             <div>
-              <span>ERPNext sales invoices</span>
+              <span>Invoices</span>
               <h3>Invoices</h3>
             </div>
             <FileText size={22} />
@@ -303,64 +379,69 @@ export function AccountPage({
 
           <div className="account-quotes">
             {invoices.length ? (
-              invoices.map((invoice) => (
-                <article key={invoice.name}>
+              invoices.map((invoice) => {
+                const displayStatus = customerStatus("invoice", invoice.status, { outstandingAmount: invoice.outstandingAmount });
+                return <article key={invoice.name}>
                   <div>
                     <strong>{invoice.name}</strong>
                     <span>{invoice.customer}</span>
                     <small>Due {shortDate(invoice.dueDate)}</small>
                   </div>
-                  <span className={statusClass(invoice.status)}>{invoice.status}</span>
-                  <span>Outstanding {money(invoice.outstandingAmount)} FJD</span>
+                  <span className={statusClass(displayStatus.label)} title={`ERP status: ${invoice.status}`}>{displayStatus.label}</span>
+                  <span className="account-status-copy">{displayStatus.detail}</span>
                   <strong>{money(invoice.grandTotal)} FJD</strong>
                   <button className="secondary-button" type="button" onClick={() => onViewInvoice(invoice.name)} disabled={!isAuthenticated || isDetailLoading}>
-                    View details
+                    <Eye size={16} /> View
                   </button>
-                </article>
-              ))
+                </article>;
+              })
             ) : (
               <div className="account-empty">
                 <FileText size={24} />
                 <strong>{isAuthenticated ? "No invoices found" : "Invoices are locked"}</strong>
-                <p>{isAuthenticated ? "ERP invoices for this customer will appear here." : "Sign in to load invoices for this customer account."}</p>
+                <p>{isAuthenticated ? "Invoices for this customer will appear here." : "Sign in to load invoices for this customer account."}</p>
               </div>
             )}
           </div>
         </section>
         ) : null}
 
-        {ordersVisible ? (
+        {ordersVisible && activeTab === "orders" ? (
         <section className="account-panel account-panel--wide">
           <div className="account-panel__head">
             <div>
-              <span>ERPNext sales orders</span>
-              <h3>Purchase history</h3>
+              <span>Orders</span>
+              <h3>Order history</h3>
             </div>
             <PackageCheck size={22} />
           </div>
 
           <div className="account-quotes">
             {orders.length ? (
-              orders.map((order) => (
-                <article key={order.name}>
+              orders.map((order) => {
+                const displayStatus = customerStatus("order", order.status, {
+                  perDelivered: order.perDelivered,
+                  perBilled: order.perBilled
+                });
+                return <article key={order.name}>
                   <div>
                     <strong>{order.name}</strong>
                     <span>{order.customer}</span>
                     <small>Delivery {shortDate(order.deliveryDate)}</small>
                   </div>
-                  <span className={statusClass(order.status)}>{order.status}</span>
-                  <span>Delivered {percent(order.perDelivered)} / Billed {percent(order.perBilled)}</span>
+                  <span className={statusClass(displayStatus.label)} title={`ERP status: ${order.status}`}>{displayStatus.label}</span>
+                  <span className="account-status-copy">{displayStatus.detail}</span>
                   <strong>{money(order.grandTotal)} FJD</strong>
                   <button className="secondary-button" type="button" onClick={() => onViewOrder(order.name)} disabled={!isAuthenticated || isDetailLoading}>
-                    View details
+                    <Eye size={16} /> View
                   </button>
-                </article>
-              ))
+                </article>;
+              })
             ) : (
               <div className="account-empty">
                 <PackageCheck size={24} />
-                <strong>{isAuthenticated ? "No purchase orders found" : "Purchase history is locked"}</strong>
-                <p>{isAuthenticated ? "ERP sales orders for this customer will appear here." : "Sign in to load ERP purchase history for this customer account."}</p>
+                <strong>{isAuthenticated ? "No orders found" : "Order history is locked"}</strong>
+                <p>{isAuthenticated ? "Confirmed orders for this customer will appear here." : "Sign in to load order history for this customer account."}</p>
               </div>
             )}
           </div>
@@ -381,7 +462,11 @@ export function AccountPage({
             <div className="account-detail__meta">
               <article>
                 <span>Status</span>
-                <strong>{detail.status}</strong>
+                <strong>{customerStatus(detail.type, detail.status, {
+                  perDelivered: detail.type === "order" ? detail.perDelivered : undefined,
+                  perBilled: detail.type === "order" ? detail.perBilled : undefined,
+                  outstandingAmount: detail.type === "invoice" ? detail.outstandingAmount : undefined
+                }).label}</strong>
               </article>
               <article>
                 <span>Customer</span>
@@ -400,12 +485,6 @@ export function AccountPage({
               <a className="secondary-button" href={`mailto:${settings.salesEmail}?subject=${encodeURIComponent(`Update request for ${detail.name}`)}`}>
                 <Mail size={16} /> Request update
               </a>
-              <button className="secondary-button" type="button" disabled>
-                PDF download
-              </button>
-              <button className="secondary-button" type="button" disabled>
-                Pay now
-              </button>
             </div>
             <div className="account-detail__lines">
               {detail.lines.length ? (
@@ -439,22 +518,7 @@ export function AccountPage({
           </section>
         ) : null}
 
-        <section className="account-panel account-panel--wide">
-          <div className="account-panel__head">
-            <div>
-              <span>How this works</span>
-              <h3>Simple customer workflow</h3>
-            </div>
-            <History size={22} />
-          </div>
-          <div className="account-roadmap">
-            <span><ShoppingCart size={18} /> Select products in catalog</span>
-            <span><FileText size={18} /> Prepare order in ERPNext</span>
-            <span><Clock3 size={18} /> Sales confirms stock and lead time</span>
-            <span><PackageCheck size={18} /> {settings.paymentNote}</span>
-          </div>
-        </section>
-      </div>
+      </div> : null}
     </section>
   );
 }

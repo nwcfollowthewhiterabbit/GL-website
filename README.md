@@ -48,7 +48,12 @@ Useful API endpoints:
 - `GET /api/catalog/product?sku=`
 - `GET /api/catalog/related?sku=&limit=4`
 - `GET /api/catalog/products/:sku`
-- `GET /api/account/quotes?email=&limit=20`
+- `GET /api/account/quotes?limit=20`
+- `POST /api/account/login/start`
+- `POST /api/account/login/verify`
+- `GET /api/account/session`
+- `GET /api/account/orders/:name`
+- `GET /api/account/invoices/:name`
 - `GET /api/catalog/item-groups`
 - `GET /api/catalog/facets`
 - `GET /api/files/:filename`
@@ -73,6 +78,25 @@ Useful API endpoints:
 - ERPNext Item Group and Item fields now control storefront category visibility, price mode, price list, stock display, image requirements, and product overrides.
 - Advanced catalog filters read ERPNext item groups and display storefront rules such as excluded showroom warehouses.
 - Diagnostics show ERPNext catalog quality counters and recent website-created quotations.
+- The customer account reads linked ERPNext quotations, sales orders, and sales invoices after email OTP authentication.
+- Account sessions use a signed `HttpOnly` cookie; customer document access is resolved from ERPNext Contact/Customer links.
+
+## Customer Account Login
+
+Production email login remains off unless all account and SMTP settings are present:
+
+```text
+ACCOUNT_LOGIN_ENABLED=true
+ACCOUNT_SESSION_SECRET=<unique random value of at least 32 characters>
+ACCOUNT_EMAIL_FROM=Green Leaf Pacific <buy@greenleafpacific.com>
+SMTP_HOST=<mail server>
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=<mail user>
+SMTP_PASSWORD=<mail password>
+```
+
+Use `ACCOUNT_DEV_LOGIN=true` only outside production. It returns the OTP in the API response for local account-flow testing.
 
 ## Current Discovered Sources
 
