@@ -72,6 +72,9 @@ async function connectToPage(url) {
 
   await send("Page.enable");
   await send("Runtime.enable");
+  await send("Network.enable");
+  await send("Network.clearBrowserCache");
+  await send("Network.setCacheDisabled", { cacheDisabled: true });
 
   return { send, runtimeErrors, close: () => ws.close() };
 }
@@ -242,13 +245,17 @@ async function main() {
         hasEmail: Boolean(document.querySelector('input[autocomplete="username"]')),
         hasPassword: Boolean(document.querySelector('input[autocomplete="current-password"]')),
         hasCode: Boolean(document.querySelector('input[inputmode="numeric"]')),
-        signInLabel: [...document.querySelectorAll("button")].some((button) => button.textContent?.trim() === "Sign in")
+        signInLabel: [...document.querySelectorAll("button")].some((button) => button.textContent?.trim() === "Sign in"),
+        buttonLabels: [...document.querySelectorAll("button")].map((button) => button.textContent?.trim()).filter(Boolean)
       })`
     });
     assert(loginState.result.result.value.hasEmail, "Customer login email field is missing");
     assert(loginState.result.result.value.hasPassword, "Customer login password field is missing");
     assert(!loginState.result.result.value.hasCode, "Customer login still requires an email code");
-    assert(loginState.result.result.value.signInLabel, "Customer login action is missing");
+    assert(
+      loginState.result.result.value.signInLabel,
+      `Customer login action is missing (${loginState.result.result.value.buttonLabels.join(", ")})`
+    );
     const accountLoginMobile = await captureViewport(page.send, "account-login-mobile", {
       width: 390,
       height: 900,
