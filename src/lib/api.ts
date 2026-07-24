@@ -1,6 +1,5 @@
 import type {
-  AccountLoginStartResponse,
-  AccountLoginVerifyResponse,
+  AccountLoginResponse,
   AccountInvoiceDetail,
   AccountOrderDetail,
   AccountQuoteDetail,
@@ -112,20 +111,11 @@ export async function fetchCustomerCornerSettings() {
   return data.settings;
 }
 
-export async function startAccountLogin(email: string): Promise<AccountLoginStartResponse> {
-  const response = await fetch("/api/account/login/start", {
+export async function loginAccount(email: string, password: string): Promise<AccountLoginResponse> {
+  const response = await fetch("/api/account/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email })
-  });
-  return response.json();
-}
-
-export async function verifyAccountLogin(email: string, code: string): Promise<AccountLoginVerifyResponse> {
-  const response = await fetch("/api/account/login/verify", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, code })
+    body: JSON.stringify({ email, password })
   });
   return response.json();
 }

@@ -4,6 +4,7 @@ import {
   Building2,
   CheckCircle2,
   Eye,
+  EyeOff,
   FileText,
   LogOut,
   Mail,
@@ -19,20 +20,18 @@ import type { AccountDocumentDetail, AccountSession, CustomerCornerSettings, Rec
 
 type AccountPageProps = {
   email: string;
-  code: string;
+  password: string;
   quotes: RecentQuote[];
   account: AccountSession | null;
   status: string;
-  devCode: string;
   isLoading: boolean;
   isAuthenticated: boolean;
   settings: CustomerCornerSettings;
   detail: AccountDocumentDetail | null;
   isDetailLoading: boolean;
   onEmailChange: (value: string) => void;
-  onCodeChange: (value: string) => void;
-  onStartLogin: () => void;
-  onVerifyLogin: () => void;
+  onPasswordChange: (value: string) => void;
+  onLogin: () => void;
   onRefreshAccount: () => void;
   onLogout: () => void;
   onOpenQuote: () => void;
@@ -113,20 +112,18 @@ function customerStatus(
 
 export function AccountPage({
   email,
-  code,
+  password,
   quotes,
   account,
   status,
-  devCode,
   isLoading,
   isAuthenticated,
   settings,
   detail,
   isDetailLoading,
   onEmailChange,
-  onCodeChange,
-  onStartLogin,
-  onVerifyLogin,
+  onPasswordChange,
+  onLogin,
   onRefreshAccount,
   onLogout,
   onOpenQuote,
@@ -145,6 +142,7 @@ export function AccountPage({
   const quotesVisible = settings.showQuoteHistory;
   const ordersVisible = settings.showPurchaseHistory;
   const [activeTab, setActiveTab] = useState<AccountTab>("orders");
+  const [showPassword, setShowPassword] = useState(false);
 
   if (!settings.enabled) {
     return (
@@ -190,7 +188,7 @@ export function AccountPage({
             <div className="account-auth__state">
               <Mail size={18} />
               <div>
-                <strong>Email login is disabled</strong>
+                <strong>Customer login is disabled</strong>
                 <span>Contact {settings.salesEmail} for account history.</span>
               </div>
             </div>
@@ -217,26 +215,38 @@ export function AccountPage({
                 <input
                   placeholder="Buyer email"
                   type="email"
+                  autoComplete="username"
+                  aria-label="Buyer email"
                   value={email}
                   onChange={(event) => onEmailChange(event.target.value)}
                 />
               </label>
-              <button className="quote-button" onClick={onStartLogin} disabled={isLoading}>
-                {isLoading ? "Sending..." : "Send login code"}
-              </button>
-              <label className="field">
+              <div className="field">
                 <ShieldCheck size={18} />
                 <input
-                  placeholder="6-digit code"
-                  inputMode="numeric"
-                  value={code}
-                  onChange={(event) => onCodeChange(event.target.value)}
+                  placeholder="Password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  aria-label="Password"
+                  value={password}
+                  onChange={(event) => onPasswordChange(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") onLogin();
+                  }}
                 />
-              </label>
-              <button className="secondary-button" onClick={onVerifyLogin} disabled={isLoading}>
-                Verify and open account
+                <button
+                  className="account-password-toggle"
+                  type="button"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  title={showPassword ? "Hide password" : "Show password"}
+                  onClick={() => setShowPassword((value) => !value)}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+              <button className="quote-button" onClick={onLogin} disabled={isLoading}>
+                {isLoading ? "Signing in..." : "Sign in"}
               </button>
-              {devCode ? <p className="account-dev-code">Dev login code: {devCode}</p> : null}
             </>
           )}
           {status ? <p className="quote-panel__status">{status}</p> : null}

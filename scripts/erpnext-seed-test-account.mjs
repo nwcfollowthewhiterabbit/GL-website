@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { setWebsiteCustomerPassword } from "../api/account-service.mjs";
 import { createDoc, listDoc } from "../api/erpnext-rest.mjs";
 
 const email = String(process.env.ACCOUNT_TEST_LOGIN_EMAIL || "customer-demo@example.com").trim().toLowerCase();
@@ -107,6 +108,9 @@ async function ensureSalesInvoice(customer, line) {
 }
 
 async function main() {
+  const password = String(process.env.ACCOUNT_TEST_PASSWORD || "");
+  if (password.length < 10) throw new Error("ACCOUNT_TEST_PASSWORD must contain at least 10 characters");
+
   const customer = await ensureCustomer();
   const line = await itemLine();
   const quotation = await ensureQuotation(customer, line);
@@ -114,6 +118,14 @@ async function main() {
   const invoice = process.env.ACCOUNT_TEST_CREATE_INVOICE === "true"
     ? await ensureSalesInvoice(customer, line)
     : null;
+  const credential = await setWebsiteCustomerPassword({
+    customer: customer.name,
+    email,
+    password,
+    firstName: "Demo",
+    lastName: "Customer"
+  });
+  if (!credential.ok) throw new Error(`Unable to create website credential: ${credential.error}`);
 
   console.log(`Test account customer: ${customer.name}`);
   console.log(`Quotation: ${quotation.name} (${quotation.status || "Draft"})`);
@@ -121,6 +133,7 @@ async function main() {
   console.log(invoice
     ? `Sales Invoice: ${invoice.name} (${invoice.status || "Draft"})`
     : "Sales Invoice: skipped (integration user has no invoice permission)");
+  console.log(`Website login: ${credential.email}`);
 }
 
 main().catch((error) => {

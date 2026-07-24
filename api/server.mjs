@@ -24,6 +24,7 @@ import {
 import {
   ACCOUNT_SESSION_COOKIE,
   accountSessionCookieOptions,
+  authenticateAccountPassword,
   disableWebsiteCustomerAccess,
   endAccountSession,
   getAccountInvoiceDetailByEmail,
@@ -37,8 +38,7 @@ import {
   getWebsiteCustomerAccessList,
   isAccountLoginAvailable,
   linkWebsiteCustomerAccess,
-  startAccountLogin,
-  verifyAccountLogin
+  setWebsiteCustomerPassword
 } from "./account-service.mjs";
 import {
   accountLoginLimiter,
@@ -399,27 +399,18 @@ app.get("/api/account/quotes", (req, res) => {
     });
 });
 
-app.post("/api/account/login/start", async (req, res) => {
+app.post("/api/account/login", async (req, res) => {
   try {
-    const result = await startAccountLogin(req.body?.email);
+    const result = await authenticateAccountPassword(req.body?.email, req.body?.password);
     if (!result.ok) {
-      res.status(result.error === "account_login_unavailable" ? 503 : 400).json(result);
+      res.status(result.error === "account_login_unavailable" ? 503 : 401).json(result);
       return;
     }
-    res.json(result);
+    res.cookie(ACCOUNT_SESSION_COOKIE, result.token, accountSessionCookieOptions(req));
+    res.json({ ok: true, email: result.email, expiresAt: result.expiresAt });
   } catch {
-    res.status(503).json({ ok: false, error: "account_email_delivery_failed" });
+    res.status(503).json({ ok: false, error: "account_login_failed" });
   }
-});
-
-app.post("/api/account/login/verify", (req, res) => {
-  const result = verifyAccountLogin(req.body?.email, req.body?.code);
-  if (!result.ok) {
-    res.status(401).json(result);
-    return;
-  }
-  res.cookie(ACCOUNT_SESSION_COOKIE, result.token, accountSessionCookieOptions(req));
-  res.json({ ok: true, email: result.email, expiresAt: result.expiresAt });
 });
 
 app.get("/api/account/session", async (req, res) => {
@@ -608,6 +599,18 @@ app.post("/api/admin/customer-access/link", async (req, res) => {
     res.status(503).json({
       error: "erpnext_customer_access_link_unavailable",
       message: error instanceof Error ? error.message : "Unknown ERPNext customer access link error"
+    });
+  }
+});
+
+app.post("/api/admin/customer-access/password", async (req, res) => {
+  try {
+    const result = await setWebsiteCustomerPassword(req.body || {});
+    res.status(result.ok ? 200 : 400).json(result);
+  } catch (error) {
+    res.status(503).json({
+      error: "erpnext_customer_password_update_unavailable",
+      message: error instanceof Error ? error.message : "Unknown customer password update error"
     });
   }
 });

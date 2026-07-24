@@ -44,9 +44,8 @@ import {
   fetchWebsiteCatalogs,
   fetchWebsiteDepartments,
   fetchWebsiteManufacturers,
+  loginAccount,
   logoutAccount,
-  startAccountLogin,
-  verifyAccountLogin
 } from "./lib/api";
 import { catalogPath, departmentCategoryPath, findCategoryBySlug, parseStorefrontRoute, productPath, type StorefrontRoute } from "./lib/routes";
 import { numericPrice } from "./lib/catalog";
@@ -78,7 +77,7 @@ const fallbackCustomerCornerSettings: CustomerCornerSettings = {
   showQuoteHistory: true,
   showPurchaseHistory: true,
   title: "Customer account for trade buyers.",
-  introCopy: "Use one email login to track website quotations, ERP purchase history and the next action from Green Leaf sales.",
+  introCopy: "Sign in with your Green Leaf customer credentials to view quotations, orders, invoices and current statuses.",
   salesEmail: "buy@greenleafpacific.com",
   salesPhone: "+679 670 2222",
   paymentNote: "In-stock items use full payment; special-order items require a 70% deposit."
@@ -169,8 +168,7 @@ export function App({ initialRoute }: AppProps = {}) {
   const [quoteSubmitting, setQuoteSubmitting] = useState(false);
   const [quoteResult, setQuoteResult] = useState<QuoteResult | null>(null);
   const [accountEmail, setAccountEmail] = useState("");
-  const [accountCode, setAccountCode] = useState("");
-  const [accountDevCode, setAccountDevCode] = useState("");
+  const [accountPassword, setAccountPassword] = useState("");
   const [accountSession, setAccountSession] = useState<AccountSession | null>(null);
   const [accountQuotes, setAccountQuotes] = useState<RecentQuote[]>([]);
   const [accountStatus, setAccountStatus] = useState("");
@@ -696,61 +694,29 @@ export function App({ initialRoute }: AppProps = {}) {
     }
   }
 
-  async function beginAccountLogin() {
-    if (!isValidEmail(accountEmail)) {
-      setAccountStatus("Enter a valid buyer email.");
-      return;
-    }
-
-    setAccountLoading(true);
-    setAccountStatus("Sending login code...");
-    setAccountDevCode("");
-    try {
-      const result = await startAccountLogin(accountEmail);
-      if (!result.ok) {
-        setAccountStatus("Login code could not be sent.");
-        return;
-      }
-      setAccountEmail(result.email || accountEmail);
-      setAccountDevCode(result.devCode || "");
-      setAccountStatus(
-        result.devCode
-          ? "Code generated for local testing."
-          : result.delivery === "testing_access"
-            ? "Enter the testing access code."
-            : "Check your email for the login code."
-      );
-    } catch {
-      setAccountStatus("Login code could not be sent.");
-    } finally {
-      setAccountLoading(false);
-    }
-  }
-
   async function completeAccountLogin() {
     if (!isValidEmail(accountEmail)) {
       setAccountStatus("Enter a valid buyer email.");
       return;
     }
-    if (!accountCode.trim()) {
-      setAccountStatus("Enter the login code.");
+    if (!accountPassword) {
+      setAccountStatus("Enter your password.");
       return;
     }
 
     setAccountLoading(true);
-    setAccountStatus("Verifying login code...");
+    setAccountStatus("Signing in...");
     try {
-      const result = await verifyAccountLogin(accountEmail, accountCode);
+      const result = await loginAccount(accountEmail, accountPassword);
       if (!result.ok) {
-        setAccountStatus("Invalid or expired login code.");
+        setAccountStatus("Incorrect email or password.");
         return;
       }
       const account = await fetchAccountSession();
       setAccountSession(account);
       setAccountEmail(account.email);
       setAccountQuotes(account.quotes || []);
-      setAccountCode("");
-      setAccountDevCode("");
+      setAccountPassword("");
       setAccountStatus("Signed in.");
     } catch {
       setAccountStatus("Login failed.");
@@ -828,8 +794,7 @@ export function App({ initialRoute }: AppProps = {}) {
     setAccountSession(null);
     setAccountQuotes([]);
     setAccountDetail(null);
-    setAccountCode("");
-    setAccountDevCode("");
+    setAccountPassword("");
     setAccountStatus("Signed out.");
   }
 
@@ -850,18 +815,16 @@ export function App({ initialRoute }: AppProps = {}) {
       ) : route.view === "account" ? (
         <AccountPage
           email={accountEmail}
-          code={accountCode}
+          password={accountPassword}
           quotes={accountQuotes}
           account={accountSession}
           status={accountStatus}
-          devCode={accountDevCode}
           isLoading={accountLoading}
           isAuthenticated={Boolean(accountSession)}
           settings={customerCornerSettings}
           onEmailChange={setAccountEmail}
-          onCodeChange={setAccountCode}
-          onStartLogin={beginAccountLogin}
-          onVerifyLogin={completeAccountLogin}
+          onPasswordChange={setAccountPassword}
+          onLogin={completeAccountLogin}
           onRefreshAccount={refreshAccount}
           onLogout={signOutAccount}
           onOpenQuote={() => setQuoteOpen(true)}

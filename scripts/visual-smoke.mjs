@@ -205,6 +205,22 @@ async function main() {
     assert(basketFields.result.result.value.hasFlow, "Order basket is missing fulfillment guidance");
     assert(basketFields.result.result.value.hasPaymentTrust, "Order basket is missing Windcave payment information");
 
+    await page.send("Page.navigate", { url: `${baseUrl}/account?visual-smoke=login` });
+    await waitForSelector(page.send, 'input[autocomplete="current-password"]');
+    const loginState = await page.send("Runtime.evaluate", {
+      returnByValue: true,
+      expression: `({
+        hasEmail: Boolean(document.querySelector('input[autocomplete="username"]')),
+        hasPassword: Boolean(document.querySelector('input[autocomplete="current-password"]')),
+        hasCode: Boolean(document.querySelector('input[inputmode="numeric"]')),
+        signInLabel: [...document.querySelectorAll("button")].some((button) => button.textContent?.trim() === "Sign in")
+      })`
+    });
+    assert(loginState.result.result.value.hasEmail, "Customer login email field is missing");
+    assert(loginState.result.result.value.hasPassword, "Customer login password field is missing");
+    assert(!loginState.result.result.value.hasCode, "Customer login still requires an email code");
+    assert(loginState.result.result.value.signInLabel, "Customer login action is missing");
+
     await page.send("Page.addScriptToEvaluateOnNewDocument", {
       source: `(() => {
         const originalFetch = window.fetch.bind(window);

@@ -1,33 +1,17 @@
 import crypto from "node:crypto";
 import { getErpPool } from "./erpnext-db.mjs";
-import { isAccountEmailDeliveryConfigured, sendAccountLoginCode } from "./account-mailer.mjs";
 
-const loginCodes = new Map();
-const CODE_TTL_MS = 10 * 60 * 1000;
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const WEBSITE_CUSTOMER_ROLE = "Website Customer";
+const WEBSITE_CREDENTIAL_TABLE = "tabWebsite Customer Credential";
+const PASSWORD_MIN_LENGTH = 10;
+const PASSWORD_MAX_LENGTH = 128;
+const runtimeSessionSecret = crypto.randomBytes(32).toString("base64url");
+let credentialTableReady;
 export const ACCOUNT_SESSION_COOKIE = "gl_account_session";
 
-function isTestingLoginAvailable() {
-  return Boolean(
-    process.env.ACCOUNT_TEST_LOGIN_ENABLED === "true" &&
-      isValidEmail(process.env.ACCOUNT_TEST_LOGIN_EMAIL) &&
-      clean(process.env.ACCOUNT_TEST_LOGIN_CODE).length >= 6 &&
-      sessionSecret().length >= 32
-  );
-}
-
-function isProductionEmailLoginAvailable() {
-  return Boolean(
-    process.env.ACCOUNT_LOGIN_ENABLED === "true" &&
-      sessionSecret().length >= 32 &&
-      isAccountEmailDeliveryConfigured()
-  );
-}
-
 export function isAccountLoginAvailable() {
-  const developmentLogin = process.env.NODE_ENV !== "production" && process.env.ACCOUNT_DEV_LOGIN === "true";
-  return developmentLogin || isTestingLoginAvailable() || isProductionEmailLoginAvailable();
+  return process.env.ACCOUNT_LOGIN_ENABLED === "true" && clean(process.env.ACCOUNT_SESSION_SECRET).length >= 32;
 }
 
 function clean(value) {
@@ -67,15 +51,8 @@ function splitNameFromEmail(email) {
   };
 }
 
-function purgeExpired() {
-  const time = nowMs();
-  for (const [email, entry] of loginCodes.entries()) {
-    if (entry.expiresAt <= time) loginCodes.delete(email);
-  }
-}
-
 function sessionSecret() {
-  return clean(process.env.ACCOUNT_SESSION_SECRET) || "development-account-session-secret";
+  return clean(process.env.ACCOUNT_SESSION_SECRET) || runtimeSessionSecret;
 }
 
 function hash(value) {
@@ -88,7 +65,7 @@ function safeEqual(leftValue, rightValue) {
   return left.length === right.length && crypto.timingSafeEqual(left, right);
 }
 
-function sessionToken(email) {
+export function createAccountSessionToken(email) {
   const payload = Buffer.from(
     JSON.stringify({
       email,
@@ -290,92 +267,146 @@ export async function resolveCustomerAccessByEmail(emailValue) {
   };
 }
 
-export async function startAccountLogin(emailValue) {
-  purgeExpired();
+function passwordValue(value) {
+  return String(value || "");
+}
+
+function validPassword(value) {
+  const password = passwordValue(value);
+  return password.length >= PASSWORD_MIN_LENGTH && password.length <= PASSWORD_MAX_LENGTH;
+}
+
+function scrypt(value, salt) {
+  return new Promise((resolve, reject) => {
+    crypto.scrypt(value, salt, 64, (error, derivedKey) => {
+      if (error) reject(error);
+      else resolve(derivedKey);
+    });
+  });
+}
+
+async function hashPassword(password) {
+  const salt = crypto.randomBytes(16).toString("base64url");
+  const derivedKey = await scrypt(password, salt);
+  return `scrypt$${salt}$${derivedKey.toString("base64url")}`;
+}
+
+async function passwordMatches(password, storedValue) {
+  const [algorithm, salt, expectedValue, ...extra] = String(storedValue || "").split("$");
+  if (algorithm !== "scrypt" || !salt || !expectedValue || extra.length) return false;
+  const expected = Buffer.from(expectedValue, "base64url");
+  const actual = await scrypt(password, salt);
+  return expected.length === actual.length && crypto.timingSafeEqual(expected, actual);
+}
+
+async function ensureWebsiteCredentialTable() {
+  if (!credentialTableReady) {
+    credentialTableReady = getErpPool().execute(`
+      CREATE TABLE IF NOT EXISTS \`${WEBSITE_CREDENTIAL_TABLE}\` (
+        name varchar(140) NOT NULL,
+        creation datetime(6) DEFAULT NULL,
+        modified datetime(6) DEFAULT NULL,
+        modified_by varchar(140) DEFAULT NULL,
+        owner varchar(140) DEFAULT NULL,
+        docstatus int(1) NOT NULL DEFAULT 0,
+        idx int(8) NOT NULL DEFAULT 0,
+        customer varchar(140) NOT NULL,
+        email varchar(140) NOT NULL,
+        password_hash text NOT NULL,
+        enabled int(1) NOT NULL DEFAULT 1,
+        last_login datetime(6) DEFAULT NULL,
+        PRIMARY KEY (name),
+        UNIQUE KEY website_customer_credential_email (email),
+        KEY website_customer_credential_customer (customer)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `).catch((error) => {
+      credentialTableReady = null;
+      throw error;
+    });
+  }
+  await credentialTableReady;
+}
+
+export async function setWebsiteCustomerPassword({ customer, email, password, firstName = "", lastName = "" }) {
+  const customerName = clean(customer);
+  const normalizedEmail = normalizeEmail(email);
+  if (!customerName) return { ok: false, error: "customer_required" };
+  if (!isValidEmail(normalizedEmail)) return { ok: false, error: "invalid_email" };
+  if (!validPassword(password)) {
+    return { ok: false, error: "password_length_invalid", minLength: PASSWORD_MIN_LENGTH, maxLength: PASSWORD_MAX_LENGTH };
+  }
+
+  const access = await linkWebsiteCustomerAccess({
+    customer: customerName,
+    email: normalizedEmail,
+    firstName,
+    lastName
+  });
+  if (!access.ok) return access;
+
+  await ensureWebsiteCredentialTable();
+  const now = nowSql();
+  const passwordHash = await hashPassword(passwordValue(password));
+  await getErpPool().execute(
+    `
+      INSERT INTO \`${WEBSITE_CREDENTIAL_TABLE}\`
+        (name, creation, modified, modified_by, owner, docstatus, idx, customer, email, password_hash, enabled)
+      VALUES
+        (:name, :now, :now, 'Administrator', 'Administrator', 0, 0, :customer, :email, :passwordHash, 1)
+      ON DUPLICATE KEY UPDATE
+        modified = VALUES(modified),
+        customer = VALUES(customer),
+        password_hash = VALUES(password_hash),
+        enabled = 1
+    `,
+    {
+      name: stableName("website-credential", normalizedEmail),
+      now,
+      customer: customerName,
+      email: normalizedEmail,
+      passwordHash
+    }
+  );
+
+  return { ok: true, customer: customerName, email: normalizedEmail };
+}
+
+export async function authenticateAccountPassword(emailValue, password) {
   if (!isAccountLoginAvailable()) {
     return { ok: false, error: "account_login_unavailable" };
   }
   const email = normalizeEmail(emailValue);
-  if (!isValidEmail(email)) {
-    return { ok: false, error: "invalid_email" };
+  if (!isValidEmail(email) || !validPassword(password)) return { ok: false, error: "invalid_credentials" };
+
+  await ensureWebsiteCredentialTable();
+  const [rows] = await getErpPool().execute(
+    `
+      SELECT customer, email, password_hash, enabled
+      FROM \`${WEBSITE_CREDENTIAL_TABLE}\`
+      WHERE LOWER(email) = :email
+      LIMIT 1
+    `,
+    { email }
+  );
+  const credential = rows[0];
+  if (!credential || !Boolean(Number(credential.enabled || 0))) {
+    await scrypt(passwordValue(password), crypto.randomBytes(16).toString("base64url"));
+    return { ok: false, error: "invalid_credentials" };
   }
 
-  const developmentLogin = process.env.NODE_ENV !== "production" && process.env.ACCOUNT_DEV_LOGIN === "true";
-  const testingLogin = isTestingLoginAvailable();
-  const testingEmail = normalizeEmail(process.env.ACCOUNT_TEST_LOGIN_EMAIL);
-  const testingIdentity = testingLogin && email === testingEmail;
-  const productionEmailLogin = isProductionEmailLoginAvailable();
-
-  if (!developmentLogin && !testingIdentity && !productionEmailLogin) {
-    return {
-      ok: true,
-      email,
-      expiresInSeconds: Math.floor(CODE_TTL_MS / 1000),
-      delivery: "testing_access"
-    };
+  const [matches, access] = await Promise.all([
+    passwordMatches(passwordValue(password), credential.password_hash),
+    resolveCustomerAccessByEmail(email)
+  ]);
+  if (!matches || !access.customerNames.includes(credential.customer)) {
+    return { ok: false, error: "invalid_credentials" };
   }
 
-  if (!developmentLogin) {
-    const access = await resolveCustomerAccessByEmail(email);
-    if (!access.customerNames.length) {
-      return {
-        ok: true,
-        email,
-        expiresInSeconds: Math.floor(CODE_TTL_MS / 1000),
-        delivery: testingIdentity ? "testing_access" : "email"
-      };
-    }
-  }
-
-  const code = testingIdentity
-    ? clean(process.env.ACCOUNT_TEST_LOGIN_CODE)
-    : String(crypto.randomInt(100000, 999999));
-  loginCodes.set(email, {
-    codeHash: hash(`${email}:${code}`),
-    expiresAt: nowMs() + CODE_TTL_MS,
-    attempts: 0
-  });
-
-  if (!developmentLogin && !testingIdentity) {
-    try {
-      await sendAccountLoginCode({
-        email,
-        code,
-        expiresInMinutes: Math.floor(CODE_TTL_MS / 60_000)
-      });
-    } catch (error) {
-      loginCodes.delete(email);
-      throw error;
-    }
-  }
-
-  return {
-    ok: true,
-    email,
-    expiresInSeconds: Math.floor(CODE_TTL_MS / 1000),
-    delivery: developmentLogin ? "development_response" : testingIdentity ? "testing_access" : "email",
-    devCode: developmentLogin ? code : undefined
-  };
-}
-
-export function verifyAccountLogin(emailValue, codeValue) {
-  purgeExpired();
-  const email = normalizeEmail(emailValue);
-  const code = clean(codeValue);
-  const entry = loginCodes.get(email);
-
-  if (!entry) return { ok: false, error: "code_expired" };
-  if (entry.attempts >= 5) {
-    loginCodes.delete(email);
-    return { ok: false, error: "too_many_attempts" };
-  }
-
-  entry.attempts += 1;
-  const codeHash = hash(`${email}:${code}`);
-  if (!safeEqual(codeHash, entry.codeHash)) return { ok: false, error: "invalid_code" };
-
-  loginCodes.delete(email);
-  const token = sessionToken(email);
+  await getErpPool().execute(
+    `UPDATE \`${WEBSITE_CREDENTIAL_TABLE}\` SET last_login = :now, modified = :now WHERE LOWER(email) = :email`,
+    { email, now: nowSql() }
+  );
+  const token = createAccountSessionToken(email);
   const session = sessionFromToken(token);
 
   return {
@@ -701,7 +732,7 @@ async function ensureUser(email, firstName = "", lastName = "") {
          user_type, send_welcome_email, thread_notify, simultaneous_sessions, logout_all_sessions)
       VALUES
         (:email, :now, :now, 'Administrator', 'Administrator', 0, 0, 1, :email, :first, :last, :fullName,
-         'Website User', 1, 1, 2, 1)
+         'Website User', 0, 1, 2, 1)
       ON DUPLICATE KEY UPDATE
         modified = VALUES(modified),
         enabled = 1,
@@ -829,6 +860,11 @@ export async function disableWebsiteCustomerAccess(emailValue) {
   if (!isValidEmail(email)) return { ok: false, error: "invalid_email" };
   await getErpPool().execute(
     "UPDATE `tabUser` SET enabled = 0, modified = :now WHERE LOWER(name) = :email OR LOWER(email) = :email",
+    { email, now: nowSql() }
+  );
+  await ensureWebsiteCredentialTable();
+  await getErpPool().execute(
+    `UPDATE \`${WEBSITE_CREDENTIAL_TABLE}\` SET enabled = 0, modified = :now WHERE LOWER(email) = :email`,
     { email, now: nowSql() }
   );
   return { ok: true, email };

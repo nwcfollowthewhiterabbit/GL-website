@@ -131,15 +131,14 @@ async function main() {
   });
   const incompleteOrder = await incompleteOrderResponse.json();
   assert(incompleteOrder.error === "customer_details_required", "Order API accepted incomplete customer details");
-  const loginResponse = await expectStatus("/api/account/login/start", customerCorner.settings.loginEnabled ? 200 : 503, {
+  const loginResponse = await expectStatus("/api/account/login", customerCorner.settings.loginEnabled ? 401 : 503, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email: "patch.fields@example.com" })
+    body: JSON.stringify({ email: "patch.fields@example.com", password: "Invalid-password-123" })
   });
   const loginResult = await loginResponse.json();
-  assert(!loginResult.devCode, "Production login exposed a development code");
   assert(
-    customerCorner.settings.loginEnabled ? loginResult.ok : loginResult.error === "account_login_unavailable",
+    customerCorner.settings.loginEnabled ? loginResult.error === "invalid_credentials" : loginResult.error === "account_login_unavailable",
     "Customer account login availability is inconsistent"
   );
   await expectStatus("/api/admin/recent-quotes?limit=2", [401, 404]);

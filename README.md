@@ -49,8 +49,7 @@ Useful API endpoints:
 - `GET /api/catalog/related?sku=&limit=4`
 - `GET /api/catalog/products/:sku`
 - `GET /api/account/quotes?limit=20`
-- `POST /api/account/login/start`
-- `POST /api/account/login/verify`
+- `POST /api/account/login`
 - `GET /api/account/session`
 - `GET /api/account/orders/:name`
 - `GET /api/account/invoices/:name`
@@ -78,30 +77,26 @@ Useful API endpoints:
 - ERPNext Item Group and Item fields now control storefront category visibility, price mode, price list, stock display, image requirements, and product overrides.
 - Advanced catalog filters read ERPNext item groups and display storefront rules such as excluded showroom warehouses.
 - Diagnostics show ERPNext catalog quality counters and recent website-created quotations.
-- The customer account reads linked ERPNext quotations, sales orders, and sales invoices after email OTP authentication.
+- The customer account reads linked ERPNext quotations, sales orders, and sales invoices after email/password authentication.
 - Account sessions use a signed `HttpOnly` cookie; customer document access is resolved from ERPNext Contact/Customer links.
 
 ## Customer Account Login
 
-Production email login remains off unless all account and SMTP settings are present:
+Customer login uses a password assigned to an existing ERP Customer through the protected admin API. Only a `scrypt` password hash is stored.
 
 ```text
 ACCOUNT_LOGIN_ENABLED=true
 ACCOUNT_SESSION_SECRET=<unique random value of at least 32 characters>
-ACCOUNT_EMAIL_FROM=Green Leaf Pacific <buy@greenleafpacific.com>
-SMTP_HOST=<mail server>
-SMTP_PORT=587
-SMTP_SECURE=false
-SMTP_USER=<mail user>
-SMTP_PASSWORD=<mail password>
 ```
 
-Use `ACCOUNT_DEV_LOGIN=true` only outside production. It returns the OTP in the API response for local account-flow testing.
+Assign or replace a password with `POST /api/admin/customer-access/password` using the admin API token. The request body accepts `customer`, `email`, `password`, `firstName`, and `lastName`.
 
-For a public testing site without email delivery, use `ACCOUNT_TEST_LOGIN_*` only with a dedicated synthetic ERP customer. Seed the synthetic draft documents with:
+Self-registration is a separate future flow and must verify the email address before creating credentials. Backend-created and existing ERP customers do not require email verification.
+
+Seed the synthetic testing account and draft documents by passing a temporary password for one command:
 
 ```bash
-npm run erpnext:seed-test-account
+ACCOUNT_TEST_PASSWORD='<temporary-password>' npm run erpnext:seed-test-account
 ```
 
 ## Current Discovered Sources

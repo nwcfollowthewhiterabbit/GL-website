@@ -383,7 +383,7 @@ async function seedCustomerCornerSettings() {
       VALUES
         ('customer-corner', :now, :now, 'Administrator', 'Administrator', 0, 1, 'customer-corner',
          'Customer account for trade buyers.',
-         'Use one email login to track website quotations, ERP purchase history and the next action from Green Leaf sales.',
+         'Sign in with your Green Leaf customer credentials to view quotations, orders, invoices and current statuses.',
          1, 1, 1, 1, 'buy@greenleafpacific.com', '+679 670 2222',
          'In-stock items use full payment; special-order items require a 70% deposit.', 0)
       ON DUPLICATE KEY UPDATE

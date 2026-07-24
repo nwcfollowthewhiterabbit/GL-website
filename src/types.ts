@@ -218,16 +218,7 @@ export type AccountSession = {
   invoices: CustomerInvoice[];
 };
 
-export type AccountLoginStartResponse = {
-  ok: boolean;
-  email?: string;
-  expiresInSeconds?: number;
-  delivery?: string;
-  devCode?: string;
-  error?: string;
-};
-
-export type AccountLoginVerifyResponse = {
+export type AccountLoginResponse = {
   ok: boolean;
   email?: string;
   expiresAt?: string;

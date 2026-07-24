@@ -207,7 +207,7 @@ export async function getWebsiteCustomerCornerSettings() {
       showQuoteHistory: true,
       showPurchaseHistory: true,
       title: "Customer account for trade buyers.",
-      introCopy: "Use one email login to track website quotations, ERP purchase history and the next action from Green Leaf sales.",
+      introCopy: "Sign in with your Green Leaf customer credentials to view quotations, orders, invoices and current statuses.",
       salesEmail: "buy@greenleafpacific.com",
       salesPhone: "+679 670 2222",
       paymentNote: "In-stock items use full payment; special-order items require a 70% deposit."
@@ -226,7 +226,7 @@ export async function getWebsiteCustomerCornerSettings() {
         IFNULL(show_quote_history, 1) AS show_quote_history,
         IFNULL(show_purchase_history, 1) AS show_purchase_history,
         IFNULL(NULLIF(title, ''), 'Customer account for trade buyers.') AS title,
-        IFNULL(NULLIF(intro_copy, ''), 'Use one email login to track website quotations, ERP purchase history and the next action from Green Leaf sales.') AS intro_copy,
+        IFNULL(NULLIF(intro_copy, ''), 'Sign in with your Green Leaf customer credentials to view quotations, orders, invoices and current statuses.') AS intro_copy,
         IFNULL(NULLIF(sales_email, ''), 'buy@greenleafpacific.com') AS sales_email,
         IFNULL(NULLIF(sales_phone, ''), '+679 670 2222') AS sales_phone,
         IFNULL(NULLIF(payment_note, ''), 'In-stock items use full payment; special-order items require a 70% deposit.') AS payment_note

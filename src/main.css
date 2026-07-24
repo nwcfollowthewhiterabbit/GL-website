@@ -1928,17 +1928,29 @@ textarea:focus-visible {
   gap: 2px;
 }
 
-.account-auth__state span,
-.account-dev-code {
+.account-auth__state span {
   color: var(--muted);
   font-weight: 800;
 }
 
-.account-dev-code {
-  margin: 0;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: #f7f4e8;
+.account-password-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.account-password-toggle:hover {
+  color: var(--leaf-dark);
+  background: #edf3eb;
 }
 
 .account-summary {
