@@ -15,6 +15,7 @@ from _runtime_adapter import (  # noqa: E402
     RESTORE_EXECUTE_SCRIPT,
     backup_reference_for,
     contract_test_evidence,
+    last_json_object,
     load_config,
     restore_plan_reference_for,
     utc_now,
@@ -56,7 +57,8 @@ class RuntimeAdapterConfigurationTests(unittest.TestCase):
         migrate = DEPLOY_SCRIPT.index("npm run erpnext:migrate-website")
         start = DEPLOY_SCRIPT.index('"$compose" -f "$repo/docker-compose.yml" up -d --no-build')
         self.assertIn("run --rm -T api", DEPLOY_SCRIPT)
-        self.assertIn('npm run erpnext:migrate-website >&2', DEPLOY_SCRIPT)
+        self.assertIn("</dev/null >&2", DEPLOY_SCRIPT)
+        self.assertIn('npm run erpnext:migrate-website </dev/null >&2', DEPLOY_SCRIPT)
         self.assertLess(build, migrate)
         self.assertLess(migrate, start)
 
@@ -84,6 +86,11 @@ class RuntimeAdapterConfigurationTests(unittest.TestCase):
             backup_reference_for(config, f"{config['backup_root']}/../erp")
         with self.assertRaises(ValueError):
             restore_plan_reference_for(config, f"{config['backup_root']}/restore-plans/a;touch-x.json")
+
+    def test_runtime_protocol_reads_final_json_object(self) -> None:
+        self.assertEqual(last_json_object('Updating files\n{"revision":"abc"}\n'), {"revision": "abc"})
+        with self.assertRaises(ValueError):
+            last_json_object("")
 
 
 if __name__ == "__main__":

@@ -9,7 +9,7 @@ npm run verify
 Команда выполняет:
 
 1. repository structure, links, secret policy и CI policy;
-2. 55 foundation unit/contract tests;
+2. 56 foundation unit/contract tests;
 3. TypeScript typecheck;
 4. account authentication tests;
 5. account isolation, quote idempotency, fallback и payment notification

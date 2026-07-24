@@ -146,6 +146,16 @@ def artifact_digest(value: str) -> str:
     return f"sha256:{hashlib.sha256(value.encode()).hexdigest()}"
 
 
+def last_json_object(output: str) -> dict[str, Any]:
+    lines = [line for line in output.splitlines() if line.strip()]
+    if not lines:
+        raise ValueError("runtime adapter returned no JSON evidence")
+    value = json.loads(lines[-1])
+    if not isinstance(value, dict):
+        raise ValueError("runtime adapter JSON evidence must be an object")
+    return value
+
+
 def backup_reference_for(config: dict[str, Any], value: str) -> str:
     prefix = f"{config['backup_root']}/"
     if not value.startswith(prefix) or not RUN_ID.fullmatch(value[len(prefix):]):
@@ -314,13 +324,13 @@ remote="$(git -C "$repo" rev-parse "origin/$branch")"
 test "$remote" = "$expected"
 git -C "$repo" merge-base --is-ancestor HEAD "$expected"
 git -C "$repo" merge --ff-only "$expected"
-"$compose" -f "$repo/docker-compose.yml" build "$@" >&2
+"$compose" -f "$repo/docker-compose.yml" build "$@" </dev/null >&2
 if [ "$migrate_schema" = "true" ]; then
-  "$compose" -f "$repo/docker-compose.yml" run --rm -T api npm run erpnext:migrate-website >&2
+  "$compose" -f "$repo/docker-compose.yml" run --rm -T api npm run erpnext:migrate-website </dev/null >&2
 else
-  "$compose" -f "$repo/docker-compose.yml" run --rm -T api npm run erpnext:check-website-migrations >&2
+  "$compose" -f "$repo/docker-compose.yml" run --rm -T api npm run erpnext:check-website-migrations </dev/null >&2
 fi
-"$compose" -f "$repo/docker-compose.yml" up -d --no-build "$@" >&2
+"$compose" -f "$repo/docker-compose.yml" up -d --no-build "$@" </dev/null >&2
 test "$(git -C "$repo" rev-parse HEAD)" = "$expected"
 images="$(docker inspect --format '{{.Name}} {{.Image}}' \
   testinggreenleafpacificcom_api_1 testinggreenleafpacificcom_web_1 \
@@ -416,11 +426,11 @@ git -C "$repo" switch --detach "$revision"
 rm -f "$repo/.env"
 rm -rf "$repo/public/uploads" "$repo/uploads"
 tar -C "$repo" -xzf "$archive" --no-same-owner --no-same-permissions
-"$compose" -f "$repo/docker-compose.yml" build "$@" >&2
+"$compose" -f "$repo/docker-compose.yml" build "$@" </dev/null >&2
 if node -e 'const p=require(process.argv[1]); process.exit(p.scripts?.["erpnext:check-website-migrations"] ? 0 : 1)' "$repo/package.json"; then
-  "$compose" -f "$repo/docker-compose.yml" run --rm -T api npm run erpnext:check-website-migrations >&2
+  "$compose" -f "$repo/docker-compose.yml" run --rm -T api npm run erpnext:check-website-migrations </dev/null >&2
 fi
-"$compose" -f "$repo/docker-compose.yml" up -d --no-build "$@" >&2
+"$compose" -f "$repo/docker-compose.yml" up -d --no-build "$@" </dev/null >&2
 python3 - "$plan" <<'PY'
 import json, sys
 path = sys.argv[1]
@@ -481,7 +491,7 @@ def deploy_existing(
         raise ValueError("expected SHA must be a full 40-character commit")
     ci_reference = verify_ci(expected_sha)
     backup = create_backup(config, f"{run_id}-backup", started_at)
-    deployed = json.loads(ssh(
+    deployed = last_json_object(ssh(
         config,
         DEPLOY_SCRIPT,
         config["repository_path"],
@@ -551,7 +561,7 @@ def execute_restore(
         raise ValueError("restore plan and confirmation token are required")
     plan_reference = restore_plan_reference_for(config, plan_reference)
     diagnostic = create_backup(config, f"{run_id}-diagnostic", started_at)
-    restored = json.loads(ssh(
+    restored = last_json_object(ssh(
         config,
         RESTORE_EXECUTE_SCRIPT,
         config["repository_path"],
@@ -588,7 +598,7 @@ def validation(operation: str, config: dict[str, Any], run_id: str, started_at: 
     os.environ["VISUAL_BASE_URL"] = config["public_url"]
     try:
         if operation == "validate_instance":
-            remote = json.loads(
+            remote = last_json_object(
                 ssh(
                     config,
                     r"""
