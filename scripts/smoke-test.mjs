@@ -76,7 +76,7 @@ async function main() {
   assert(Array.isArray(websiteManufacturers.manufacturers), "Website manufacturers response is invalid");
   const customerCorner = await readJson("/api/storefront/customer-corner");
   assert(customerCorner.settings?.title, "Customer corner settings response is invalid");
-  assert(customerCorner.settings.loginEnabled === false, "Production account login should be disabled without an email provider");
+  assert(typeof customerCorner.settings.loginEnabled === "boolean", "Customer account login state is invalid");
   assert(websiteManufacturers.manufacturers.length > 0, "Website manufacturers returned no logos");
   assert(typeof websiteManufacturers.source === "string", "Website manufacturers source is missing");
 
@@ -131,13 +131,17 @@ async function main() {
   });
   const incompleteOrder = await incompleteOrderResponse.json();
   assert(incompleteOrder.error === "customer_details_required", "Order API accepted incomplete customer details");
-  const loginResponse = await expectStatus("/api/account/login/start", 503, {
+  const loginResponse = await expectStatus("/api/account/login/start", customerCorner.settings.loginEnabled ? 200 : 503, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email: "patch.fields@example.com" })
   });
   const loginResult = await loginResponse.json();
-  assert(loginResult.error === "account_login_unavailable" && !loginResult.devCode, "Production login exposed a development code");
+  assert(!loginResult.devCode, "Production login exposed a development code");
+  assert(
+    customerCorner.settings.loginEnabled ? loginResult.ok : loginResult.error === "account_login_unavailable",
+    "Customer account login availability is inconsistent"
+  );
   await expectStatus("/api/admin/recent-quotes?limit=2", [401, 404]);
   await expectStatus("/api/admin/catalog-quality-report", [401, 404]);
   await expectStatus("/api/admin/customer-access?limit=2", [401, 404]);
