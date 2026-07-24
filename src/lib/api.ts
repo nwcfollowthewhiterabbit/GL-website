@@ -86,29 +86,24 @@ export function fetchCatalogFacets() {
   return getJson<CatalogFacets>("/api/catalog/facets");
 }
 
-export async function fetchWebsiteDepartments() {
-  const data = await getJson<{ source: string; departments: WebsiteCategory[] }>("/api/storefront/departments");
-  return data.departments || [];
+export function fetchWebsiteDepartmentsResource() {
+  return getJson<{ source: string; departments: WebsiteCategory[] }>("/api/storefront/departments");
 }
 
-export async function fetchWebsiteBanners() {
-  const data = await getJson<{ source: string; banners: WebsiteBanner[] }>("/api/storefront/banners");
-  return data.banners || [];
+export function fetchWebsiteBannersResource() {
+  return getJson<{ source: string; banners: WebsiteBanner[] }>("/api/storefront/banners");
 }
 
-export async function fetchWebsiteCatalogs() {
-  const data = await getJson<{ source: string; catalogs: WebsiteCatalogDownload[] }>("/api/storefront/catalogs");
-  return data.catalogs || [];
+export function fetchWebsiteCatalogsResource() {
+  return getJson<{ source: string; catalogs: WebsiteCatalogDownload[] }>("/api/storefront/catalogs");
 }
 
-export async function fetchWebsiteManufacturers() {
-  const data = await getJson<{ source: string; manufacturers: WebsiteManufacturer[] }>("/api/storefront/manufacturers");
-  return data.manufacturers || [];
+export function fetchWebsiteManufacturersResource() {
+  return getJson<{ source: string; manufacturers: WebsiteManufacturer[] }>("/api/storefront/manufacturers");
 }
 
-export async function fetchCustomerCornerSettings() {
-  const data = await getJson<{ source: string; settings: CustomerCornerSettings }>("/api/storefront/customer-corner");
-  return data.settings;
+export function fetchCustomerCornerSettingsResource() {
+  return getJson<{ source: string; settings: CustomerCornerSettings }>("/api/storefront/customer-corner");
 }
 
 export async function loginAccount(email: string, password: string): Promise<AccountLoginResponse> {
@@ -155,10 +150,24 @@ export async function logoutAccount() {
 }
 
 export async function createQuoteRequest(payload: QuoteRequestPayload): Promise<QuoteRequestResponse> {
+  const fingerprint = JSON.stringify(payload);
+  const storageKey = "greenleaf.lastQuoteRequest";
+  let id = payload.id;
+  if (!id && typeof window !== "undefined") {
+    try {
+      const previous = JSON.parse(window.localStorage.getItem(storageKey) || "null");
+      const stillReusable = previous?.fingerprint === fingerprint && Date.now() - Number(previous.createdAt || 0) < 86400000;
+      id = stillReusable ? previous.id : `GLQ-${crypto.randomUUID()}`;
+      window.localStorage.setItem(storageKey, JSON.stringify({ fingerprint, id, createdAt: Date.now() }));
+    } catch {
+      id = `GLQ-${Date.now()}`;
+    }
+  }
+
   const response = await fetch("/api/quote-requests", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
+    body: JSON.stringify({ ...payload, id })
   });
   return response.json();
 }

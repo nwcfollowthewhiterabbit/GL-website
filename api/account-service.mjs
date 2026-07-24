@@ -65,10 +65,11 @@ function safeEqual(leftValue, rightValue) {
   return left.length === right.length && crypto.timingSafeEqual(left, right);
 }
 
-export function createAccountSessionToken(email) {
+export function createAccountSessionToken(email, credentialVersion = 1) {
   const payload = Buffer.from(
     JSON.stringify({
       email,
+      credentialVersion: Number(credentialVersion),
       issuedAt: nowMs(),
       expiresAt: nowMs() + SESSION_TTL_MS,
       nonce: crypto.randomBytes(12).toString("base64url")
@@ -87,7 +88,15 @@ function sessionFromToken(tokenValue) {
     const email = normalizeEmail(parsed.email);
     const expiresAt = Number(parsed.expiresAt || 0);
     if (!isValidEmail(email) || !expiresAt || expiresAt <= nowMs()) return null;
-    return { email, token, createdAt: new Date(Number(parsed.issuedAt || nowMs())).toISOString(), expiresAt };
+    const credentialVersion = Number(parsed.credentialVersion || 0);
+    if (!Number.isInteger(credentialVersion) || credentialVersion < 1) return null;
+    return {
+      email,
+      token,
+      credentialVersion,
+      createdAt: new Date(Number(parsed.issuedAt || nowMs())).toISOString(),
+      expiresAt
+    };
   } catch {
     return null;
   }
@@ -267,6 +276,16 @@ export async function resolveCustomerAccessByEmail(emailValue) {
   };
 }
 
+export function isDocumentWithinCustomerAccess(document, access) {
+  const documentEmail = normalizeEmail(document?.websiteCustomerEmail);
+  const customer = clean(document?.customer);
+  return Boolean(
+    access?.email &&
+      ((documentEmail && documentEmail === normalizeEmail(access.email)) ||
+        (customer && Array.isArray(access.customerNames) && access.customerNames.includes(customer)))
+  );
+}
+
 function passwordValue(value) {
   return String(value || "");
 }
@@ -301,25 +320,31 @@ async function passwordMatches(password, storedValue) {
 
 async function ensureWebsiteCredentialTable() {
   if (!credentialTableReady) {
-    credentialTableReady = getErpPool().execute(`
-      CREATE TABLE IF NOT EXISTS \`${WEBSITE_CREDENTIAL_TABLE}\` (
-        name varchar(140) NOT NULL,
-        creation datetime(6) DEFAULT NULL,
-        modified datetime(6) DEFAULT NULL,
-        modified_by varchar(140) DEFAULT NULL,
-        owner varchar(140) DEFAULT NULL,
-        docstatus int(1) NOT NULL DEFAULT 0,
-        idx int(8) NOT NULL DEFAULT 0,
-        customer varchar(140) NOT NULL,
-        email varchar(140) NOT NULL,
-        password_hash text NOT NULL,
-        enabled int(1) NOT NULL DEFAULT 1,
-        last_login datetime(6) DEFAULT NULL,
-        PRIMARY KEY (name),
-        UNIQUE KEY website_customer_credential_email (email),
-        KEY website_customer_credential_customer (customer)
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-    `).catch((error) => {
+    credentialTableReady = (async () => {
+      await getErpPool().execute(`
+        CREATE TABLE IF NOT EXISTS \`${WEBSITE_CREDENTIAL_TABLE}\` (
+          name varchar(140) NOT NULL,
+          creation datetime(6) DEFAULT NULL,
+          modified datetime(6) DEFAULT NULL,
+          modified_by varchar(140) DEFAULT NULL,
+          owner varchar(140) DEFAULT NULL,
+          docstatus int(1) NOT NULL DEFAULT 0,
+          idx int(8) NOT NULL DEFAULT 0,
+          customer varchar(140) NOT NULL,
+          email varchar(140) NOT NULL,
+          password_hash text NOT NULL,
+          enabled int(1) NOT NULL DEFAULT 1,
+          session_version int(8) NOT NULL DEFAULT 1,
+          last_login datetime(6) DEFAULT NULL,
+          PRIMARY KEY (name),
+          UNIQUE KEY website_customer_credential_email (email),
+          KEY website_customer_credential_customer (customer)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+      await getErpPool().execute(
+        `ALTER TABLE \`${WEBSITE_CREDENTIAL_TABLE}\` ADD COLUMN IF NOT EXISTS session_version int(8) NOT NULL DEFAULT 1`
+      );
+    })().catch((error) => {
       credentialTableReady = null;
       throw error;
     });
@@ -350,14 +375,15 @@ export async function setWebsiteCustomerPassword({ customer, email, password, fi
   await getErpPool().execute(
     `
       INSERT INTO \`${WEBSITE_CREDENTIAL_TABLE}\`
-        (name, creation, modified, modified_by, owner, docstatus, idx, customer, email, password_hash, enabled)
+        (name, creation, modified, modified_by, owner, docstatus, idx, customer, email, password_hash, enabled, session_version)
       VALUES
-        (:name, :now, :now, 'Administrator', 'Administrator', 0, 0, :customer, :email, :passwordHash, 1)
+        (:name, :now, :now, 'Administrator', 'Administrator', 0, 0, :customer, :email, :passwordHash, 1, 1)
       ON DUPLICATE KEY UPDATE
         modified = VALUES(modified),
         customer = VALUES(customer),
         password_hash = VALUES(password_hash),
-        enabled = 1
+        enabled = 1,
+        session_version = session_version + 1
     `,
     {
       name: stableName("website-credential", normalizedEmail),
@@ -381,7 +407,7 @@ export async function authenticateAccountPassword(emailValue, password) {
   await ensureWebsiteCredentialTable();
   const [rows] = await getErpPool().execute(
     `
-      SELECT customer, email, password_hash, enabled
+      SELECT customer, email, password_hash, enabled, session_version
       FROM \`${WEBSITE_CREDENTIAL_TABLE}\`
       WHERE LOWER(email) = :email
       LIMIT 1
@@ -406,7 +432,7 @@ export async function authenticateAccountPassword(emailValue, password) {
     `UPDATE \`${WEBSITE_CREDENTIAL_TABLE}\` SET last_login = :now, modified = :now WHERE LOWER(email) = :email`,
     { email, now: nowSql() }
   );
-  const token = createAccountSessionToken(email);
+  const token = createAccountSessionToken(email, credential.session_version);
   const session = sessionFromToken(token);
 
   return {
@@ -421,6 +447,35 @@ export function getAccountSession(req) {
   const header = clean(req.headers.authorization);
   const bearerToken = header.toLowerCase().startsWith("bearer ") ? header.slice(7).trim() : "";
   return sessionFromToken(cookieValue(req) || bearerToken);
+}
+
+export function isAccountSessionCurrent(session, credential) {
+  return Boolean(
+    session &&
+      credential &&
+      Number(credential.enabled || 0) === 1 &&
+      Number(credential.user_enabled || 0) === 1 &&
+      Number(credential.session_version || 0) === Number(session.credentialVersion || 0)
+  );
+}
+
+export async function getVerifiedAccountSession(req) {
+  const session = getAccountSession(req);
+  if (!session) return null;
+
+  await ensureWebsiteCredentialTable();
+  const [rows] = await getErpPool().execute(
+    `
+      SELECT credential.enabled, credential.session_version, IFNULL(user.enabled, 0) AS user_enabled
+      FROM \`${WEBSITE_CREDENTIAL_TABLE}\` credential
+      LEFT JOIN \`tabUser\` user
+        ON LOWER(user.name) = LOWER(credential.email) OR LOWER(user.email) = LOWER(credential.email)
+      WHERE LOWER(credential.email) = :email
+      LIMIT 1
+    `,
+    { email: session.email }
+  );
+  return isAccountSessionCurrent(session, rows[0]) ? session : null;
 }
 
 export function endAccountSession() {
@@ -548,7 +603,7 @@ export async function getAccountQuotationDetailByEmail(emailValue, quotationName
   const [rows] = await getErpPool().execute(
     `
       SELECT q.name, q.owner, q.party_name, q.transaction_date, q.valid_till, q.grand_total, q.status, q.order_type,
-             q.creation, q.enq_det, q.contact_email, q.contact_mobile, q.terms
+             q.creation, q.enq_det, q.contact_email, q.contact_mobile, q.terms, q.website_customer_email
       FROM \`tabQuotation\` q
       WHERE q.name = :name
         AND (
@@ -560,7 +615,15 @@ export async function getAccountQuotationDetailByEmail(emailValue, quotationName
     params
   );
   const row = rows[0];
-  if (!row) return null;
+  if (
+    !row ||
+    !isDocumentWithinCustomerAccess(
+      { customer: row.party_name, websiteCustomerEmail: row.website_customer_email },
+      access
+    )
+  ) {
+    return null;
+  }
 
   const [lineRows] = await getErpPool().execute(
     `
@@ -614,7 +677,7 @@ export async function getAccountOrderDetailByEmail(emailValue, orderName) {
     params
   );
   const row = rows[0];
-  if (!row) return null;
+  if (!row || !isDocumentWithinCustomerAccess({ customer: row.customer }, access)) return null;
 
   const [lineRows] = await getErpPool().execute(
     `
@@ -669,7 +732,7 @@ export async function getAccountInvoiceDetailByEmail(emailValue, invoiceName) {
     params
   );
   const row = rows[0];
-  if (!row) return null;
+  if (!row || !isDocumentWithinCustomerAccess({ customer: row.customer }, access)) return null;
 
   const [lineRows] = await getErpPool().execute(
     `
@@ -864,13 +927,45 @@ export async function disableWebsiteCustomerAccess(emailValue) {
   );
   await ensureWebsiteCredentialTable();
   await getErpPool().execute(
-    `UPDATE \`${WEBSITE_CREDENTIAL_TABLE}\` SET enabled = 0, modified = :now WHERE LOWER(email) = :email`,
+    `
+      UPDATE \`${WEBSITE_CREDENTIAL_TABLE}\`
+      SET enabled = 0, session_version = session_version + 1, modified = :now
+      WHERE LOWER(email) = :email
+    `,
     { email, now: nowSql() }
   );
   return { ok: true, email };
 }
 
+export async function enableWebsiteCustomerAccess(emailValue) {
+  const email = normalizeEmail(emailValue);
+  if (!isValidEmail(email)) return { ok: false, error: "invalid_email" };
+
+  await ensureWebsiteCredentialTable();
+  const [credentials] = await getErpPool().execute(
+    `SELECT customer FROM \`${WEBSITE_CREDENTIAL_TABLE}\` WHERE LOWER(email) = :email LIMIT 1`,
+    { email }
+  );
+  if (!credentials[0]) return { ok: false, error: "credential_not_found" };
+
+  const now = nowSql();
+  await getErpPool().execute(
+    "UPDATE `tabUser` SET enabled = 1, modified = :now WHERE LOWER(name) = :email OR LOWER(email) = :email",
+    { email, now }
+  );
+  await getErpPool().execute(
+    `
+      UPDATE \`${WEBSITE_CREDENTIAL_TABLE}\`
+      SET enabled = 1, session_version = session_version + 1, modified = :now
+      WHERE LOWER(email) = :email
+    `,
+    { email, now }
+  );
+  return { ok: true, email, customer: credentials[0].customer };
+}
+
 export async function getWebsiteCustomerAccessList({ q = "", limit = 30 } = {}) {
+  await ensureWebsiteCredentialTable();
   const search = `%${clean(q).toLowerCase()}%`;
   const maxLimit = Math.min(Math.max(Number(limit) || 30, 1), 100);
   const [rows] = await getErpPool().execute(
@@ -902,14 +997,19 @@ export async function getWebsiteCustomerAccessList({ q = "", limit = 30 } = {}) 
           ct.name AS contact,
           COALESCE(NULLIF(ce.email_id, ''), NULLIF(ct.email_id, ''), NULLIF(c.email_id, '')) AS email,
           u.name AS user,
-          u.enabled,
-          u.last_login
+          u.enabled AS user_enabled,
+          u.last_login,
+          credential.enabled AS credential_enabled,
+          credential.session_version,
+          credential.password_hash IS NOT NULL AS password_set
         FROM \`tabCustomer\` c
         LEFT JOIN \`tabDynamic Link\` dl ON dl.link_doctype = 'Customer' AND dl.link_name = c.name AND dl.parenttype = 'Contact'
         LEFT JOIN \`tabContact\` ct ON ct.name = dl.parent
         LEFT JOIN \`tabContact Email\` ce ON ce.parent = ct.name
         LEFT JOIN \`tabUser\` u ON LOWER(u.name) = LOWER(COALESCE(NULLIF(ct.user, ''), NULLIF(ce.email_id, ''), NULLIF(ct.email_id, ''), NULLIF(c.email_id, '')))
                              OR LOWER(u.email) = LOWER(COALESCE(NULLIF(ce.email_id, ''), NULLIF(ct.email_id, ''), NULLIF(c.email_id, '')))
+        LEFT JOIN \`${WEBSITE_CREDENTIAL_TABLE}\` credential
+          ON LOWER(credential.email) = LOWER(COALESCE(NULLIF(ce.email_id, ''), NULLIF(ct.email_id, ''), NULLIF(c.email_id, '')))
         WHERE c.name = :customer
         LIMIT 20
       `,
@@ -918,7 +1018,11 @@ export async function getWebsiteCustomerAccessList({ q = "", limit = 30 } = {}) 
     const contacts = [...new Set(accessRows.map((access) => clean(access.contact)).filter(Boolean))];
     const emails = [...new Set([row.email_id, ...accessRows.map((access) => clean(access.email))].filter(Boolean))];
     const users = [...new Set(accessRows.map((access) => clean(access.user)).filter(Boolean))];
-    const websiteAccessEnabled = accessRows.some((access) => Number(access.enabled || 0));
+    const websiteAccessEnabled = accessRows.some(
+      (access) => Number(access.user_enabled || 0) && Number(access.credential_enabled || 0)
+    );
+    const passwordSet = accessRows.some((access) => Number(access.password_set || 0));
+    const sessionVersion = Math.max(0, ...accessRows.map((access) => Number(access.session_version || 0)));
     const lastLogin = accessRows.map((access) => access.last_login).filter(Boolean).sort().pop() || "";
 
     customers.push({
@@ -931,6 +1035,8 @@ export async function getWebsiteCustomerAccessList({ q = "", limit = 30 } = {}) 
       emails,
       users,
       websiteAccessEnabled,
+      passwordSet,
+      sessionVersion,
       lastLogin,
       salesOrders: Number(row.sales_orders || 0),
       invoices: Number(row.invoices || 0)

@@ -34,6 +34,7 @@ function limiter(limit, message) {
 
 export const accountLoginLimiter = limiter(8, "account_login_rate_limited");
 export const quoteRequestLimiter = limiter(20, "quote_request_rate_limited");
+export const paymentNotificationLimiter = limiter(60, "payment_notification_rate_limited");
 export const adminLimiter = limiter(60, "admin_rate_limited");
 
 function safeEqual(left, right) {

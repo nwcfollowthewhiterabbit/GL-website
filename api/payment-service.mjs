@@ -196,3 +196,25 @@ export async function queryWindcaveHostedSession(sessionId, fetchImpl = fetch) {
     responseText: transaction?.responseText || ""
   };
 }
+
+export function paymentOutcomeFromSession(session) {
+  if (session?.state === "complete" && session.authorised === true) return "approved";
+  if (session?.state === "complete") return "declined";
+  return "pending";
+}
+
+export async function verifyWindcaveNotification(payload, fetchImpl = fetch) {
+  const sessionId = clean(payload?.id || payload?.sessionId);
+  if (!sessionId) {
+    const error = new Error("Windcave notification session id is required");
+    error.code = "invalid_windcave_notification";
+    throw error;
+  }
+
+  const session = await queryWindcaveHostedSession(sessionId, fetchImpl);
+  return {
+    accepted: true,
+    outcome: paymentOutcomeFromSession(session),
+    session
+  };
+}

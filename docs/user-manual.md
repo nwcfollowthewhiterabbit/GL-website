@@ -36,9 +36,10 @@ invalid SKU lines are reported instead of being silently replaced.
    status.
 6. Select **Sign out** when finished on a shared device.
 
-Existing customers do not enter an email code. Self-registration and password
-reset are not available in the current testing version; contact
-`buy@greenleafpacific.com` for access support.
+Existing customers do not enter an email code. Self-registration and
+self-service password recovery are not available in the current testing
+version; Green Leaf support can reset, disable or restore an existing account.
+Contact `buy@greenleafpacific.com` for access support.
 
 ## Online Payment
 

@@ -24,6 +24,19 @@ verification. Credentials читаются только из runtime environment
 
 Payment adapter поддерживает UAT base URL и остается отключенным по умолчанию.
 
+## Storefront fallback
+
+ERP-controlled departments, banners, catalogs, manufacturers и customer corner
+сохраняют `source` metadata. `STOREFRONT_FALLBACK_MODE` определяет поведение:
+
+- `allow` сохраняет локальный fallback;
+- `warn` сохраняет fallback и помечает degraded resources в
+  `/api/storefront/diagnostics`;
+- `deny` возвращает ошибку вместо неявной подмены ERP-контента.
+
+Testing использует `warn`; переход на `deny` выполняется после заполнения и
+проверки всех ERP website DocTypes.
+
 ## GitHub
 
 `main` является release branch. CI выполняет repository contract, foundation

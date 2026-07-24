@@ -13,8 +13,25 @@
 - Существующим ERP Customer password назначается через защищенный admin API.
 - Хранится только `scrypt` hash и salt.
 - Login error не подтверждает существование email.
-- Session подписана отдельным secret и передается secure cookie.
+- Session подписана отдельным secret, содержит credential version и передается
+  secure cookie.
+- Password reset, disable и enable увеличивают credential version; все ранее
+  выданные cookie после этого отклоняются.
 - Email Customer должен совпасть с разрешенной Contact/Customer link.
+
+## Customer lifecycle
+
+- `POST /api/admin/customer-access/link` связывает существующего Customer с
+  Contact/User, но не создает пароль.
+- `POST /api/admin/customer-access/password` устанавливает или сбрасывает пароль,
+  включает доступ и отзывает старые сессии.
+- `POST /api/admin/customer-access/disable` выключает User/credential и отзывает
+  старые сессии.
+- `POST /api/admin/customer-access/enable` повторно включает существующий
+  credential без смены пароля и также отзывает старые сессии.
+- Все admin endpoints защищены `ADMIN_API_TOKEN` и rate limit.
+- Self-registration и self-service password recovery не активируются до
+  согласования email verification/delivery процесса.
 
 ## Backend enforcement
 

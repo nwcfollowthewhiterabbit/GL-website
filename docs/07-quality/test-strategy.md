@@ -12,8 +12,10 @@ npm run verify
 2. 49 foundation unit/contract tests;
 3. TypeScript typecheck;
 4. account authentication tests;
-5. Windcave adapter tests;
-6. production build.
+5. account isolation, quote idempotency, fallback и payment notification
+   contract tests;
+6. Windcave adapter tests;
+7. production build.
 
 ## Runtime smoke
 

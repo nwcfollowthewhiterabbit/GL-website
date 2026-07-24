@@ -17,35 +17,18 @@ import { ServiceContactSection } from "./components/ServiceContactSection";
 import { SiteFooter } from "./components/SiteFooter";
 import { SiteHeader } from "./components/SiteHeader";
 import { featuredProducts as fallbackProducts } from "./data/catalog";
-import { websiteCatalogDownloads as fallbackWebsiteCatalogs } from "./data/catalogDownloadsSeed.mjs";
-import { heroBanners as fallbackHeroBanners } from "./data/heroBannersSeed.mjs";
-import { websiteManufacturers as fallbackWebsiteManufacturers } from "./data/manufacturersSeed.mjs";
-import {
-  matchedItemGroups,
-  websiteCategories as fallbackWebsiteCategories,
-  websiteCategoryCount
-} from "./data/websiteCategories";
+import { matchedItemGroups, websiteCategoryCount } from "./data/websiteCategories";
+import { useCustomerAccount } from "./hooks/useCustomerAccount";
+import { useStorefrontContent } from "./hooks/useStorefrontContent";
 import {
   createQuoteRequest,
-  fetchAccountInvoiceDetail,
-  fetchAccountOrderDetail,
-  fetchAccountQuoteDetail,
-  fetchAccountSession,
   fetchCatalogDiagnostics,
   fetchCatalogProduct,
   fetchCatalogFacets,
   fetchCatalogProducts,
   fetchCatalogSuggestions,
-  fetchCustomerCornerSettings,
-  fetchFeaturedCatalogProducts,
   fetchItemGroups,
-  fetchRelatedCatalogProducts,
-  fetchWebsiteBanners,
-  fetchWebsiteCatalogs,
-  fetchWebsiteDepartments,
-  fetchWebsiteManufacturers,
-  loginAccount,
-  logoutAccount,
+  fetchRelatedCatalogProducts
 } from "./lib/api";
 import { catalogPath, departmentCategoryPath, findCategoryBySlug, parseStorefrontRoute, productPath, type StorefrontRoute } from "./lib/routes";
 import { numericPrice } from "./lib/catalog";
@@ -54,34 +37,16 @@ import type {
   CatalogFacets,
   CatalogProduct,
   CatalogSuggestion,
-  AccountSession,
-  AccountDocumentDetail,
-  CustomerCornerSettings,
   ItemGroup,
   QuoteLine,
   QuoteRequestResponse,
-  QuoteResult,
-  RecentQuote,
-  WebsiteBanner,
-  WebsiteCatalogDownload,
-  WebsiteCategory,
-  WebsiteManufacturer
+  QuoteResult
 } from "./types";
+import "./styles/account.css";
+import "./styles/payment.css";
 import "./main.css";
 
 const PAGE_SIZE = 12;
-
-const fallbackCustomerCornerSettings: CustomerCornerSettings = {
-  enabled: true,
-  loginEnabled: false,
-  showQuoteHistory: true,
-  showPurchaseHistory: true,
-  title: "Customer account for trade buyers.",
-  introCopy: "Sign in with your Green Leaf customer credentials to view quotations, orders, invoices and current statuses.",
-  salesEmail: "buy@greenleafpacific.com",
-  salesPhone: "+679 670 2222",
-  paymentNote: "In-stock items use full payment; special-order items require a 70% deposit."
-};
 
 function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
@@ -142,11 +107,6 @@ export function App({ initialRoute }: AppProps = {}) {
   const [deliveryLocation, setDeliveryLocation] = useState("");
   const [quoteNotes, setQuoteNotes] = useState("");
   const [itemGroups, setItemGroups] = useState<ItemGroup[]>([]);
-  const [websiteDepartments, setWebsiteDepartments] = useState<WebsiteCategory[]>([]);
-  const [websiteBanners, setWebsiteBanners] = useState<WebsiteBanner[]>([]);
-  const [websiteCatalogs, setWebsiteCatalogs] = useState<WebsiteCatalogDownload[]>([]);
-  const [websiteManufacturers, setWebsiteManufacturers] = useState<WebsiteManufacturer[]>([]);
-  const [customerCornerSettings, setCustomerCornerSettings] = useState<CustomerCornerSettings>(fallbackCustomerCornerSettings);
   const [searchTerm, setSearchTerm] = useState("");
   const [catalogSort, setCatalogSort] = useState("featured");
   const [minPrice, setMinPrice] = useState("");
@@ -160,29 +120,15 @@ export function App({ initialRoute }: AppProps = {}) {
   const [previewProduct, setPreviewProduct] = useState<CatalogProduct | null>(null);
   const [productLoading, setProductLoading] = useState(false);
   const [relatedProducts, setRelatedProducts] = useState<CatalogProduct[]>([]);
-  const [recommendedProducts, setRecommendedProducts] = useState<CatalogProduct[]>([]);
   const [catalogFacets, setCatalogFacets] = useState<CatalogFacets | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [catalogSuggestions, setCatalogSuggestions] = useState<CatalogSuggestion[]>([]);
   const [catalogSuggestionsLoading, setCatalogSuggestionsLoading] = useState(false);
   const [quoteSubmitting, setQuoteSubmitting] = useState(false);
   const [quoteResult, setQuoteResult] = useState<QuoteResult | null>(null);
-  const [accountEmail, setAccountEmail] = useState("");
-  const [accountPassword, setAccountPassword] = useState("");
-  const [accountSession, setAccountSession] = useState<AccountSession | null>(null);
-  const [accountQuotes, setAccountQuotes] = useState<RecentQuote[]>([]);
-  const [accountStatus, setAccountStatus] = useState("");
-  const [accountLoading, setAccountLoading] = useState(false);
-  const [accountDetail, setAccountDetail] = useState<AccountDocumentDetail | null>(null);
-  const [accountDetailLoading, setAccountDetailLoading] = useState(false);
-  const websiteNavigationCategories = websiteDepartments.length ? websiteDepartments : fallbackWebsiteCategories;
-  const heroBanners = websiteBanners.length ? websiteBanners : (fallbackHeroBanners as WebsiteBanner[]);
-  const catalogDownloads = websiteCatalogs.length
-    ? websiteCatalogs
-    : (fallbackWebsiteCatalogs as WebsiteCatalogDownload[]);
-  const manufacturerLogos = websiteManufacturers.length
-    ? websiteManufacturers
-    : (fallbackWebsiteManufacturers as WebsiteManufacturer[]);
+  const storefront = useStorefrontContent();
+  const account = useCustomerAccount(route.view === "account");
+  const websiteNavigationCategories = storefront.departments;
 
   useEffect(() => {
     window.history.scrollRestoration = "manual";
@@ -252,7 +198,7 @@ export function App({ initialRoute }: AppProps = {}) {
     return () => {
       ignore = true;
     };
-  }, [activeCategory, activeWebsiteCategory, catalogSort, itemGroups, maxPrice, minPrice, page, searchTerm, websiteDepartments]);
+  }, [activeCategory, activeWebsiteCategory, catalogSort, itemGroups, maxPrice, minPrice, page, searchTerm, websiteNavigationCategories]);
 
   useEffect(() => {
     fetchCatalogFacets()
@@ -266,36 +212,6 @@ export function App({ initialRoute }: AppProps = {}) {
           .then((groups) => setItemGroups(groups.filter((group: ItemGroup) => group.itemCount > 0)))
           .catch(() => setItemGroups([]));
       });
-  }, []);
-
-  useEffect(() => {
-    fetchWebsiteDepartments()
-      .then((departments) => setWebsiteDepartments(departments.filter((department) => department.itemGroups.length)))
-      .catch(() => setWebsiteDepartments([]));
-  }, []);
-
-  useEffect(() => {
-    fetchWebsiteBanners()
-      .then((banners) => setWebsiteBanners(banners.filter((banner) => banner.image && banner.title)))
-      .catch(() => setWebsiteBanners([]));
-  }, []);
-
-  useEffect(() => {
-    fetchWebsiteCatalogs()
-      .then((catalogs) => setWebsiteCatalogs(catalogs.filter((catalog) => catalog.fileUrl && catalog.title)))
-      .catch(() => setWebsiteCatalogs([]));
-  }, []);
-
-  useEffect(() => {
-    fetchWebsiteManufacturers()
-      .then((manufacturers) => setWebsiteManufacturers(manufacturers.filter((manufacturer) => manufacturer.logo && manufacturer.name)))
-      .catch(() => setWebsiteManufacturers([]));
-  }, []);
-
-  useEffect(() => {
-    fetchCustomerCornerSettings()
-      .then((settings) => setCustomerCornerSettings(settings || fallbackCustomerCornerSettings))
-      .catch(() => setCustomerCornerSettings(fallbackCustomerCornerSettings));
   }, []);
 
   useEffect(() => {
@@ -356,7 +272,7 @@ export function App({ initialRoute }: AppProps = {}) {
     setActiveWebsiteCategory("");
     setActiveCategory(category);
     setPage(1);
-  }, [itemGroups, route, websiteDepartments]);
+  }, [itemGroups, route, websiteNavigationCategories]);
 
   useEffect(() => {
     if (route.view !== "product") {
@@ -403,12 +319,6 @@ export function App({ initialRoute }: AppProps = {}) {
   }, []);
 
   useEffect(() => {
-    fetchFeaturedCatalogProducts(8)
-      .then(setRecommendedProducts)
-      .catch(() => setRecommendedProducts([]));
-  }, []);
-
-  useEffect(() => {
     const saved = window.localStorage.getItem("greenleaf.quoteLines");
     if (!saved) return;
     try {
@@ -420,22 +330,6 @@ export function App({ initialRoute }: AppProps = {}) {
       window.localStorage.removeItem("greenleaf.quoteLines");
     }
   }, []);
-
-  useEffect(() => {
-    if (route.view !== "account") return;
-    setAccountLoading(true);
-    fetchAccountSession()
-      .then((account) => {
-        setAccountSession(account);
-        setAccountEmail(account.email);
-        setAccountQuotes(account.quotes || []);
-        setAccountStatus("");
-      })
-      .catch(() => {
-        setAccountSession(null);
-      })
-      .finally(() => setAccountLoading(false));
-  }, [route.view]);
 
   useEffect(() => {
     window.localStorage.setItem("greenleaf.quoteLines", JSON.stringify(quoteLines));
@@ -694,115 +588,11 @@ export function App({ initialRoute }: AppProps = {}) {
     }
   }
 
-  async function completeAccountLogin() {
-    if (!isValidEmail(accountEmail)) {
-      setAccountStatus("Enter a valid buyer email.");
-      return;
-    }
-    if (!accountPassword) {
-      setAccountStatus("Enter your password.");
-      return;
-    }
-
-    setAccountLoading(true);
-    setAccountStatus("Signing in...");
-    try {
-      const result = await loginAccount(accountEmail, accountPassword);
-      if (!result.ok) {
-        setAccountStatus("Incorrect email or password.");
-        return;
-      }
-      const account = await fetchAccountSession();
-      setAccountSession(account);
-      setAccountEmail(account.email);
-      setAccountQuotes(account.quotes || []);
-      setAccountPassword("");
-      setAccountStatus("Signed in.");
-    } catch {
-      setAccountStatus("Login failed.");
-    } finally {
-      setAccountLoading(false);
-    }
-  }
-
-  function refreshAccount() {
-    if (!accountSession) return;
-    setAccountLoading(true);
-    fetchAccountSession()
-      .then((account) => {
-        setAccountSession(account);
-        setAccountQuotes(account.quotes || []);
-        setAccountStatus("Account refreshed.");
-      })
-      .catch(() => setAccountStatus("Account data could not be loaded."))
-      .finally(() => setAccountLoading(false));
-  }
-
-  async function viewAccountQuote(name: string) {
-    if (!accountSession) {
-      setAccountStatus("Sign in to view quotation details.");
-      return;
-    }
-    setAccountDetailLoading(true);
-    setAccountStatus("Loading quotation details...");
-    try {
-      setAccountDetail(await fetchAccountQuoteDetail(name));
-      setAccountStatus("");
-    } catch {
-      setAccountStatus("Quotation details could not be loaded.");
-    } finally {
-      setAccountDetailLoading(false);
-    }
-  }
-
-  async function viewAccountOrder(name: string) {
-    if (!accountSession) {
-      setAccountStatus("Sign in to view order details.");
-      return;
-    }
-    setAccountDetailLoading(true);
-    setAccountStatus("Loading order details...");
-    try {
-      setAccountDetail(await fetchAccountOrderDetail(name));
-      setAccountStatus("");
-    } catch {
-      setAccountStatus("Order details could not be loaded.");
-    } finally {
-      setAccountDetailLoading(false);
-    }
-  }
-
-  async function viewAccountInvoice(name: string) {
-    if (!accountSession) {
-      setAccountStatus("Sign in to view invoice details.");
-      return;
-    }
-    setAccountDetailLoading(true);
-    setAccountStatus("Loading invoice details...");
-    try {
-      setAccountDetail(await fetchAccountInvoiceDetail(name));
-      setAccountStatus("");
-    } catch {
-      setAccountStatus("Invoice details could not be loaded.");
-    } finally {
-      setAccountDetailLoading(false);
-    }
-  }
-
-  async function signOutAccount() {
-    await logoutAccount().catch(() => undefined);
-    setAccountSession(null);
-    setAccountQuotes([]);
-    setAccountDetail(null);
-    setAccountPassword("");
-    setAccountStatus("Signed out.");
-  }
-
   return (
     <main className="app">
       <SiteHeader departments={websiteNavigationCategories} quoteCount={quoteCount} onOpenQuote={() => setQuoteOpen(true)} />
       {route.view === "catalog" ? (
-        <HeroSection banners={heroBanners} />
+        <HeroSection banners={storefront.banners} />
       ) : null}
       {route.view === "policy" ? (
         <PolicyPage policy={route.policy} />
@@ -814,26 +604,26 @@ export function App({ initialRoute }: AppProps = {}) {
         <NotFoundPage />
       ) : route.view === "account" ? (
         <AccountPage
-          email={accountEmail}
-          password={accountPassword}
-          quotes={accountQuotes}
-          account={accountSession}
-          status={accountStatus}
-          isLoading={accountLoading}
-          isAuthenticated={Boolean(accountSession)}
-          settings={customerCornerSettings}
-          onEmailChange={setAccountEmail}
-          onPasswordChange={setAccountPassword}
-          onLogin={completeAccountLogin}
-          onRefreshAccount={refreshAccount}
-          onLogout={signOutAccount}
+          email={account.email}
+          password={account.password}
+          quotes={account.quotes}
+          account={account.session}
+          status={account.status}
+          isLoading={account.isLoading}
+          isAuthenticated={Boolean(account.session)}
+          settings={storefront.customerCorner}
+          onEmailChange={account.setEmail}
+          onPasswordChange={account.setPassword}
+          onLogin={account.login}
+          onRefreshAccount={account.refresh}
+          onLogout={account.logout}
           onOpenQuote={() => setQuoteOpen(true)}
-          detail={accountDetail}
-          isDetailLoading={accountDetailLoading}
-          onViewQuote={viewAccountQuote}
-          onViewOrder={viewAccountOrder}
-          onViewInvoice={viewAccountInvoice}
-          onCloseDetail={() => setAccountDetail(null)}
+          detail={account.detail}
+          isDetailLoading={account.isDetailLoading}
+          onViewQuote={account.viewQuote}
+          onViewOrder={account.viewOrder}
+          onViewInvoice={account.viewInvoice}
+          onCloseDetail={account.closeDetail}
         />
       ) : route.view === "product" ? (
         <ProductDetailPage
@@ -882,10 +672,10 @@ export function App({ initialRoute }: AppProps = {}) {
         </>
       )}
       {route.view === "catalog" ? (
-        <RecommendedProductsSection products={recommendedProducts} onSelectProduct={openProductPreview} />
+        <RecommendedProductsSection products={storefront.recommendedProducts} onSelectProduct={openProductPreview} />
       ) : null}
-      {route.view === "catalog" ? <CatalogDownloadsSection catalogs={catalogDownloads} /> : null}
-      {route.view === "catalog" ? <LegacyContentSection manufacturers={manufacturerLogos} /> : null}
+      {route.view === "catalog" ? <CatalogDownloadsSection catalogs={storefront.catalogs} /> : null}
+      {route.view === "catalog" ? <LegacyContentSection manufacturers={storefront.manufacturers} /> : null}
       {route.view === "how-we-operate" || route.view === "about" || route.view === "account" ? null : (
         <ServiceContactSection onOpenQuote={() => setQuoteOpen(true)} />
       )}

@@ -4,6 +4,7 @@ import { legacySyncRules } from "./legacy-sync-rules.mjs";
 
 const DEFAULTS = legacySyncRules.quote.defaults;
 const customFieldCache = new Map();
+const inFlightQuoteRequests = new Map();
 const EXCLUDED_STOCK_WAREHOUSES = ["Showroom - GL", "Furniture Showroom (Upstairs) - GL"];
 
 function clean(value) {
@@ -11,7 +12,16 @@ function clean(value) {
 }
 
 function quoteId() {
-  return `GLQ-${Date.now()}`;
+  return `GLQ-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+export function normalizeQuoteRequestId(value) {
+  const normalized = clean(value).replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 64);
+  return normalized || quoteId();
+}
+
+export function quoteMarkerFromId(value) {
+  return `Green Leaf Website Quote #${normalizeQuoteRequestId(value)}`;
 }
 
 async function hasCustomField(dt, fieldname) {
@@ -153,8 +163,8 @@ async function existingQuotationByMarker(marker, id) {
 }
 
 export async function prepareQuoteRequest(payload = {}) {
-  const id = clean(payload.id) || quoteId();
-  const marker = `Green Leaf Website Quote #${id}`;
+  const id = normalizeQuoteRequestId(payload.id);
+  const marker = quoteMarkerFromId(id);
   const customer = payload.customer || {
     company: payload.company,
     contact: payload.contact,
@@ -280,7 +290,7 @@ export async function prepareQuoteRequest(payload = {}) {
   };
 }
 
-export async function createQuoteRequest(payload = {}) {
+async function createQuoteRequestOnce(payload = {}) {
   const customer = payload.customer || {};
   const requiredCustomerFields = ["company", "email", "phone", "location"].filter((field) => !clean(customer[field]));
   if (requiredCustomerFields.length) {
@@ -342,6 +352,18 @@ export async function createQuoteRequest(payload = {}) {
     validLines: prepared.validLines,
     fulfillment: prepared.fulfillment
   };
+}
+
+export async function createQuoteRequest(payload = {}) {
+  const requestPayload = { ...payload, id: normalizeQuoteRequestId(payload.id) };
+  const existing = inFlightQuoteRequests.get(requestPayload.id);
+  if (existing) return existing;
+
+  const operation = createQuoteRequestOnce(requestPayload).finally(() => {
+    inFlightQuoteRequests.delete(requestPayload.id);
+  });
+  inFlightQuoteRequests.set(requestPayload.id, operation);
+  return operation;
 }
 
 export async function getRecentWebsiteQuotes(limit = 12) {

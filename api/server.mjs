@@ -13,7 +13,7 @@ import {
 import { pingErpDb } from "./erpnext-db.mjs";
 import { legacySyncRules } from "./legacy-sync-rules.mjs";
 import { createQuoteRequest, getRecentWebsiteQuotes } from "./quote-service.mjs";
-import { getPaymentConfig } from "./payment-service.mjs";
+import { getPaymentConfig, verifyWindcaveNotification } from "./payment-service.mjs";
 import {
   getWebsiteBanners,
   getWebsiteCatalogs,
@@ -22,15 +22,20 @@ import {
   getWebsiteManufacturers
 } from "./storefront-control-service.mjs";
 import {
+  applyStorefrontFallbackPolicy,
+  createStorefrontDiagnostics
+} from "./storefront-fallback-policy.mjs";
+import {
   ACCOUNT_SESSION_COOKIE,
   accountSessionCookieOptions,
   authenticateAccountPassword,
   disableWebsiteCustomerAccess,
+  enableWebsiteCustomerAccess,
   endAccountSession,
   getAccountInvoiceDetailByEmail,
   getAccountOrderDetailByEmail,
   getAccountQuotationDetailByEmail,
-  getAccountSession,
+  getVerifiedAccountSession,
   getCustomerInvoicesByEmail,
   getCustomerOrdersByEmail,
   getCustomerQuotesForAccount,
@@ -44,6 +49,7 @@ import {
   accountLoginLimiter,
   adminLimiter,
   corsOptions,
+  paymentNotificationLimiter,
   quoteRequestLimiter,
   requireAdminToken
 } from "./security.mjs";
@@ -81,6 +87,7 @@ app.use(cors(corsOptions));
 app.use(express.json({ limit: "1mb" }));
 app.use("/api/account/login", accountLoginLimiter);
 app.use("/api/quote-requests", quoteRequestLimiter);
+app.use("/api/payments/notification", paymentNotificationLimiter);
 app.use("/api/admin", adminLimiter, requireAdminToken);
 app.use("/api/sync", adminLimiter, requireAdminToken);
 
@@ -93,6 +100,19 @@ app.get("/health", (_req, res) => {
 
 app.get("/api/payments/config", (_req, res) => {
   res.json(getPaymentConfig());
+});
+
+app.post("/api/payments/notification", async (req, res) => {
+  try {
+    const result = await verifyWindcaveNotification(req.body || {});
+    res.status(202).json({ accepted: result.accepted, outcome: result.outcome });
+  } catch (error) {
+    const status = error?.code === "invalid_windcave_notification" || error?.code === "invalid_windcave_session_id" ? 400 : 503;
+    res.status(status).json({
+      accepted: false,
+      error: error?.code || "windcave_notification_failed"
+    });
+  }
 });
 
 app.get("/api/admin/health", async (_req, res) => {
@@ -198,7 +218,7 @@ app.get("/api/catalog/suggestions", async (req, res) => {
 
 app.get("/api/storefront/departments", async (_req, res) => {
   try {
-    res.json(await getWebsiteDepartments());
+    res.json(applyStorefrontFallbackPolicy(await getWebsiteDepartments(), "departments"));
   } catch (error) {
     res.status(503).json({
       error: "erpnext_website_departments_unavailable",
@@ -209,7 +229,7 @@ app.get("/api/storefront/departments", async (_req, res) => {
 
 app.get("/api/storefront/banners", async (_req, res) => {
   try {
-    res.json(await getWebsiteBanners());
+    res.json(applyStorefrontFallbackPolicy(await getWebsiteBanners(), "banners"));
   } catch (error) {
     res.status(503).json({
       error: "erpnext_website_banners_unavailable",
@@ -220,7 +240,7 @@ app.get("/api/storefront/banners", async (_req, res) => {
 
 app.get("/api/storefront/catalogs", async (_req, res) => {
   try {
-    res.json(await getWebsiteCatalogs());
+    res.json(applyStorefrontFallbackPolicy(await getWebsiteCatalogs(), "catalogs"));
   } catch (error) {
     res.status(503).json({
       error: "erpnext_website_catalogs_unavailable",
@@ -231,7 +251,7 @@ app.get("/api/storefront/catalogs", async (_req, res) => {
 
 app.get("/api/storefront/manufacturers", async (_req, res) => {
   try {
-    res.json(await getWebsiteManufacturers());
+    res.json(applyStorefrontFallbackPolicy(await getWebsiteManufacturers(), "manufacturers"));
   } catch (error) {
     res.status(503).json({
       error: "erpnext_website_manufacturers_unavailable",
@@ -244,11 +264,29 @@ app.get("/api/storefront/customer-corner", async (_req, res) => {
   try {
     const result = await getWebsiteCustomerCornerSettings();
     result.settings.loginEnabled = result.settings.loginEnabled && isAccountLoginAvailable();
-    res.json(result);
+    res.json(applyStorefrontFallbackPolicy(result, "customerCorner"));
   } catch (error) {
     res.status(503).json({
       error: "erpnext_customer_corner_settings_unavailable",
       message: error instanceof Error ? error.message : "Unknown ERPNext customer corner settings error"
+    });
+  }
+});
+
+app.get("/api/storefront/diagnostics", async (_req, res) => {
+  try {
+    const [departments, banners, catalogs, manufacturers, customerCorner] = await Promise.all([
+      getWebsiteDepartments(),
+      getWebsiteBanners(),
+      getWebsiteCatalogs(),
+      getWebsiteManufacturers(),
+      getWebsiteCustomerCornerSettings()
+    ]);
+    res.json(createStorefrontDiagnostics({ departments, banners, catalogs, manufacturers, customerCorner }));
+  } catch (error) {
+    res.status(503).json({
+      error: "erpnext_storefront_diagnostics_unavailable",
+      message: error instanceof Error ? error.message : "Unknown ERPNext storefront diagnostics error"
     });
   }
 });
@@ -382,8 +420,8 @@ app.post("/api/quote-requests", (req, res) => {
     });
 });
 
-app.get("/api/account/quotes", (req, res) => {
-  const session = getAccountSession(req);
+app.get("/api/account/quotes", async (req, res) => {
+  const session = await getVerifiedAccountSession(req);
   if (!session) {
     res.status(401).json({ error: "not_authenticated" });
     return;
@@ -414,7 +452,7 @@ app.post("/api/account/login", async (req, res) => {
 });
 
 app.get("/api/account/session", async (req, res) => {
-  const session = getAccountSession(req);
+  const session = await getVerifiedAccountSession(req);
   if (!session) {
     res.status(401).json({ error: "not_authenticated" });
     return;
@@ -437,7 +475,7 @@ app.get("/api/account/session", async (req, res) => {
 });
 
 app.get("/api/account/invoices/:name", async (req, res) => {
-  const session = getAccountSession(req);
+  const session = await getVerifiedAccountSession(req);
   if (!session) {
     res.status(401).json({ error: "not_authenticated" });
     return;
@@ -459,7 +497,7 @@ app.get("/api/account/invoices/:name", async (req, res) => {
 });
 
 app.get("/api/account/quotes/:name", async (req, res) => {
-  const session = getAccountSession(req);
+  const session = await getVerifiedAccountSession(req);
   if (!session) {
     res.status(401).json({ error: "not_authenticated" });
     return;
@@ -481,7 +519,7 @@ app.get("/api/account/quotes/:name", async (req, res) => {
 });
 
 app.get("/api/account/orders/:name", async (req, res) => {
-  const session = getAccountSession(req);
+  const session = await getVerifiedAccountSession(req);
   if (!session) {
     res.status(401).json({ error: "not_authenticated" });
     return;
@@ -623,6 +661,18 @@ app.post("/api/admin/customer-access/disable", async (req, res) => {
     res.status(503).json({
       error: "erpnext_customer_access_disable_unavailable",
       message: error instanceof Error ? error.message : "Unknown ERPNext customer access disable error"
+    });
+  }
+});
+
+app.post("/api/admin/customer-access/enable", async (req, res) => {
+  try {
+    const result = await enableWebsiteCustomerAccess(req.body?.email);
+    res.status(result.ok ? 200 : 400).json(result);
+  } catch (error) {
+    res.status(503).json({
+      error: "erpnext_customer_access_enable_unavailable",
+      message: error instanceof Error ? error.message : "Unknown ERPNext customer access enable error"
     });
   }
 });

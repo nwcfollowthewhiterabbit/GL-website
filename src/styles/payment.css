@@ -1,0 +1,98 @@
+.payment-trust {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 30px;
+  padding: 16px;
+  border: 1px solid rgba(31, 76, 52, 0.2);
+  border-radius: 8px;
+  background: #f5f8f2;
+}
+
+.payment-trust__copy {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.payment-trust__copy > svg {
+  flex: 0 0 auto;
+  color: var(--leaf-dark);
+}
+
+.payment-trust__copy div {
+  display: grid;
+  gap: 3px;
+}
+
+.payment-trust__copy strong {
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.payment-trust__copy span {
+  max-width: 520px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.payment-brands {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 7px;
+}
+
+.payment-brand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 30px;
+  padding: 5px 8px;
+  border: 1px solid #d8ddd6;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.payment-brand--visa {
+  color: #1434cb;
+  font-size: 15px;
+  font-style: italic;
+}
+
+.payment-brand--mastercard {
+  color: #252525;
+}
+
+.payment-brand--mastercard svg {
+  color: #eb001b;
+}
+
+.payment-brand--amex {
+  max-width: 70px;
+  background: #1976a8;
+  color: #fff;
+  font-size: 8px;
+  line-height: 1.05;
+  text-align: center;
+  white-space: normal;
+}
+
+.payment-trust--compact {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 11px 12px;
+}
+
+.payment-trust--compact .payment-brands {
+  flex-wrap: wrap;
+}

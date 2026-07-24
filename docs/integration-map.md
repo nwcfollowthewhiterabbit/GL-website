@@ -145,7 +145,9 @@ Prepared implementation pieces:
 - Server-side Windcave HPP session creation and session-result verification adapter.
 - Public `GET /api/payments/config` readiness endpoint with no secrets.
 - Callback paths reserved at `/payment/approved`, `/payment/declined` and `/payment/cancelled`.
-- Server notification URL reserved at `/api/payments/notification`.
+- `POST /api/payments/notification` validates the session id and obtains the
+  authoritative result from Windcave server-to-server. ERP write remains
+  disabled until the payable document mapping is confirmed.
 - ERPNext payment update path, most likely `Payment Entry` or status fields on the related quotation/order/invoice.
 - Website Command Center settings for enabling online payments and selecting the payment flow.
 

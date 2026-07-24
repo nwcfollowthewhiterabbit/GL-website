@@ -90,6 +90,14 @@ export type CustomerCornerSettings = {
   paymentNote: string;
 };
 
+export type StorefrontContentSources = {
+  departments: string;
+  banners: string;
+  catalogs: string;
+  manufacturers: string;
+  customerCorner: string;
+};
+
 export type CatalogDiagnostics = {
   priceList?: string;
   storefrontRules?: StorefrontRules;
