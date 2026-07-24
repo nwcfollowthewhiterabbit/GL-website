@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { setWebsiteCustomerPassword } from "../api/account-service.mjs";
+import { getErpPool } from "../api/erpnext-db.mjs";
 import { createDoc, listDoc } from "../api/erpnext-rest.mjs";
 
 const email = String(process.env.ACCOUNT_TEST_LOGIN_EMAIL || "customer-demo@example.com").trim().toLowerCase();
@@ -136,7 +137,11 @@ async function main() {
   console.log(`Website login: ${credential.email}`);
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : error);
-  process.exitCode = 1;
-});
+main()
+  .catch((error) => {
+    console.error(error instanceof Error ? error.message : error);
+    process.exitCode = 1;
+  })
+  .finally(async () => {
+    await getErpPool().end();
+  });
