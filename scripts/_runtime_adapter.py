@@ -314,13 +314,13 @@ remote="$(git -C "$repo" rev-parse "origin/$branch")"
 test "$remote" = "$expected"
 git -C "$repo" merge-base --is-ancestor HEAD "$expected"
 git -C "$repo" merge --ff-only "$expected"
-"$compose" -f "$repo/docker-compose.yml" build "$@"
+"$compose" -f "$repo/docker-compose.yml" build "$@" >&2
 if [ "$migrate_schema" = "true" ]; then
-  "$compose" -f "$repo/docker-compose.yml" run --rm -T api npm run erpnext:migrate-website
+  "$compose" -f "$repo/docker-compose.yml" run --rm -T api npm run erpnext:migrate-website >&2
 else
-  "$compose" -f "$repo/docker-compose.yml" run --rm -T api npm run erpnext:check-website-migrations
+  "$compose" -f "$repo/docker-compose.yml" run --rm -T api npm run erpnext:check-website-migrations >&2
 fi
-"$compose" -f "$repo/docker-compose.yml" up -d --no-build "$@"
+"$compose" -f "$repo/docker-compose.yml" up -d --no-build "$@" >&2
 test "$(git -C "$repo" rev-parse HEAD)" = "$expected"
 images="$(docker inspect --format '{{.Name}} {{.Image}}' \
   testinggreenleafpacificcom_api_1 testinggreenleafpacificcom_web_1 \
@@ -416,11 +416,11 @@ git -C "$repo" switch --detach "$revision"
 rm -f "$repo/.env"
 rm -rf "$repo/public/uploads" "$repo/uploads"
 tar -C "$repo" -xzf "$archive" --no-same-owner --no-same-permissions
-"$compose" -f "$repo/docker-compose.yml" build "$@"
+"$compose" -f "$repo/docker-compose.yml" build "$@" >&2
 if node -e 'const p=require(process.argv[1]); process.exit(p.scripts?.["erpnext:check-website-migrations"] ? 0 : 1)' "$repo/package.json"; then
-  "$compose" -f "$repo/docker-compose.yml" run --rm -T api npm run erpnext:check-website-migrations
+  "$compose" -f "$repo/docker-compose.yml" run --rm -T api npm run erpnext:check-website-migrations >&2
 fi
-"$compose" -f "$repo/docker-compose.yml" up -d --no-build "$@"
+"$compose" -f "$repo/docker-compose.yml" up -d --no-build "$@" >&2
 python3 - "$plan" <<'PY'
 import json, sys
 path = sys.argv[1]
