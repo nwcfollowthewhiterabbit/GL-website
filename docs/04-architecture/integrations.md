@@ -1,0 +1,41 @@
+# Интеграции
+
+## ERPNext
+
+ERPNext предоставляет Item, Item Group, Item Price, Bin, Customer, Quotation,
+Sales Order и Sales Invoice. Website-specific content и visibility controls
+хранятся в versioned fixtures и применяются отдельно.
+
+Направления:
+
+- catalog/content: ERPNext -> website;
+- quote request: website -> draft ERPNext Quotation;
+- account history: ERPNext -> authenticated customer;
+- payment result: Windcave -> website verification -> ERPNext, еще не активирован.
+
+Текущая карта и discovered data:
+[../integration-map.md](../integration-map.md).
+
+## Windcave
+
+Backend создает HPP session и передает browser только redirect URL. Callback и
+notification не считаются доказательством оплаты до server-side provider
+verification. Credentials читаются только из runtime environment.
+
+Payment adapter поддерживает UAT base URL и остается отключенным по умолчанию.
+
+## GitHub
+
+`main` является release branch. CI выполняет repository contract, foundation
+tests, TypeScript checks, account/payment tests и production build.
+
+## Testing host
+
+- SSH alias: `cloud`;
+- repository path:
+  `/home/csrss/stacks/testing.greenleafpacific.com`;
+- public URL: `https://testing.greenleafpacific.com`;
+- containers: `testinggreenleafpacificcom_web_1` и
+  `testinggreenleafpacificcom_api_1`.
+
+Эти имена не являются production identifiers.

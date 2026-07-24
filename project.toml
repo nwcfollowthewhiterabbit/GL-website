@@ -1,0 +1,29 @@
+schema_version = 1
+
+[project]
+name = "Green Leaf Pacific Website"
+goal = "Provide an ERPNext-backed B2B storefront, customer account, and compliant Windcave hosted payment flow for Green Leaf Pacific"
+stage = "Testing and payment UAT readiness"
+user_ui_language = "en"
+internal_doc_language = "ru"
+test_data_prefix = "GL-WEB-E2E"
+scope = ["ERPNext-backed product catalog and quotation basket", "Customer account with quotations, orders, invoices, and password authentication", "Windcave Hosted Payment Page readiness and UAT integration", "Non-indexed testing deployment at testing.greenleafpacific.com"]
+out_of_scope = ["Production payment activation before credentials and UAT approval", "Customer self-registration before email verification is designed", "ERP implementation and ERP data backup"]
+roles = ["Customer", "Green Leaf sales or website administrator", "Website integration service", "Deployment operator"]
+business_workflows = ["Catalog selection -> order basket -> ERPNext quotation -> sales processing", "Customer login -> linked ERP customer -> document history -> detail and status", "Payable order -> Windcave hosted payment page -> callback verification -> ERP status update", "Git commit -> tested artifact -> remote testing deployment -> smoke and visual validation"]
+
+[source]
+repository = "nwcfollowthewhiterabbit/GL-website"
+branch = "main"
+
+[runtime]
+kind = "Docker Compose storefront and Node integration API connected to ERPNext"
+access_description = "Testing runtime is operated through the SSH alias cloud; environment values remain server-side"
+deployment_constraints = ["Work only in the testing.greenleafpacific.com website stack", "Do not modify or back up the ERP runtime as part of website deployment", "Keep search indexing disabled until explicit launch approval", "Keep Windcave payment disabled until UAT credentials and payable-document rules are confirmed"]
+
+[acceptance]
+owner = "Green Leaf Pacific project team"
+
+[automation]
+state = "scaffold"
+runtime_ready = false

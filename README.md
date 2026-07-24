@@ -2,6 +2,36 @@
 
 Modern B2B storefront and integration foundation for Green Leaf Pacific.
 
+## Development Workflow
+
+Install dependencies and run the complete repository verification:
+
+```bash
+npm ci
+npm run verify
+```
+
+`verify` checks the repository contract and secret policy, runs the foundation
+tests, typechecks the frontend, tests account authentication and the Windcave
+adapter, and creates a production build.
+
+Runtime checks are separate because they require a running stack:
+
+```bash
+SMOKE_BASE_URL=http://localhost:8080 npm run smoke
+VISUAL_BASE_URL=http://localhost:8080 npm run visual:smoke
+```
+
+Before changing behavior, read [AGENTS.md](AGENTS.md), the
+[current scope](docs/00-project/current-scope.md), and the relevant process,
+architecture, quality, and operations documents from the
+[documentation index](docs/README.md).
+
+The generated automation foundation is currently in `scaffold` state. The
+manual `npm run check:release` gate must remain fail-closed until backup,
+deployment, restore, and runtime-validation adapters are fully implemented and
+contract-tested.
+
 ## Local Docker
 
 ```bash
