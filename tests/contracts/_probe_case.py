@@ -4,59 +4,60 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import json
+import os
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-try:
-    import tomllib
-except ModuleNotFoundError:
-    import _toml_compat as tomllib
-
-from _contract import probe_errors, template_contract_test_blocker
+from validate_evidence import evidence_errors
 
 
-def assert_operation_probe(
+def assert_operation_contract(
     testcase: unittest.TestCase,
     operation: str,
 ) -> None:
-    config = tomllib.loads((ROOT / "project.toml").read_text(encoding="utf-8"))
-    state = config.get("automation", {}).get("state")
-    testcase.assertIn(state, {"scaffold", "configured"})
-    blocker = template_contract_test_blocker(state)
-    if blocker:
-        testcase.fail(blocker)
     with tempfile.TemporaryDirectory() as temporary:
         working = Path(temporary)
         sentinel = working / "sentinel"
+        evidence_path = Path(
+            os.environ.get(
+                "FOUNDATION_CONTRACT_EVIDENCE_PATH",
+                str(working / "evidence.json"),
+            )
+        )
+        run_id = os.environ.get(
+            "FOUNDATION_CONTRACT_RUN_ID",
+            f"contract-{operation.replace('_', '-')}-01234567",
+        )
         sentinel.write_text("unchanged", encoding="utf-8")
-        before = sorted(path.name for path in working.iterdir())
+        environment = os.environ.copy()
+        environment.update(
+            {
+                "FOUNDATION_CONTRACT_EVIDENCE_PATH": str(evidence_path),
+                "FOUNDATION_CONTRACT_OPERATION": operation,
+                "FOUNDATION_CONTRACT_RUN_ID": run_id,
+            }
+        )
         result = subprocess.run(
             [
                 sys.executable,
                 str(ROOT / "scripts" / f"{operation}.py"),
-                "--contract-probe",
+                "--contract-test",
             ],
             cwd=working,
+            env=environment,
             capture_output=True,
             text=True,
             check=False,
             timeout=30,
         )
-        testcase.assertEqual(
-            probe_errors(
-                operation,
-                result.returncode,
-                result.stdout,
-                result.stderr,
-                expected_configured=state == "configured",
-            ),
-            [],
-        )
-        testcase.assertEqual(
-            sorted(path.name for path in working.iterdir()),
-            before,
-        )
+        testcase.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        testcase.assertTrue(evidence_path.is_file())
+        payload = json.loads(evidence_path.read_text(encoding="utf-8"))
+        testcase.assertEqual(evidence_errors(payload, operation), [])
+        testcase.assertEqual(payload["run_id"], run_id)
+        testcase.assertEqual(payload["status"], "passed")
         testcase.assertEqual(sentinel.read_text(encoding="utf-8"), "unchanged")

@@ -128,7 +128,9 @@ Planned ERPNext endpoints:
 
 ## Payment Gateway: Westpac + Windcave HPP
 
-Status: Westpac confirmed Windcave Hosted Payment Page. The storefront and server adapter are prepared; activation remains off until Windcave UAT credentials are supplied and the final payable ERP document is selected.
+Status: Westpac confirmed Windcave Hosted Payment Page. The implementation uses
+submitted Sales Invoice outstanding balance and remains off until Windcave UAT
+credentials and ERP Payment Entry account mappings are confirmed.
 
 Recommended integration path:
 
@@ -137,7 +139,8 @@ Recommended integration path:
 - Customer is redirected to the provider for card entry.
 - The provider returns the customer to the storefront and sends a server callback/webhook.
 - Storefront API verifies the transaction with the provider before updating ERPNext.
-- ERPNext should create a Payment Entry and store the provider transaction reference. The referenced Sales Order or Sales Invoice still needs to be confirmed against the selected provider flow.
+- ERPNext creates an idempotent Payment Entry allocated to the verified Sales
+  Invoice and stores the provider transaction reference.
 
 Prepared implementation pieces:
 
@@ -148,7 +151,8 @@ Prepared implementation pieces:
 - `POST /api/payments/notification` validates the session id and obtains the
   authoritative result from Windcave server-to-server. ERP write remains
   disabled until the payable document mapping is confirmed.
-- ERPNext payment update path, most likely `Payment Entry` or status fields on the related quotation/order/invoice.
+- Реализованный ERPNext payment effect: idempotent `Payment Entry`, allocated к
+  submitted Sales Invoice; activation ожидает подтверждения account mapping.
 - Website Command Center settings for enabling online payments and selecting the payment flow.
 
 Confirmed commerce rules:
@@ -172,7 +176,8 @@ Westpac-confirmed gateway rules:
 Remaining technical-stage inputs:
 
 - Windcave REST UAT username and API key.
-- Confirmation of the final ERP document and total used to create the HPP session after VAT and delivery are applied.
+- Confirmation that submitted Sales Invoice `outstanding_amount` is the final
+  payable total after VAT/delivery/deposit handling.
 - Activation of 3-D Secure on the Windcave REST username and UAT test execution.
 - Whether provider refunds are portal-only at launch or exposed through API.
-- Exact Sales Order or Sales Invoice reference used by ERPNext Payment Entry.
+- Exact mode-of-payment, receivable and Windcave clearing account names.

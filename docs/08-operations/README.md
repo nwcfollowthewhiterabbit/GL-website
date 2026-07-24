@@ -16,6 +16,5 @@ external operational dependency и не входит в website deploy/backup.
 
 ## Automation state
 
-Repository foundation установлен, но runtime adapters остаются fail-closed.
-Это сознательно блокирует автоматическое утверждение production readiness до
-реализации contract-tested website backup, deploy, restore и validation.
+Testing runtime adapters настроены и остаются fail-closed по target, SHA,
+backup и confirmation preconditions. Production target не настроен.

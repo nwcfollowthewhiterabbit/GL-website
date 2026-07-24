@@ -6,9 +6,22 @@ process.env.PAYMENT_API_BASE_URL = "https://uat.windcave.com/api/v1";
 process.env.PAYMENT_API_USERNAME = "uat-user";
 process.env.PAYMENT_API_KEY = "uat-key";
 process.env.STORE_PUBLIC_URL = "https://testing.greenleafpacific.com";
+process.env.PAYMENT_PAYABLE_DOCTYPE = "Sales Invoice";
+process.env.PAYMENT_AMOUNT_MODE = "outstanding_total";
+process.env.PAYMENT_ERP_WRITE_ENABLED = "true";
+process.env.ERP_PAYMENT_MODE_OF_PAYMENT = "Credit Card";
+process.env.ERP_PAYMENT_PAID_FROM = "Debtors - GL";
+process.env.ERP_PAYMENT_PAID_TO = "Windcave Clearing - GL";
+process.env.ERPNEXT_API_KEY = "test-api-key";
+process.env.ERPNEXT_API_SECRET = "test-api-secret";
 
 const { isDocumentWithinCustomerAccess } = await import("../api/account-service.mjs");
 const { verifyWindcaveNotification } = await import("../api/payment-service.mjs");
+const {
+  buildPaymentEntry,
+  paymentSessionMatchesEvent
+} = await import("../api/payment-orchestration-service.mjs");
+const { websiteMigrationIds } = await import("../api/migrations/runner.mjs");
 const { normalizeQuoteRequestId, quoteMarkerFromId } = await import("../api/quote-service.mjs");
 const {
   applyStorefrontFallbackPolicy,
@@ -93,5 +106,45 @@ const diagnostics = createStorefrontDiagnostics(
 );
 assert.equal(diagnostics.healthy, false);
 assert.equal(diagnostics.resources.departments.status, "erp");
+
+const paymentEvent = {
+  request_id: "GL-WEB-PAYMENT-0001",
+  payable_doctype: "Sales Invoice",
+  payable_name: "SINV-0001",
+  customer: "CUS-0001",
+  company: "Green Leaf Ltd",
+  amount: "125.50",
+  grand_total: "125.50",
+  outstanding_amount: "125.50",
+  currency: "FJD"
+};
+assert.equal(
+  paymentSessionMatchesEvent(
+    { reference: paymentEvent.request_id, amount: "125.50", currency: "FJD" },
+    paymentEvent
+  ),
+  true
+);
+assert.equal(
+  paymentSessionMatchesEvent(
+    { reference: paymentEvent.request_id, amount: "125.51", currency: "FJD" },
+    paymentEvent
+  ),
+  false
+);
+const paymentEntry = buildPaymentEntry(paymentEvent, "txn-1", {
+  erp: {
+    modeOfPayment: "Credit Card",
+    paidFrom: "Debtors - GL",
+    paidTo: "Windcave Clearing - GL"
+  }
+});
+assert.equal(paymentEntry.reference_no, "txn-1");
+assert.equal(paymentEntry.references[0].reference_name, "SINV-0001");
+assert.equal(paymentEntry.references[0].allocated_amount, 125.5);
+assert.deepEqual(websiteMigrationIds(), [
+  "001-website-customer-credentials",
+  "002-website-payment-event"
+]);
 
 console.log("Integration contract tests passed.");

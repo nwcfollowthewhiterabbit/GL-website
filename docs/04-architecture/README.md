@@ -22,7 +22,7 @@ Browser
 - `api/`: backend validation, account scoping, ERP and payment adapters.
 - `erpnext/`: versioned fixtures and Desk assets needed by website integration.
 - `scripts/*.mjs`: build, setup, seed, smoke and browser checks.
-- `scripts/*.py`: repository foundation and fail-closed runtime contracts.
+- `scripts/*.py`: repository foundation and fail-closed testing runtime adapters.
 - `docs/`: факты, решения, процессы, quality и operations.
 - `contracts/`: machine-readable evidence and adapter obligations.
 

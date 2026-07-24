@@ -10,14 +10,14 @@
 ## Следующий этап: Windcave UAT
 
 - Получить UAT credentials.
-- Зафиксировать payable ERP document и расчет total.
+- Подтвердить реализованный Sales Invoice/outstanding-total payment mode.
 - Проверить HPP redirect, approved, declined, cancelled и notification.
-- Обеспечить идемпотентную запись payment result в ERPNext.
+- Подтвердить идемпотентную Payment Entry запись в UAT.
 - Выполнить Westpac review и SAQ A.
 
 ## Перед production
 
-- Закрыть runtime backup/deploy/restore adapters и release readiness.
+- Провести controlled restore drill и сохранить evidence.
 - Подтвердить production domain, TLS, monitoring и incident ownership.
 - Установить production credentials только в runtime.
 - Пройти acceptance на mobile/desktop и customer/admin roles.

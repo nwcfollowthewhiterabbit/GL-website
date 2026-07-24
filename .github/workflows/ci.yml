@@ -34,6 +34,8 @@ jobs:
         run: npm run test:account
       - name: Test integration contracts
         run: npm run test:integration
+      - name: Test observability
+        run: npm run test:observability
       - name: Test payment adapter
         run: npm run test:payments
       - name: Build storefront

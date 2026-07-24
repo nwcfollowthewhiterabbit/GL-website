@@ -49,5 +49,6 @@
 
 ## Остаточный риск
 
-Runtime adapters foundation пока остаются в состоянии `scaffold`; автоматический
-release gate намеренно не считает backup/deploy/restore настроенными.
+Testing runtime automation настроена. Остаточный operational risk:
+controlled restore drill, внешний alert recipient и production target еще не
+подтверждены.

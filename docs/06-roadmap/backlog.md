@@ -3,15 +3,14 @@
 ## Blocker
 
 - Windcave UAT credentials.
-- Payable ERP document и final total rules.
-- ERP Payment Entry mapping.
+- Подтверждение Sales Invoice/outstanding-total как payable rule.
+- ERP Payment Entry account mapping и UAT approval.
 
 ## High
 
 - Self-service password recovery после выбора почтового канала.
-- ERP payment write и callback idempotency UAT tests.
-- Website-only backup/restore adapter.
-- Existing-instance deploy adapter.
+- Windcave callback/3DS/duplicate-notification UAT evidence.
+- Controlled restore drill evidence.
 - Public runtime validation evidence.
 
 ## Medium

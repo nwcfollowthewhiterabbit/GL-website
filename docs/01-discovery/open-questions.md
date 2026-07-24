@@ -3,10 +3,12 @@
 ## Блокируют payment UAT
 
 1. Какие Windcave UAT username и API key назначены merchant?
-2. Какой ERPNext document является payable source: Sales Order, Sales Invoice
-   или отдельная payment request?
-3. Где окончательно рассчитываются VAT, delivery и deposit перед HPP session?
-4. Какие поля и reference должны записываться в ERPNext Payment Entry?
+2. Подтверждает ли команда реализованный payable source: submitted Sales
+   Invoice и его текущий `outstanding_amount`?
+3. Гарантирует ли Sales Invoice, что VAT, delivery и deposit уже отражены до
+   HPP session?
+4. Какие ERPNext mode-of-payment, receivable и Windcave clearing accounts
+   использовать для Payment Entry?
 
 ## Можно уточнить на техническом этапе
 
@@ -17,7 +19,7 @@
 ## Backlog, не блокирует текущую итерацию
 
 1. Self-registration и email verification.
-2. Customer password reset.
+2. Self-service customer password recovery.
 3. Customer-group price lists после входа.
 4. Multiple product images.
 5. Точные permissions роли Website Content Manager.

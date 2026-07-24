@@ -69,3 +69,14 @@ export async function createDoc(doctype, doc) {
   });
   return payload.data;
 }
+
+export async function submitDoc(doctype, name) {
+  const payload = await request(
+    `/api/resource/${encodeURIComponent(doctype)}/${encodeURIComponent(name)}`,
+    {
+      method: "PUT",
+      body: JSON.stringify({ docstatus: 1 })
+    }
+  );
+  return payload.data;
+}

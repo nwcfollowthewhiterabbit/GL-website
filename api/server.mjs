@@ -12,8 +12,19 @@ import {
 } from "./catalog-service.mjs";
 import { pingErpDb } from "./erpnext-db.mjs";
 import { legacySyncRules } from "./legacy-sync-rules.mjs";
+import { assertWebsiteMigrationsApplied, websiteMigrationIds } from "./migrations/runner.mjs";
+import {
+  logEvent,
+  metricsText,
+  recordPaymentOutcome,
+  requestMetrics
+} from "./observability.mjs";
 import { createQuoteRequest, getRecentWebsiteQuotes } from "./quote-service.mjs";
-import { getPaymentConfig, verifyWindcaveNotification } from "./payment-service.mjs";
+import { getPaymentConfig } from "./payment-service.mjs";
+import {
+  createPaymentSessionForAccount,
+  processWindcaveNotification
+} from "./payment-orchestration-service.mjs";
 import {
   getWebsiteBanners,
   getWebsiteCatalogs,
@@ -50,6 +61,7 @@ import {
   adminLimiter,
   corsOptions,
   paymentNotificationLimiter,
+  paymentSessionLimiter,
   quoteRequestLimiter,
   requireAdminToken
 } from "./security.mjs";
@@ -85,16 +97,19 @@ app.disable("x-powered-by");
 app.set("trust proxy", 2);
 app.use(cors(corsOptions));
 app.use(express.json({ limit: "1mb" }));
+app.use(requestMetrics);
 app.use("/api/account/login", accountLoginLimiter);
 app.use("/api/quote-requests", quoteRequestLimiter);
 app.use("/api/payments/notification", paymentNotificationLimiter);
+app.use("/api/payments/session", paymentSessionLimiter);
 app.use("/api/admin", adminLimiter, requireAdminToken);
 app.use("/api/sync", adminLimiter, requireAdminToken);
 
 app.get("/health", (_req, res) => {
   res.json({
     ok: true,
-    service: "green-leaf-integration-api"
+    service: "green-leaf-integration-api",
+    migrations: websiteMigrationIds()
   });
 });
 
@@ -104,14 +119,31 @@ app.get("/api/payments/config", (_req, res) => {
 
 app.post("/api/payments/notification", async (req, res) => {
   try {
-    const result = await verifyWindcaveNotification(req.body || {});
+    const result = await processWindcaveNotification(req.body || {});
+    recordPaymentOutcome(result.outcome, result.effect);
     res.status(202).json({ accepted: result.accepted, outcome: result.outcome });
   } catch (error) {
+    recordPaymentOutcome("error", error?.code || "unknown");
+    logEvent("error", "payment_notification_failed", { code: error?.code || "unknown" });
     const status = error?.code === "invalid_windcave_notification" || error?.code === "invalid_windcave_session_id" ? 400 : 503;
     res.status(status).json({
       accepted: false,
       error: error?.code || "windcave_notification_failed"
     });
+  }
+});
+
+app.post("/api/payments/session", async (req, res) => {
+  const session = await getVerifiedAccountSession(req);
+  if (!session) {
+    res.status(401).json({ error: "not_authenticated" });
+    return;
+  }
+  try {
+    const result = await createPaymentSessionForAccount(session.email, req.body || {});
+    res.status(result.ok ? 200 : 422).json(result);
+  } catch (error) {
+    res.status(503).json({ ok: false, error: error?.code || "payment_session_failed" });
   }
 });
 
@@ -127,6 +159,10 @@ app.get("/api/admin/health", async (_req, res) => {
     erpnextConfigured: Boolean(process.env.ERPNEXT_API_KEY && process.env.ERPNEXT_API_SECRET),
     erpnextDbReachable
   });
+});
+
+app.get("/api/admin/metrics", (_req, res) => {
+  res.type("text/plain; version=0.0.4").send(metricsText());
 });
 
 app.get("/api/catalog/summary", (_req, res) => {
@@ -677,6 +713,7 @@ app.post("/api/admin/customer-access/enable", async (req, res) => {
   }
 });
 
+await assertWebsiteMigrationsApplied();
 app.listen(port, () => {
-  console.log(`Green Leaf integration API listening on ${port}`);
+  logEvent("info", "api_started", { port, migrations: websiteMigrationIds() });
 });

@@ -18,11 +18,30 @@ The website writes:
 
 - `Customer`
 - draft `Quotation`
+- `Payment Entry` only when Windcave/ERP payment flow is explicitly enabled
+  and mapped.
 
 Future phases may write:
 
 - `Sales Order`
 - `Issue`
+
+## Website schema migrations
+
+Website-owned credential/payment tables are versioned separately from ERPNext
+business DocTypes:
+
+```bash
+npm run erpnext:migrate-website
+```
+
+Applied migration ids and checksums are stored in
+`tabGL Website Schema Migration`. The API verifies the expected checksums before
+opening its port but never executes DDL during startup.
+
+Testing deployment applies a new website schema only with the explicit
+`--migrate-schema` flag. A normal deployment only verifies the schema and fails
+closed when a migration is missing.
 
 ## Required ERPNext Settings
 

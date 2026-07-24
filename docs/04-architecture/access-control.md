@@ -33,6 +33,11 @@
 - Self-registration и self-service password recovery не активируются до
   согласования email verification/delivery процесса.
 
+Credential и payment event tables создаются не request-кодом, а
+`api/migrations/runner.mjs`. Migration ids/checksums записываются в
+`tabGL Website Schema Migration`; изменившаяся уже примененная migration
+блокирует API startup.
+
 ## Backend enforcement
 
 UI не является границей доступа. Проверки повторяются для:

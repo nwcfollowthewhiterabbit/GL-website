@@ -21,16 +21,16 @@ OPERATIONS = (
 )
 
 
-class RuntimeStubTests(unittest.TestCase):
-    def test_probe_and_normal_invocation_fail_closed_without_mutation(self) -> None:
+class RuntimeAdapterSafetyTests(unittest.TestCase):
+    def test_probe_is_ready_and_non_mutating(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             working = Path(temporary)
             sentinel = working / "sentinel"
             sentinel.write_text("unchanged", encoding="utf-8")
             before = sorted(path.name for path in working.iterdir())
             for operation in OPERATIONS:
-                for arguments in (("--contract-probe",), ()):
-                    with self.subTest(operation=operation, arguments=arguments):
+                for arguments in (("--contract-probe",),):
+                    with self.subTest(operation=operation):
                         result = subprocess.run(
                             [
                                 sys.executable,
@@ -43,11 +43,11 @@ class RuntimeStubTests(unittest.TestCase):
                             check=False,
                             timeout=30,
                         )
-                        self.assertEqual(result.returncode, 78)
+                        self.assertEqual(result.returncode, 0)
                         payload = json.loads(result.stdout)
                         self.assertEqual(payload["operation"], operation)
-                        self.assertFalse(payload["configured"])
-                        self.assertEqual(payload["status"], "blocked")
+                        self.assertTrue(payload["configured"])
+                        self.assertEqual(payload["status"], "ready")
                         self.assertEqual(
                             sorted(path.name for path in working.iterdir()), before
                         )

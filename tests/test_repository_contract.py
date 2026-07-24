@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class RepositoryContractTests(unittest.TestCase):
-    def test_repository_validator_passes_for_scaffold(self) -> None:
+    def test_repository_validator_passes_for_configured_project(self) -> None:
         result = subprocess.run(
             [sys.executable, "scripts/check_repository.py"],
             cwd=ROOT,
@@ -20,7 +20,7 @@ class RepositoryContractTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
-    def test_release_readiness_fails_closed_for_scaffold(self) -> None:
+    def test_release_readiness_passes_for_configured_runtime(self) -> None:
         result = subprocess.run(
             [sys.executable, "scripts/check_release_readiness.py"],
             cwd=ROOT,
@@ -28,8 +28,8 @@ class RepositoryContractTests(unittest.TestCase):
             text=True,
             check=False,
         )
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("Release readiness blocked", result.stdout)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("Release readiness checks passed", result.stdout)
 
 
 if __name__ == "__main__":

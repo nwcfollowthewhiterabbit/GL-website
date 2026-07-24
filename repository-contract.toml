@@ -58,8 +58,10 @@ required_paths = [
   "docs/roadmap.md",
   "docs/user-manual.md",
   "infra/README.md",
+  "infra/runtime.testing.json",
   "src/README.md",
   "scripts/_runtime_stub.py",
+  "scripts/_runtime_adapter.py",
   "scripts/_contract.py",
   "scripts/_project_config.py",
   "scripts/_toml_compat.py",
@@ -74,6 +76,7 @@ required_paths = [
   "scripts/validate_instance.py",
   "scripts/validate_mvp_e2e.py",
   "scripts/validate_ui_e2e.py",
+  "scripts/monitor-runtime.mjs",
   "contracts/README.md",
   "contracts/evidence.schema.json",
   "contracts/adapters/README.md",
@@ -101,6 +104,12 @@ required_paths = [
   "tests/test_repository_contract.py",
   "tests/test_runtime_stubs_fail_closed.py",
   "tests/test_security_scanner.py",
+  "tests/test_runtime_adapter_config.py",
+  "api/migrations/001-website-customer-credentials.mjs",
+  "api/migrations/002-website-payment-event.mjs",
+  "api/migrations/runner.mjs",
+  "api/observability.mjs",
+  "api/payment-orchestration-service.mjs",
 ]
 
 required_policy_sections = [

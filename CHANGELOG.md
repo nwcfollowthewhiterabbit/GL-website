@@ -16,6 +16,13 @@
 - Диагностика источников storefront content и policy для ERP/static fallback.
 - Contract tests для customer isolation, quote idempotency и Windcave
   notification verification.
+- Website-only backup/restore/deploy и четыре runtime validation adapters с
+  machine-readable evidence.
+- Versioned website schema migrations для credentials и payment events.
+- Идемпотентный Windcave callback -> ERPNext Payment Entry orchestration,
+  остающийся disabled до полной UAT configuration.
+- Prometheus-compatible metrics, structured logs и webhook-capable runtime
+  monitor.
 
 ### Changed
 
@@ -28,7 +35,7 @@
 ### Known limitations
 
 - Windcave остается выключенным до получения UAT credentials и подтверждения
-  документа ERPNext, формирующего сумму платежа.
-- Автоматизация backup/deploy/restore остается fail-closed до реализации и
-  contract tests; `automation.state` остается `scaffold`.
+  Sales Invoice/payment account mapping.
+- Внешний alert recipient и controlled restore drill требуют operations
+  configuration/evidence.
 - Самостоятельная регистрация клиента пока не реализована.

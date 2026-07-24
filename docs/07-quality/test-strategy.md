@@ -9,13 +9,14 @@ npm run verify
 Команда выполняет:
 
 1. repository structure, links, secret policy и CI policy;
-2. 49 foundation unit/contract tests;
+2. 55 foundation unit/contract tests;
 3. TypeScript typecheck;
 4. account authentication tests;
 5. account isolation, quote idempotency, fallback и payment notification
    contract tests;
 6. Windcave adapter tests;
 7. production build.
+8. configured runtime adapter probes/evidence through `check:release`.
 
 ## Runtime smoke
 
@@ -54,6 +55,7 @@ Strict ERP validation применяется перед production/UAT изме�
 | ERP catalog/write | verify + ERP validation + smoke |
 | Payment | verify + UAT provider scenarios + ERP result check |
 | Deploy/runtime | verify + backup evidence + smoke + visual + container status |
+| Schema migration | verify + migration checksum/startup + instance validation |
 
 Тестовые записи маркируются `GL-WEB-E2E-<RUN_ID>` и удаляются, если они не
 являются согласованным постоянным fixture.

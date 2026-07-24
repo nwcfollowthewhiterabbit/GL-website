@@ -33,5 +33,6 @@ Release record должен подтвердить:
 - temporary test data очищены;
 - release evidence не содержит secrets.
 
-Пока runtime adapters не реализованы и `automation.state = "scaffold"`, этот
-checklist не заменяет fail-closed release readiness.
+`automation.state = "configured"` подтверждается `npm run check:release`.
+Фактический release все равно требует evidence конкретного backup/deploy и
+runtime validation run.

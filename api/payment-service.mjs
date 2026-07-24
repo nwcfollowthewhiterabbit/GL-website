@@ -28,9 +28,28 @@ function paymentCredentials() {
 
 export function getPaymentConfig() {
   const credentials = paymentCredentials();
-  const configured = Boolean(
+  const gatewayConfigured = Boolean(
     credentials.apiBaseUrl && credentials.username && credentials.apiKey && credentials.publicUrl
   );
+  const payableDoctype = clean(process.env.PAYMENT_PAYABLE_DOCTYPE);
+  const runtimeErp = {
+    writeEnabled: envFlag(process.env.PAYMENT_ERP_WRITE_ENABLED),
+    amountMode: clean(process.env.PAYMENT_AMOUNT_MODE),
+    modeOfPayment: clean(process.env.ERP_PAYMENT_MODE_OF_PAYMENT),
+    paidFrom: clean(process.env.ERP_PAYMENT_PAID_FROM),
+    paidTo: clean(process.env.ERP_PAYMENT_PAID_TO)
+  };
+  const erpConfigured = Boolean(
+    runtimeErp.writeEnabled &&
+      payableDoctype === "Sales Invoice" &&
+      runtimeErp.amountMode === "outstanding_total" &&
+      runtimeErp.modeOfPayment &&
+      runtimeErp.paidFrom &&
+      runtimeErp.paidTo &&
+      process.env.ERPNEXT_API_KEY &&
+      process.env.ERPNEXT_API_SECRET
+  );
+  const configured = gatewayConfigured && erpConfigured;
   const activationRequested = envFlag(process.env.PAYMENT_ENABLED);
 
   return {
@@ -43,6 +62,15 @@ export function getPaymentConfig() {
     pciQuestionnaire: "SAQ A",
     paymentLinkValidityDays: PAYMENT_LINK_VALIDITY_DAYS,
     environment: paymentEnvironment(credentials.apiBaseUrl),
+    payableDoctype,
+    gatewayConfigured,
+    erpConfigured,
+    erp: {
+      writeEnabled: runtimeErp.writeEnabled,
+      amountMode: runtimeErp.amountMode,
+      modeOfPaymentConfigured: Boolean(runtimeErp.modeOfPayment),
+      accountMappingConfigured: Boolean(runtimeErp.paidFrom && runtimeErp.paidTo)
+    },
     configured,
     enabled: activationRequested && configured,
     status: activationRequested
@@ -50,6 +78,19 @@ export function getPaymentConfig() {
         ? "ready_for_uat"
         : "configuration_incomplete"
       : "awaiting_uat_credentials"
+  };
+}
+
+export function getPaymentRuntimeConfig() {
+  return {
+    ...getPaymentConfig(),
+    erp: {
+      writeEnabled: envFlag(process.env.PAYMENT_ERP_WRITE_ENABLED),
+      amountMode: clean(process.env.PAYMENT_AMOUNT_MODE),
+      modeOfPayment: clean(process.env.ERP_PAYMENT_MODE_OF_PAYMENT),
+      paidFrom: clean(process.env.ERP_PAYMENT_PAID_FROM),
+      paidTo: clean(process.env.ERP_PAYMENT_PAID_TO)
+    }
   };
 }
 

@@ -27,10 +27,8 @@ Before changing behavior, read [AGENTS.md](AGENTS.md), the
 architecture, quality, and operations documents from the
 [documentation index](docs/README.md).
 
-The generated automation foundation is currently in `scaffold` state. The
-manual `npm run check:release` gate must remain fail-closed until backup,
-deployment, restore, and runtime-validation adapters are fully implemented and
-contract-tested.
+Testing automation is `configured`. `npm run check:release` validates all
+backup/deploy/restore/runtime probes and isolated evidence contracts.
 
 ## Local Docker
 
@@ -68,6 +66,7 @@ ERPNext readiness checks and fixture application:
 ```bash
 npm run erpnext:validate:docker
 npm run erpnext:apply-fixtures:docker
+npm run erpnext:migrate-website
 ```
 
 Useful API endpoints:
@@ -91,6 +90,9 @@ Useful API endpoints:
 - `GET /api/sync/legacy-rules`
 - `GET /api/admin/catalog-diagnostics`
 - `GET /api/admin/recent-quotes`
+- `GET /api/admin/metrics`
+- `POST /api/payments/session`
+- `POST /api/payments/notification`
 
 `POST /api/quote-requests` validates SKU lines against ERPNext and creates a draft ERPNext `Quotation` when REST credentials are configured.
 
@@ -98,6 +100,7 @@ Useful API endpoints:
 
 - `web`: production Vite build served by Nginx.
 - `api`: Node integration API connected to local ERPNext for catalog, quote requests, diagnostics, and sync metadata.
+- `monitor`: periodic runtime checks with structured logs and optional webhook alerts.
 
 ## Current Storefront State
 
@@ -137,9 +140,7 @@ ACCOUNT_TEST_PASSWORD='<temporary-password>' npm run erpnext:seed-test-account
 
 ## Next Milestones
 
-1. Split the large `App.tsx` and `main.css` into focused catalog, quote, diagnostics, and layout modules.
-2. Add a quote-request confirmation flow with validation messages for missing SKUs, duplicate requests, and ERPNext failures.
-3. Harden customer account scaffolding for saved quote history, orders, and customer-specific price lists.
-4. Expand Website Command Center controls for payment settings, featured products, catalogs, manufacturers, and storefront rules.
-5. Activate and UAT-test the prepared Windcave Hosted Payment Page adapter after credentials are supplied.
-6. Add broader browser regression checks for catalog departments, subcategories, account routes, and payment flow.
+1. Confirm Sales Invoice/outstanding-total and Payment Entry account mappings.
+2. Activate and UAT-test Windcave HPP/3DS, including duplicate notifications.
+3. Configure the external alert webhook and on-call recipient.
+4. Run and record a controlled restore drill.

@@ -25,17 +25,17 @@
 Статус: ожидает входных данных.
 
 1. Получить Windcave UAT credentials.
-2. Выбрать payable ERP document.
-3. Зафиксировать VAT/delivery/deposit calculation.
-4. Реализовать ERP payment result write.
+2. Подтвердить реализованный payable mode:
+   submitted Sales Invoice, current `outstanding_amount`.
+3. Заполнить Payment Entry mode/account mapping.
+4. Активировать UAT flags.
 5. Пройти HPP/3DS callback и duplicate-notification scenarios.
-6. Обновить user manual, evidence и release record.
+6. Подтвердить созданный Payment Entry и обновить evidence/release record.
 
 ## 4. Production readiness
 
-Статус: не начато.
+Статус: testing automation configured.
 
-- Реализовать website backup/restore и update deploy adapters.
-- Добавить instance/domain/MVP/UI validation adapters.
-- Настроить observability и incident runbook.
-- Перевести `automation.state` в `configured` только после contract tests.
+- Провести controlled restore drill.
+- Настроить внешний alert webhook и on-call recipient.
+- Сохранить runtime evidence для каждого deployment.

@@ -17,6 +17,4 @@ jobs:
       - name: Check repository contract
         run: python scripts/check_repository.py
       - name: Check release gates
-        run: |
-          echo "This manual gate is expected to fail while automation.state=scaffold."
-          python scripts/check_release_readiness.py
+        run: python scripts/check_release_readiness.py

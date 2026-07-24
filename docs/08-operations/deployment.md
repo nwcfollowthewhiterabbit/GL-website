@@ -1,22 +1,49 @@
 # Deployment
 
-## Текущее состояние
+## Автоматизированный testing update
 
-Testing deploy подтвержден вручную, но foundation adapter
-`scripts/deploy_existing_instance.py` пока fail-closed. Поэтому
-`automation.state = "scaffold"` и release readiness не может быть зеленым.
+```bash
+python3 scripts/deploy_existing_instance.py --execute \
+  --expected-sha <full-40-character-sha> \
+  --evidence /secure/path/deploy-evidence.json
+```
 
-## Проверенный ручной порядок testing update
+Adapter автоматически:
+
+1. создает и проверяет website-only backup;
+2. требует clean `main` и exact match expected SHA с `origin/main`;
+3. допускает только fast-forward;
+4. пересобирает `api`, `web` и `monitor`;
+5. проверяет, что website schema migrations уже применены, либо применяет их
+   только при явном `--migrate-schema`;
+6. проверяет containers, health, ERP storefront sources, payment-disabled state
+   и noindex;
+7. возвращает release/backup/rollback references и image digest.
+
+Если release содержит новую website-owned migration, ее применение должно быть
+явно разрешено:
+
+```bash
+python3 scripts/deploy_existing_instance.py --execute --migrate-schema \
+  --expected-sha <full-40-character-sha>
+```
+
+Флаг изменяет только версионированные website-owned tables. Он не запускает ERP
+backup, ERP application migration или restart ERP containers.
+
+## Ручной аварийный порядок
 
 1. `npm run verify`.
 2. Commit и push в `main`.
 3. Подтвердить exact remote SHA и CI.
 4. Зафиксировать website rollback commit и server configuration backup.
 5. На host выполнить fast-forward pull в repository path.
-6. Выполнить `docker-compose up --build -d`.
-7. Проверить web/API containers и API logs.
-8. Выполнить public smoke и visual smoke.
-9. Проверить actual customer login, если изменялся account flow.
+6. Выполнить `docker-compose build api web monitor`.
+7. Выполнить `docker-compose run --rm api npm run erpnext:migrate-website`.
+8. Выполнить `docker-compose up -d --no-build api web monitor`.
+9. Проверить web/API/monitor containers и API logs.
+10. Выполнить public smoke и visual smoke.
+11. Проверить actual customer login, если изменялся account flow.
 
 ## Ограничения
 
@@ -26,17 +53,5 @@ Testing deploy подтвержден вручную, но foundation adapter
 - Не включать payment/indexing автоматически.
 - Артефакт должен строиться из отправленного commit.
 
-## Целевой adapter
-
-Existing-instance adapter должен:
-
-- принимать явные target environment и expected SHA;
-- требовать валидное website backup evidence;
-- разрешать только fast-forward;
-- build/restart только website stack;
-- выполнять health, smoke и container checks;
-- возвращать machine-readable evidence;
-- завершаться отказом при любой обязательной ошибке.
-
-First-instance deploy остается отдельной операцией и не применяется к текущему
-testing host.
+First-instance deploy остается отдельной операцией и намеренно возвращает
+blocked для существующего testing target.

@@ -24,6 +24,19 @@ verification. Credentials читаются только из runtime environment
 
 Payment adapter поддерживает UAT base URL и остается отключенным по умолчанию.
 
+Payment orchestration поддерживает только явно настроенный submitted
+`Sales Invoice`:
+
+- customer scope повторно проверяется backend;
+- amount берется из `outstanding_amount`;
+- request/session/transaction фиксируются в versioned website payment table;
+- callback сверяет reference, amount и currency через Windcave query;
+- повтор ищет существующий Payment Entry по provider transaction id;
+- Payment Entry создается только при полном ERP account mapping.
+
+До заполнения всех `PAYMENT_*`/`ERP_PAYMENT_*` значений public config имеет
+`enabled=false`.
+
 ## Storefront fallback
 
 ERP-controlled departments, banners, catalogs, manufacturers и customer corner

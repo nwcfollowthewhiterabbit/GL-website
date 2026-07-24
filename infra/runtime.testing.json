@@ -1,0 +1,16 @@
+{
+  "environment": "testing",
+  "target": "testing.greenleafpacific.com",
+  "ssh_alias": "cloud",
+  "repository_path": "/home/csrss/stacks/testing.greenleafpacific.com",
+  "backup_root": "/home/csrss/backups/testing.greenleafpacific.com",
+  "branch": "main",
+  "public_url": "https://testing.greenleafpacific.com",
+  "compose_command": "docker-compose",
+  "compose_services": ["api", "web", "monitor"],
+  "containers": [
+    "testinggreenleafpacificcom_api_1",
+    "testinggreenleafpacificcom_web_1",
+    "testinggreenleafpacificcom_monitor_1"
+  ]
+}

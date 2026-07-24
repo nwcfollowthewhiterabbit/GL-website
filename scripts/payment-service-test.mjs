@@ -17,12 +17,23 @@ assert.equal(disabled.integration, "hosted_payment_page");
 assert.equal(disabled.currency, "FJD");
 assert.equal(disabled.enabled, false);
 assert.equal(disabled.environment, "unconfigured");
+assert.equal(disabled.erpConfigured, false);
+assert.equal("paidFrom" in disabled.erp, false);
+assert.equal("paidTo" in disabled.erp, false);
 assert.deepEqual(disabled.cardBrands, ["visa", "mastercard", "american_express"]);
 
 process.env.PAYMENT_ENABLED = "true";
 process.env.PAYMENT_API_BASE_URL = "https://uat.windcave.com/api/v1";
 process.env.PAYMENT_API_USERNAME = "uat-user";
 process.env.PAYMENT_API_KEY = "uat-key";
+process.env.PAYMENT_PAYABLE_DOCTYPE = "Sales Invoice";
+process.env.PAYMENT_AMOUNT_MODE = "outstanding_total";
+process.env.PAYMENT_ERP_WRITE_ENABLED = "true";
+process.env.ERP_PAYMENT_MODE_OF_PAYMENT = "Credit Card";
+process.env.ERP_PAYMENT_PAID_FROM = "Debtors - GL";
+process.env.ERP_PAYMENT_PAID_TO = "Windcave Clearing - GL";
+process.env.ERPNEXT_API_KEY = "test-api-key";
+process.env.ERPNEXT_API_SECRET = "test-api-secret";
 
 let createRequest;
 const created = await createWindcaveHostedSession(

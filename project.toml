@@ -25,5 +25,5 @@ deployment_constraints = ["Work only in the testing.greenleafpacific.com website
 owner = "Green Leaf Pacific project team"
 
 [automation]
-state = "scaffold"
-runtime_ready = false
+state = "configured"
+runtime_ready = true

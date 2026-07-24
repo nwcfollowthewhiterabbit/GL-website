@@ -20,6 +20,21 @@ services:
       - "127.0.0.1:8094:80"
     restart: unless-stopped
 
+  monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    command: ["node", "scripts/monitor-runtime.mjs"]
+    env_file:
+      - .env
+    environment:
+      MONITOR_INTERNAL_URL: http://api:3000
+    depends_on:
+      - api
+    networks:
+      - default
+    restart: unless-stopped
+
 networks:
   erp_testing:
     external: true
