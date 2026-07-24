@@ -801,7 +801,7 @@ export function App({ initialRoute }: AppProps = {}) {
   return (
     <main className="app">
       <SiteHeader departments={websiteNavigationCategories} quoteCount={quoteCount} onOpenQuote={() => setQuoteOpen(true)} />
-      {route.view === "catalog" || route.view === "account" ? (
+      {route.view === "catalog" ? (
         <HeroSection banners={heroBanners} />
       ) : null}
       {route.view === "policy" ? (
@@ -881,12 +881,12 @@ export function App({ initialRoute }: AppProps = {}) {
           <CatalogServiceBand onOpenQuote={() => setQuoteOpen(true)} />
         </>
       )}
-      {route.view === "catalog" || route.view === "account" ? (
+      {route.view === "catalog" ? (
         <RecommendedProductsSection products={recommendedProducts} onSelectProduct={openProductPreview} />
       ) : null}
-      {route.view === "catalog" || route.view === "account" ? <CatalogDownloadsSection catalogs={catalogDownloads} /> : null}
-      {route.view === "catalog" || route.view === "account" ? <LegacyContentSection manufacturers={manufacturerLogos} /> : null}
-      {route.view === "how-we-operate" || route.view === "about" ? null : (
+      {route.view === "catalog" ? <CatalogDownloadsSection catalogs={catalogDownloads} /> : null}
+      {route.view === "catalog" ? <LegacyContentSection manufacturers={manufacturerLogos} /> : null}
+      {route.view === "how-we-operate" || route.view === "about" || route.view === "account" ? null : (
         <ServiceContactSection onOpenQuote={() => setQuoteOpen(true)} />
       )}
       <SiteFooter departments={websiteNavigationCategories} />

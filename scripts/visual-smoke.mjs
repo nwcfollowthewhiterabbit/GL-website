@@ -205,6 +205,35 @@ async function main() {
     assert(basketFields.result.result.value.hasFlow, "Order basket is missing fulfillment guidance");
     assert(basketFields.result.result.value.hasPaymentTrust, "Order basket is missing Windcave payment information");
 
+    await page.send("Page.addScriptToEvaluateOnNewDocument", {
+      source: `(() => {
+        const originalFetch = window.fetch.bind(window);
+        const json = (value) => new Response(JSON.stringify(value), {
+          status: 200,
+          headers: { "Content-Type": "application/json" }
+        });
+        window.fetch = (input, options) => {
+          const url = typeof input === "string" ? input : input.url;
+          if (url === "/api/storefront/customer-corner") {
+            return Promise.resolve(json({
+              source: "visual_smoke",
+              settings: {
+                enabled: true,
+                loginEnabled: true,
+                showQuoteHistory: true,
+                showPurchaseHistory: true,
+                title: "Your Green Leaf account",
+                introCopy: "Orders, quotations and invoices connected to your customer record.",
+                salesEmail: "buy@greenleafpacific.com",
+                salesPhone: "+679 670 2222",
+                paymentNote: ""
+              }
+            }));
+          }
+          return originalFetch(input, options);
+        };
+      })();`
+    });
     await page.send("Page.navigate", { url: `${baseUrl}/account?visual-smoke=login` });
     await waitForSelector(page.send, 'input[autocomplete="current-password"]');
     const loginState = await page.send("Runtime.evaluate", {
@@ -220,6 +249,16 @@ async function main() {
     assert(loginState.result.result.value.hasPassword, "Customer login password field is missing");
     assert(!loginState.result.result.value.hasCode, "Customer login still requires an email code");
     assert(loginState.result.result.value.signInLabel, "Customer login action is missing");
+    const accountLoginMobile = await captureViewport(page.send, "account-login-mobile", {
+      width: 390,
+      height: 900,
+      mobile: true
+    });
+    const accountLoginDesktop = await captureViewport(page.send, "account-login-desktop", {
+      width: 1440,
+      height: 900,
+      mobile: false
+    });
 
     await page.send("Page.addScriptToEvaluateOnNewDocument", {
       source: `(() => {
@@ -325,16 +364,28 @@ async function main() {
     const accountState = await page.send("Runtime.evaluate", {
       returnByValue: true,
       expression: `({
+        customerName: document.querySelector(".account-header h1")?.textContent?.trim() || "",
         activeTab: document.querySelector(".account-tab--active")?.textContent?.trim() || "",
         orderName: document.querySelector(".account-quotes article strong")?.textContent?.trim() || "",
         orderStatus: document.querySelector(".account-status")?.textContent?.trim() || "",
-        tabCount: document.querySelectorAll(".account-tab").length
+        tabCount: document.querySelectorAll(".account-tab").length,
+        hasStorefrontHero: Boolean(document.querySelector(".hero")),
+        hasRecommendations: Boolean(document.querySelector(".recommended-section")),
+        hasCatalogs: Boolean(document.querySelector(".catalog-downloads")),
+        hasManufacturers: Boolean(document.querySelector(".brands-section")),
+        hasServicePromotion: Boolean(document.querySelector(".service-section, .location-section, .final-cta"))
       })`
     });
+    assert(accountState.result.result.value.customerName === "Island Resort Supplies", "Customer identity is not clear in the account header");
     assert(accountState.result.result.value.activeTab.startsWith("Orders"), "Orders are not the default account view");
     assert(accountState.result.result.value.orderName === "SO-TEST-0001", "Account order history did not render");
     assert(accountState.result.result.value.orderStatus === "Confirmed", "ERP order status was not translated for the customer");
     assert(accountState.result.result.value.tabCount === 3, "Account history tabs are incomplete");
+    assert(!accountState.result.result.value.hasStorefrontHero, "Storefront campaign hero leaked into the customer account");
+    assert(!accountState.result.result.value.hasRecommendations, "Product recommendations leaked into the customer account");
+    assert(!accountState.result.result.value.hasCatalogs, "Supplier catalogues leaked into the customer account");
+    assert(!accountState.result.result.value.hasManufacturers, "Manufacturer content leaked into the customer account");
+    assert(!accountState.result.result.value.hasServicePromotion, "Storefront service promotion leaked into the customer account");
 
     await page.send("Page.navigate", { url: `${baseUrl}/privacy?visual-smoke=1` });
     await waitForSelector(page.send, ".policy-page");
@@ -435,6 +486,8 @@ async function main() {
     console.log(`- Basket desktop width: ${basketDesktop.innerWidth}, scroll width: ${basketDesktop.scrollWidth}`);
     console.log(`- Account mobile width: ${accountMobile.innerWidth}, scroll width: ${accountMobile.scrollWidth}`);
     console.log(`- Account desktop width: ${accountDesktop.innerWidth}, scroll width: ${accountDesktop.scrollWidth}`);
+    console.log(`- Account login mobile width: ${accountLoginMobile.innerWidth}, scroll width: ${accountLoginMobile.scrollWidth}`);
+    console.log(`- Account login desktop width: ${accountLoginDesktop.innerWidth}, scroll width: ${accountLoginDesktop.scrollWidth}`);
     console.log(`- Policy mobile width: ${policyMobile.innerWidth}, scroll width: ${policyMobile.scrollWidth}`);
     console.log(`- Policy desktop width: ${policyDesktop.innerWidth}, scroll width: ${policyDesktop.scrollWidth}`);
     console.log(`- Payment mobile width: ${paymentMobile.innerWidth}, scroll width: ${paymentMobile.scrollWidth}`);

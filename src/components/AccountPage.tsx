@@ -1,8 +1,6 @@
 import { useState } from "react";
 import {
   ArrowRight,
-  Building2,
-  CheckCircle2,
   Eye,
   EyeOff,
   FileText,
@@ -13,7 +11,6 @@ import {
   ReceiptText,
   RefreshCcw,
   ShieldCheck,
-  ShoppingCart,
   UserRound
 } from "lucide-react";
 import type { AccountDocumentDetail, AccountSession, CustomerCornerSettings, RecentQuote } from "../types";
@@ -136,9 +133,6 @@ export function AccountPage({
   const orders = account?.orders || [];
   const invoices = account?.invoices || [];
   const profile = account?.profile;
-  const latestQuote = accountQuotes[0];
-  const latestOrder = orders[0];
-  const latestInvoice = invoices[0];
   const quotesVisible = settings.showQuoteHistory;
   const ordersVisible = settings.showPurchaseHistory;
   const [activeTab, setActiveTab] = useState<AccountTab>("orders");
@@ -166,151 +160,115 @@ export function AccountPage({
 
   return (
     <section className="shell section account-page">
-      <div className="account-shell">
-        <div className="account-hero">
-          <span className="eyebrow">
-            <ShieldCheck size={16} /> Customer corner
-          </span>
-          <h2>{settings.title}</h2>
-          <p>{settings.introCopy}</p>
-          <div className="account-hero__actions">
-            <a className="quote-button" href="/catalog">
-              <ShoppingCart size={18} /> Browse catalog
-            </a>
-            <button className="secondary-button" type="button" onClick={onOpenQuote}>
-              <FileText size={18} /> Start order
-            </button>
-          </div>
-        </div>
-
-        <aside className="account-auth" aria-label="Customer login">
-          {!settings.loginEnabled ? (
-            <div className="account-auth__state">
+      {!isAuthenticated ? (
+        <div className="account-login">
+          <div className="account-login__copy">
+            <span className="eyebrow">
+              <ShieldCheck size={16} /> Customer account
+            </span>
+            <h1>{settings.title}</h1>
+            <p>{settings.introCopy}</p>
+            <div className="account-login__support">
               <Mail size={18} />
               <div>
-                <strong>Customer login is disabled</strong>
-                <span>Contact {settings.salesEmail} for account history.</span>
+                <span>Need account help?</span>
+                <a href={`mailto:${settings.salesEmail}`}>{settings.salesEmail}</a>
               </div>
             </div>
-          ) : isAuthenticated ? (
-            <>
+          </div>
+
+          <aside className="account-auth" aria-label="Customer login">
+            <div className="account-auth__head">
+              <UserRound size={20} />
+              <div>
+                <strong>Sign in</strong>
+                <span>Use your customer email and password.</span>
+              </div>
+            </div>
+            {!settings.loginEnabled ? (
               <div className="account-auth__state">
-                <CheckCircle2 size={18} />
+                <Mail size={18} />
                 <div>
-                  <strong>Signed in</strong>
-                  <span>{account?.email || email}</span>
+                  <strong>Customer login is disabled</strong>
+                  <span>Contact {settings.salesEmail} for account history.</span>
                 </div>
               </div>
-              <button className="secondary-button" onClick={onRefreshAccount} disabled={isLoading}>
-                <RefreshCcw size={18} /> Refresh
-              </button>
-              <button className="secondary-button" onClick={onLogout}>
-                <LogOut size={18} /> Sign out
-              </button>
-            </>
-          ) : (
-            <>
-              <label className="field">
-                <Mail size={18} />
-                <input
-                  placeholder="Buyer email"
-                  type="email"
-                  autoComplete="username"
-                  aria-label="Buyer email"
-                  value={email}
-                  onChange={(event) => onEmailChange(event.target.value)}
-                />
-              </label>
-              <div className="field">
-                <ShieldCheck size={18} />
-                <input
-                  placeholder="Password"
-                  type={showPassword ? "text" : "password"}
-                  autoComplete="current-password"
-                  aria-label="Password"
-                  value={password}
-                  onChange={(event) => onPasswordChange(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") onLogin();
-                  }}
-                />
-                <button
-                  className="account-password-toggle"
-                  type="button"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  title={showPassword ? "Hide password" : "Show password"}
-                  onClick={() => setShowPassword((value) => !value)}
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            ) : (
+              <>
+                <label className="field">
+                  <Mail size={18} />
+                  <input
+                    placeholder="Customer email"
+                    type="email"
+                    autoComplete="username"
+                    aria-label="Customer email"
+                    value={email}
+                    onChange={(event) => onEmailChange(event.target.value)}
+                  />
+                </label>
+                <div className="field">
+                  <ShieldCheck size={18} />
+                  <input
+                    placeholder="Password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
+                    aria-label="Password"
+                    value={password}
+                    onChange={(event) => onPasswordChange(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") onLogin();
+                    }}
+                  />
+                  <button
+                    className="account-password-toggle"
+                    type="button"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    title={showPassword ? "Hide password" : "Show password"}
+                    onClick={() => setShowPassword((value) => !value)}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                <button className="quote-button" onClick={onLogin} disabled={isLoading}>
+                  {isLoading ? "Signing in..." : "Sign in"}
                 </button>
-              </div>
-              <button className="quote-button" onClick={onLogin} disabled={isLoading}>
-                {isLoading ? "Signing in..." : "Sign in"}
-              </button>
-            </>
-          )}
-          {status ? <p className="quote-panel__status">{status}</p> : null}
-        </aside>
-      </div>
-
-      {isAuthenticated ? <div className="account-summary">
-        <article>
-          <span>Customer</span>
-          <strong>{account?.profile?.customerName || account?.email || email || "Not signed in"}</strong>
-          <small>{profile?.group || "Email login"}</small>
-        </article>
-        <article>
-          <span>Website quotes</span>
-          <strong>{quotesVisible ? accountQuotes.length : "Off"}</strong>
-          <small>{quotesVisible && latestQuote ? `Latest ${shortDate(latestQuote.creation || latestQuote.transactionDate)}` : "No records"}</small>
-        </article>
-        <article>
-          <span>Orders</span>
-          <strong>{ordersVisible ? orders.length : "Off"}</strong>
-          <small>{ordersVisible && latestOrder ? `Latest ${shortDate(latestOrder.creation || latestOrder.transactionDate)}` : "No records"}</small>
-        </article>
-        <article>
-          <span>Invoices</span>
-          <strong>{ordersVisible ? invoices.length : "Off"}</strong>
-          <small>{ordersVisible && latestInvoice ? `Latest ${shortDate(latestInvoice.creation || latestInvoice.postingDate)}` : "No records"}</small>
-        </article>
-      </div> : null}
+              </>
+            )}
+            {status ? <p className="quote-panel__status">{status}</p> : null}
+          </aside>
+        </div>
+      ) : null}
 
       {isAuthenticated ? <div className="account-content">
-        {isAuthenticated ? (
-          <section className="account-panel account-panel--profile">
-            <div className="account-panel__head">
-              <div>
-                <span>Customer account</span>
-                <h3>Company profile</h3>
-              </div>
-              <UserRound size={22} />
+        <header className="account-header account-panel--wide">
+          <div>
+            <span className="eyebrow">
+              <UserRound size={16} /> Customer account
+            </span>
+            <h1>{profile?.customerName || account?.email}</h1>
+            <div className="account-header__meta">
+              <span><Mail size={15} /> {profile?.email || account?.email}</span>
+              {profile?.territory ? <span><MapPin size={15} /> {profile.territory}</span> : null}
+              {profile?.group ? <span>{profile.group}</span> : null}
             </div>
-            <div className="account-profile">
-              <article>
-                <Building2 size={18} />
-                <div>
-                  <span>Customer</span>
-                  <strong>{profile?.customerName || account?.email}</strong>
-                </div>
-              </article>
-              <article>
-                <Mail size={18} />
-                <div>
-                  <span>Email</span>
-                  <strong>{profile?.email || account?.email}</strong>
-                </div>
-              </article>
-              <article>
-                <MapPin size={18} />
-                <div>
-                  <span>Territory</span>
-                  <strong>{profile?.territory || "Not set"}</strong>
-                </div>
-              </article>
-            </div>
-          </section>
-        ) : null}
+          </div>
+          <div className="account-header__actions">
+            <button className="secondary-button" type="button" onClick={onRefreshAccount} disabled={isLoading}>
+              <RefreshCcw size={17} /> {isLoading ? "Refreshing..." : "Refresh"}
+            </button>
+            <button className="secondary-button" type="button" onClick={onLogout}>
+              <LogOut size={17} /> Sign out
+            </button>
+          </div>
+        </header>
+
+        <div className="account-history-head account-panel--wide">
+          <div>
+            <span>Account activity</span>
+            <h2>Documents</h2>
+          </div>
+          <p>Track orders, quotations and invoices linked to this customer.</p>
+        </div>
 
         <nav className="account-tabs account-panel--wide" aria-label="Account history">
           <button
@@ -340,7 +298,7 @@ export function AccountPage({
         <section className="account-panel account-panel--wide">
           <div className="account-panel__head">
             <div>
-              <span>Quotations</span>
+              <span>{accountQuotes.length} {accountQuotes.length === 1 ? "record" : "records"}</span>
               <h3>Quote history</h3>
             </div>
             <FileText size={22} />
@@ -382,8 +340,8 @@ export function AccountPage({
         <section className="account-panel account-panel--wide">
           <div className="account-panel__head">
             <div>
-              <span>Invoices</span>
-              <h3>Invoices</h3>
+              <span>{invoices.length} {invoices.length === 1 ? "record" : "records"}</span>
+              <h3>Invoice history</h3>
             </div>
             <FileText size={22} />
           </div>
@@ -421,7 +379,7 @@ export function AccountPage({
         <section className="account-panel account-panel--wide">
           <div className="account-panel__head">
             <div>
-              <span>Orders</span>
+              <span>{orders.length} {orders.length === 1 ? "record" : "records"}</span>
               <h3>Order history</h3>
             </div>
             <PackageCheck size={22} />
