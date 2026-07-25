@@ -1,0 +1,166 @@
+version: "3.8"
+
+x-erpnext-image: &erpnext_image
+  image: greenleaf-erpnext:v16.14.0-website
+  build:
+    context: .
+    dockerfile: Dockerfile
+
+x-erpnext-volumes: &erpnext_volumes
+  volumes:
+    - sites:/home/frappe/frappe-bench/sites
+    - logs:/home/frappe/frappe-bench/logs
+
+services:
+  backend:
+    <<: [*erpnext_image, *erpnext_volumes]
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: "3306"
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+
+  configurator:
+    <<: [*erpnext_image, *erpnext_volumes]
+    restart: "no"
+    entrypoint: ["bash", "-c"]
+    command:
+      - >
+        ls -1 apps > sites/apps.txt;
+        bench set-config -g db_host $$DB_HOST;
+        bench set-config -gp db_port $$DB_PORT;
+        bench set-config -g redis_cache "redis://$$REDIS_CACHE";
+        bench set-config -g redis_queue "redis://$$REDIS_QUEUE";
+        bench set-config -g redis_socketio "redis://$$REDIS_QUEUE";
+        bench set-config -gp socketio_port $$SOCKETIO_PORT;
+    environment:
+      DB_HOST: db
+      DB_PORT: "3306"
+      REDIS_CACHE: redis-cache:6379
+      REDIS_QUEUE: redis-queue:6379
+      SOCKETIO_PORT: "9000"
+
+  create-site:
+    <<: [*erpnext_image, *erpnext_volumes]
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+      configurator:
+        condition: service_completed_successfully
+    entrypoint: ["bash", "-c"]
+    command:
+      - >
+        wait-for-it db:3306 -t 180;
+        wait-for-it redis-cache:6379 -t 180;
+        wait-for-it redis-queue:6379 -t 180;
+        until test -s sites/common_site_config.json; do sleep 2; done;
+        if test -d sites/$$ERPNEXT_SITE_NAME; then
+          echo "Site $$ERPNEXT_SITE_NAME already exists";
+        else
+          bench new-site --mariadb-user-host-login-scope='%' --admin-password "$$ADMIN_PASSWORD" --db-root-username root --db-root-password "$$DB_ROOT_PASSWORD" --install-app erpnext --set-default "$$ERPNEXT_SITE_NAME";
+        fi;
+        if ! bench --site "$$ERPNEXT_SITE_NAME" list-apps --format text | grep -qx greenleaf_website; then
+          bench --site "$$ERPNEXT_SITE_NAME" install-app greenleaf_website;
+        fi;
+        bench --site "$$ERPNEXT_SITE_NAME" migrate;
+        bench --site "$$ERPNEXT_SITE_NAME" execute greenleaf_website.bootstrap.ensure_compatibility_site
+    environment:
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      DB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      ERPNEXT_SITE_NAME: ${ERPNEXT_SITE_NAME}
+
+  db:
+    image: mariadb:10.6
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --skip-character-set-client-handshake
+      - --skip-innodb-read-only-compressed
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+    networks:
+      default:
+        aliases:
+          - erp-v16-db
+
+  frontend:
+    <<: [*erpnext_image, *erpnext_volumes]
+    restart: unless-stopped
+    depends_on:
+      - backend
+      - websocket
+    command: ["nginx-entrypoint.sh"]
+    environment:
+      BACKEND: backend:8000
+      FRAPPE_SITE_NAME_HEADER: ${ERPNEXT_SITE_NAME}
+      SOCKETIO: websocket:9000
+      UPSTREAM_REAL_IP_ADDRESS: 127.0.0.1
+      UPSTREAM_REAL_IP_HEADER: X-Forwarded-For
+      UPSTREAM_REAL_IP_RECURSIVE: "off"
+      PROXY_READ_TIMEOUT: 120
+      CLIENT_MAX_BODY_SIZE: 50m
+    ports:
+      - "127.0.0.1:${ERPNEXT_LOCAL_PORT:-8193}:8080"
+    networks:
+      default:
+        aliases:
+          - erp-v16
+
+  queue-long:
+    <<: [*erpnext_image, *erpnext_volumes]
+    restart: unless-stopped
+    command: ["bench", "worker", "--queue", "long,default,short"]
+    environment:
+      FRAPPE_REDIS_CACHE: redis://redis-cache:6379
+      FRAPPE_REDIS_QUEUE: redis://redis-queue:6379
+
+  queue-short:
+    <<: [*erpnext_image, *erpnext_volumes]
+    restart: unless-stopped
+    command: ["bench", "worker", "--queue", "short,default"]
+    environment:
+      FRAPPE_REDIS_CACHE: redis://redis-cache:6379
+      FRAPPE_REDIS_QUEUE: redis://redis-queue:6379
+
+  redis-cache:
+    image: redis:6.2-alpine
+    restart: unless-stopped
+
+  redis-queue:
+    image: redis:6.2-alpine
+    restart: unless-stopped
+    volumes:
+      - redis-queue-data:/data
+
+  scheduler:
+    <<: [*erpnext_image, *erpnext_volumes]
+    restart: unless-stopped
+    command: ["bench", "schedule"]
+
+  websocket:
+    <<: [*erpnext_image, *erpnext_volumes]
+    restart: unless-stopped
+    command: ["node", "/home/frappe/frappe-bench/apps/frappe/socketio.js"]
+    environment:
+      FRAPPE_REDIS_CACHE: redis://redis-cache:6379
+      FRAPPE_REDIS_QUEUE: redis://redis-queue:6379
+
+volumes:
+  db-data:
+  logs:
+  redis-queue-data:
+  sites:

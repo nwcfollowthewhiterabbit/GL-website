@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import React from "react";
 import { renderToString } from "react-dom/server";
+import react from "@vitejs/plugin-react";
 import { createServer } from "vite";
 import { howWeOperateContent } from "../src/data/editorialContent.mjs";
 
@@ -87,8 +88,13 @@ const routes = [
 
 const vite = await createServer({
   appType: "custom",
+  configFile: false,
   logLevel: "error",
-  server: { middlewareMode: true }
+  plugins: [react()],
+  server: {
+    middlewareMode: true,
+    watch: null
+  }
 });
 
 try {
@@ -108,4 +114,3 @@ try {
 } finally {
   await vite.close();
 }
-

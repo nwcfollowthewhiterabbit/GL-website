@@ -1,0 +1,213 @@
+[
+  {
+    "doctype": "Custom Field",
+    "dt": "Quotation",
+    "fieldname": "website_quote_id",
+    "label": "Website Quote ID",
+    "fieldtype": "Data",
+    "insert_after": "enq_det",
+    "read_only": 1,
+    "no_copy": 1,
+    "unique": 1,
+    "description": "Idempotency key from the Green Leaf storefront quote request.",
+    "name": "Quotation-website_quote_id"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Quotation",
+    "fieldname": "website_source",
+    "label": "Website Source",
+    "fieldtype": "Data",
+    "insert_after": "website_quote_id",
+    "read_only": 1,
+    "no_copy": 1,
+    "default": "greenleaf-storefront",
+    "name": "Quotation-website_source"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Quotation",
+    "fieldname": "website_customer_email",
+    "label": "Website Customer Email",
+    "fieldtype": "Data",
+    "insert_after": "website_source",
+    "read_only": 1,
+    "no_copy": 1,
+    "name": "Quotation-website_customer_email"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Quotation",
+    "fieldname": "website_payload",
+    "label": "Website Payload",
+    "fieldtype": "Long Text",
+    "insert_after": "website_customer_email",
+    "read_only": 1,
+    "no_copy": 1,
+    "description": "Compact JSON payload received by the storefront API. Keep customer notes in standard ERP fields too.",
+    "name": "Quotation-website_payload"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Customer",
+    "fieldname": "website_origin",
+    "label": "Website Origin",
+    "fieldtype": "Data",
+    "insert_after": "email_id",
+    "read_only": 1,
+    "no_copy": 1,
+    "default": "greenleaf-storefront",
+    "name": "Customer-website_origin"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Customer",
+    "fieldname": "website_last_quote_request",
+    "label": "Website Last Quote Request",
+    "fieldtype": "Datetime",
+    "insert_after": "website_origin",
+    "read_only": 1,
+    "no_copy": 1,
+    "name": "Customer-website_last_quote_request"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Item Group",
+    "fieldname": "website_show_on_storefront",
+    "label": "Show on Website",
+    "fieldtype": "Check",
+    "insert_after": "is_group",
+    "default": "1",
+    "description": "Controls whether this ERPNext item group appears in the Green Leaf storefront.",
+    "name": "Item Group-website_show_on_storefront"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Item Group",
+    "fieldname": "website_sort_order",
+    "label": "Website Sort Order",
+    "fieldtype": "Int",
+    "insert_after": "website_show_on_storefront",
+    "default": "0",
+    "name": "Item Group-website_sort_order"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Item Group",
+    "fieldname": "website_price_mode",
+    "label": "Website Price Mode",
+    "fieldtype": "Select",
+    "insert_after": "website_sort_order",
+    "options": "Price List\nQuote Only\nHide Price",
+    "default": "Price List",
+    "description": "Price List shows ERP price; Quote Only displays request pricing; Hide Price hides product price in UI.",
+    "name": "Item Group-website_price_mode"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Item Group",
+    "fieldname": "website_price_list",
+    "label": "Website Price List",
+    "fieldtype": "Link",
+    "options": "Price List",
+    "insert_after": "website_price_mode",
+    "description": "Optional price list override for this storefront category.",
+    "name": "Item Group-website_price_list"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Item Group",
+    "fieldname": "website_stock_display",
+    "label": "Website Stock Display",
+    "fieldtype": "Select",
+    "insert_after": "website_price_list",
+    "options": "Availability\nQuantity\nSpecial Order\nHidden",
+    "default": "Availability",
+    "description": "Controls whether the storefront shows exact quantity, simple availability, special order, or hides stock signal.",
+    "name": "Item Group-website_stock_display"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Item Group",
+    "fieldname": "website_show_products_without_images",
+    "label": "Show Products Without Images",
+    "fieldtype": "Check",
+    "insert_after": "website_stock_display",
+    "default": "1",
+    "name": "Item Group-website_show_products_without_images"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Item Group",
+    "fieldname": "website_show_products_without_price",
+    "label": "Show Products Without Price",
+    "fieldtype": "Check",
+    "insert_after": "website_show_products_without_images",
+    "default": "0",
+    "name": "Item Group-website_show_products_without_price"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Item Group",
+    "fieldname": "website_category_note",
+    "label": "Website Category Note",
+    "fieldtype": "Small Text",
+    "insert_after": "website_show_products_without_price",
+    "description": "Optional text shown by the storefront for this category.",
+    "name": "Item Group-website_category_note"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Item",
+    "fieldname": "website_show_on_storefront",
+    "label": "Show on Website",
+    "fieldtype": "Check",
+    "insert_after": "item_group",
+    "default": "1",
+    "description": "Controls whether this item can appear in the Green Leaf storefront.",
+    "name": "Item-website_show_on_storefront"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Item",
+    "fieldname": "website_featured",
+    "label": "Recommended on Website",
+    "fieldtype": "Check",
+    "insert_after": "website_show_on_storefront",
+    "default": "0",
+    "description": "Promotes this exact product in the storefront recommendations section.",
+    "name": "Item-website_featured"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Item",
+    "fieldname": "website_price_mode_override",
+    "label": "Website Price Mode Override",
+    "fieldtype": "Select",
+    "insert_after": "website_featured",
+    "options": "\nPrice List\nQuote Only\nHide Price",
+    "description": "Optional product-level override for the category price mode.",
+    "name": "Item-website_price_mode_override"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Item",
+    "fieldname": "website_stock_display_override",
+    "label": "Website Stock Display Override",
+    "fieldtype": "Select",
+    "insert_after": "website_price_mode_override",
+    "options": "\nAvailability\nQuantity\nSpecial Order\nHidden",
+    "description": "Optional product-level override for the category stock display mode.",
+    "name": "Item-website_stock_display_override"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Item",
+    "fieldname": "website_sort_order",
+    "label": "Website Sort Order",
+    "fieldtype": "Int",
+    "insert_after": "website_stock_display_override",
+    "default": "0",
+    "name": "Item-website_sort_order"
+  }
+]

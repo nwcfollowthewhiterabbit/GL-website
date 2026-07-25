@@ -1,4 +1,5 @@
 const baseUrl = (process.env.SMOKE_BASE_URL || "http://localhost:8080").replace(/\/+$/, "");
+const catalogQuery = String(process.env.SMOKE_CATALOG_QUERY || "Bath").trim();
 
 async function readJson(path, options) {
   const response = await fetch(`${baseUrl}${path}`, options);
@@ -53,7 +54,7 @@ async function main() {
   assert(paymentConfig.enabled === false, "Testing payments should remain disabled before UAT credentials are installed");
   assert(paymentConfig.environment === "unconfigured", "Unconfigured gateway should not report a live environment");
 
-  const catalog = await readJson("/api/catalog/products?page=1&pageSize=2&q=Bath");
+  const catalog = await readJson(`/api/catalog/products?page=1&pageSize=2&q=${encodeURIComponent(catalogQuery)}`);
   assert(Array.isArray(catalog.products), "Catalog products response is invalid");
   assert(catalog.products.length > 0, "Catalog search returned no products");
   assert(catalog.priceList === "Standard Selling", "Unexpected catalog price list");

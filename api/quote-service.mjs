@@ -1,7 +1,7 @@
 import { getErpPool } from "./erpnext-db.mjs";
 import { createDoc, hasErpnextRestCredentials, listDoc } from "./erpnext-rest.mjs";
 import { EXCLUDED_STOREFRONT_GROUPS } from "./catalog-service.mjs";
-import { CATALOG_PRODUCT_READY_SQL } from "./catalog-publication-rules.mjs";
+import { getCatalogPublicationSql } from "./catalog-publication-rules.mjs";
 import { legacySyncRules } from "./legacy-sync-rules.mjs";
 import { availableCustomFields } from "./storefront-rules.mjs";
 
@@ -85,16 +85,17 @@ async function getErpItemsBySku(skus, priceList = DEFAULTS.priceList) {
   params.priceList = priceList;
   params.excludedWarehouse0 = EXCLUDED_STOCK_WAREHOUSES[0];
   params.excludedWarehouse1 = EXCLUDED_STOCK_WAREHOUSES[1];
-  const [itemFields, groupFields] = await Promise.all([
+  const [itemFields, groupFields, publication] = await Promise.all([
     availableCustomFields("Item", ["website_show_on_storefront"]),
-    availableCustomFields("Item Group", ["website_show_on_storefront"])
+    availableCustomFields("Item Group", ["website_show_on_storefront"]),
+    getCatalogPublicationSql()
   ]);
   const publicationClauses = [
     "IFNULL(i.disabled, 0) = 0",
     "IFNULL(i.is_sales_item, 1) = 1",
     "IFNULL(i.has_variants, 0) = 0",
     `IFNULL(i.item_group, '') NOT IN (${excludedGroups})`,
-    CATALOG_PRODUCT_READY_SQL
+    publication.productReady
   ];
   if (itemFields.website_show_on_storefront) {
     publicationClauses.push("IFNULL(i.website_show_on_storefront, 1) = 1");

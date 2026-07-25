@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "name": "Green Leaf website ERPNext layer",
+  "supportedTargets": [
+    "ERPNext 14 baseline",
+    "ERPNext 16 compatibility"
+  ],
+  "fixtureFiles": [
+    "fixtures/custom_fields.json",
+    "fixtures/website_banner_doctype.json",
+    "fixtures/website_catalog_doctype.json",
+    "fixtures/website_customer_corner_settings_doctype.json",
+    "fixtures/website_department_doctypes.json",
+    "fixtures/website_featured_product_doctype.json",
+    "fixtures/website_manufacturer_doctype.json"
+  ],
+  "websiteDocTypes": [
+    "Website Banner",
+    "Website Catalog",
+    "Website Customer Corner Settings",
+    "Website Department",
+    "Website Department Item Group",
+    "Website Featured Product",
+    "Website Manufacturer"
+  ],
+  "customFieldTargets": [
+    "Customer",
+    "Item",
+    "Item Group",
+    "Quotation"
+  ],
+  "pageFiles": [
+    "page/website_control_center/__init__.py",
+    "page/website_control_center/website_control_center.css",
+    "page/website_control_center/website_control_center.js",
+    "page/website_control_center/website_control_center.json"
+  ],
+  "websiteOwnedTables": [
+    "tabGL Website Schema Migration",
+    "tabWebsite Customer Credential",
+    "tabWebsite Payment Event"
+  ],
+  "erpnextReadModels": [
+    "Bin",
+    "Contact",
+    "Contact Email",
+    "Customer",
+    "Dynamic Link",
+    "Item",
+    "Item Group",
+    "Item Price",
+    "Quotation",
+    "Quotation Item",
+    "Sales Invoice",
+    "Sales Invoice Item",
+    "Sales Order",
+    "Sales Order Item",
+    "Warehouse"
+  ],
+  "erpnextWriteModels": [
+    "Customer",
+    "Payment Entry",
+    "Quotation"
+  ],
+  "excludedApps": [
+    "greenleaf",
+    "hrms",
+    "knowledge_base",
+    "posawesome",
+    "woocommerceconnector"
+  ],
+  "excludedData": [
+    "customer and user records",
+    "quotations, orders, invoices and payments",
+    "public and private uploaded files",
+    "unrelated ERP customizations"
+  ]
+}

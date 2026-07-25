@@ -266,14 +266,23 @@ export async function resolveCustomerAccessByEmail(emailValue) {
 
 export function isProvisionedWebsiteCustomerAccess(access, customerValue) {
   const customer = clean(customerValue);
-  return Boolean(
-    customer &&
-      access?.user?.enabled &&
+  if (!customer || !access?.customerNames?.includes(customer)) return false;
+
+  const email = normalizeEmail(access.email);
+  const customerEmailMatches = access.customers?.some(
+    (entry) => entry.name === customer && normalizeEmail(entry.email) === email
+  );
+  const contactEmailMatches = access.contacts?.some(
+    (contact) => normalizeEmail(contact.email) === email
+  );
+  const websiteUserMatches = Boolean(
+    access.user?.enabled &&
       access.user.userType === "Website User" &&
       access.user.roles.includes(WEBSITE_CUSTOMER_ROLE) &&
-      access.customerNames.includes(customer) &&
-      access.contacts.some((contact) => normalizeEmail(contact.user) === normalizeEmail(access.email))
+      access.contacts.some((contact) => normalizeEmail(contact.user) === email)
   );
+
+  return Boolean(customerEmailMatches || contactEmailMatches || websiteUserMatches);
 }
 
 export function isDocumentWithinCustomerAccess(document, access) {
@@ -440,7 +449,11 @@ export async function getVerifiedAccountSession(req) {
   await ensureWebsiteCredentialTable();
   const [rows] = await getErpPool().execute(
     `
-      SELECT credential.customer, credential.enabled, credential.session_version, IFNULL(user.enabled, 0) AS user_enabled
+      SELECT
+        credential.customer,
+        credential.enabled,
+        credential.session_version,
+        CASE WHEN user.name IS NULL THEN 1 ELSE IFNULL(user.enabled, 0) END AS user_enabled
       FROM \`${WEBSITE_CREDENTIAL_TABLE}\` credential
       LEFT JOIN \`tabUser\` user
         ON LOWER(user.name) = LOWER(credential.email) OR LOWER(user.email) = LOWER(credential.email)
@@ -469,7 +482,7 @@ export async function getCustomerQuotesForAccount(emailValue, limit = 20) {
   const maxLimit = Math.min(Math.max(Number(limit) || 20, 1), 50);
   const params = { email: access.email, limit: maxLimit };
   const customerClause = access.customerNames.length
-    ? `OR q.party_name IN (${placeholders(access.customerNames, "customer")}) OR q.customer IN (${placeholders(access.customerNames, "customer")})`
+    ? `OR q.party_name IN (${placeholders(access.customerNames, "customer")})`
     : "";
   Object.assign(params, namedList(access.customerNames, "customer"));
 
@@ -574,7 +587,7 @@ export async function getAccountQuotationDetailByEmail(emailValue, quotationName
   if (!access.email || !name) return null;
   const params = { name, email: access.email };
   const customerClause = access.customerNames.length
-    ? `OR q.party_name IN (${placeholders(access.customerNames, "customer")}) OR q.customer IN (${placeholders(access.customerNames, "customer")})`
+    ? `OR q.party_name IN (${placeholders(access.customerNames, "customer")})`
     : "";
   Object.assign(params, namedList(access.customerNames, "customer"));
 
@@ -760,8 +773,8 @@ export async function linkWebsiteCustomerAccess({ customer, email }) {
     customerName: customerRecord.customerName,
     email: normalizedEmail,
     contact: access.contacts[0]?.name || "",
-    user: access.user.name,
-    role: WEBSITE_CUSTOMER_ROLE
+    user: access.user?.name || "",
+    role: access.user ? WEBSITE_CUSTOMER_ROLE : ""
   };
 }
 
@@ -863,7 +876,9 @@ export async function getWebsiteCustomerAccessList({ q = "", limit = 30 } = {}) 
     const emails = [...new Set([row.email_id, ...accessRows.map((access) => clean(access.email))].filter(Boolean))];
     const users = [...new Set(accessRows.map((access) => clean(access.user)).filter(Boolean))];
     const websiteAccessEnabled = accessRows.some(
-      (access) => Number(access.user_enabled || 0) && Number(access.credential_enabled || 0)
+      (access) =>
+        (!clean(access.user) || Number(access.user_enabled || 0)) &&
+        Number(access.credential_enabled || 0)
     );
     const passwordSet = accessRows.some((access) => Number(access.password_set || 0));
     const sessionVersion = Math.max(0, ...accessRows.map((access) => Number(access.session_version || 0)));

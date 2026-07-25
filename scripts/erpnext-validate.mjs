@@ -5,7 +5,10 @@ import { getErpDbConfig, getErpPool } from "../api/erpnext-db.mjs";
 
 const strict = process.argv.includes("--strict");
 const integrationUser = process.env.ERPNEXT_INTEGRATION_USER || "website.integration@greenleaf.local";
-const requiredRoles = ["System Manager", "Sales User", "Stock User"];
+const requiredRoles = (process.env.ERPNEXT_REQUIRED_ROLES || "Sales User,Stock User")
+  .split(",")
+  .map((role) => role.trim())
+  .filter(Boolean);
 const requiredPriceList = process.env.DEFAULT_PRICE_LIST || "Standard Selling";
 const requiredWarehouses = ["Showroom - GL", "Furniture Showroom (Upstairs) - GL"];
 const fixturePath = fileURLToPath(new URL("../erpnext/fixtures/custom_fields.json", import.meta.url));
@@ -57,8 +60,7 @@ async function main() {
 
   for (const warehouse of requiredWarehouses) {
     const warehouseExists = await exists("SELECT name FROM `tabWarehouse` WHERE name = :warehouse LIMIT 1", { warehouse });
-    console.log(`- Excluded warehouse ${warehouse}: ${status(warehouseExists)}`);
-    if (!warehouseExists) failures.push(`warehouse:${warehouse}`);
+    console.log(`- Optional excluded warehouse ${warehouse}: ${warehouseExists ? "present" : "not present"}`);
   }
 
   const catalogItems = await count(

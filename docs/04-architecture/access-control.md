@@ -17,16 +17,18 @@
   secure cookie.
 - Password reset, disable и enable увеличивают credential version; все ранее
   выданные cookie после этого отклоняются.
-- Email Customer должен совпасть с разрешенной Contact/Customer link.
+- Email должен совпасть с Customer или связанным Contact. Отдельный Frappe
+  Website User поддерживается, но не требуется для Customer, созданного через
+  backend.
 
 ## Customer lifecycle
 
-- `POST /api/admin/customer-access/link` связывает существующего Customer с
-  Contact/User, но не создает пароль.
+- `POST /api/admin/customer-access/link` проверяет существующую связь email с
+  Customer/Contact, но не создает ERP-записи и пароль.
 - `POST /api/admin/customer-access/password` устанавливает или сбрасывает пароль,
   включает доступ и отзывает старые сессии.
-- `POST /api/admin/customer-access/disable` выключает User/credential и отзывает
-  старые сессии.
+- `POST /api/admin/customer-access/disable` выключает website credential и
+  отзывает старые сессии, не изменяя ERP User.
 - `POST /api/admin/customer-access/enable` повторно включает существующий
   credential без смены пароля и также отзывает старые сессии.
 - Все admin endpoints защищены `ADMIN_API_TOKEN` и rate limit.

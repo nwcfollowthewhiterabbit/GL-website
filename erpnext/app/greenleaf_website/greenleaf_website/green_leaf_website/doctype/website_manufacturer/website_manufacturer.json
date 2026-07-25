@@ -1,0 +1,66 @@
+{
+  "doctype": "DocType",
+  "name": "Website Manufacturer",
+  "module": "Green Leaf Website",
+  "custom": 0,
+  "istable": 0,
+  "autoname": "field:manufacturer_id",
+  "title_field": "manufacturer_name",
+  "sort_field": "sort_order",
+  "sort_order": "ASC",
+  "fields": [
+    {
+      "fieldname": "manufacturer_id",
+      "label": "Manufacturer ID",
+      "fieldtype": "Data",
+      "reqd": 1,
+      "unique": 1,
+      "description": "Stable URL-safe id, for example winco."
+    },
+    {
+      "fieldname": "manufacturer_name",
+      "label": "Manufacturer Name",
+      "fieldtype": "Data",
+      "reqd": 1
+    },
+    {
+      "fieldname": "logo",
+      "label": "Logo URL",
+      "fieldtype": "Data",
+      "reqd": 1,
+      "description": "Use a public storefront path or ERP file URL."
+    },
+    {
+      "fieldname": "url",
+      "label": "Click URL",
+      "fieldtype": "Data",
+      "default": "/catalog"
+    },
+    {
+      "fieldname": "enabled",
+      "label": "Enabled on Website",
+      "fieldtype": "Check",
+      "default": "1"
+    },
+    {
+      "fieldname": "sort_order",
+      "label": "Website Sort Order",
+      "fieldtype": "Int",
+      "default": "0"
+    }
+  ],
+  "permissions": [
+    {
+      "role": "System Manager",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1,
+      "report": 1,
+      "export": 1,
+      "print": 1,
+      "email": 1,
+      "share": 1
+    }
+  ]
+}

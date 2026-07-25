@@ -23,6 +23,9 @@
   остающийся disabled до полной UAT configuration.
 - Prometheus-compatible metrics, structured logs и webhook-capable runtime
   monitor.
+- Изолированный ERPNext v16 compatibility stand и минимальный
+  `greenleaf_website` app с website DocTypes, fixtures и synthetic runtime
+  contracts.
 
 ### Changed
 
@@ -38,6 +41,8 @@
   ERPNext User, Role и Contact tables.
 - Public API errors больше не раскрывают внутренние database/runtime messages;
   catalog и file proxy получили rate и resource limits.
+- Catalog и customer account SQL совместимы с ERPNext v14/v16; backend-created
+  Customer может получить website password без отдельного Frappe Website User.
 
 ### Known limitations
 
@@ -46,5 +51,5 @@
 - Внешний alert recipient и controlled restore drill требуют operations
   configuration/evidence.
 - Самостоятельная регистрация клиента пока не реализована.
-- ERPNext/Frappe v14 требует планового обновления на поддерживаемую major
-  version до production launch.
+- Перенос website-layer на чистый ERPNext v16 проверен; production-data clone,
+  UAT и cutover остаются отдельными release gates.

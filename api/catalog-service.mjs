@@ -1,9 +1,6 @@
 import { getErpPool } from "./erpnext-db.mjs";
 import { availableCustomFields, getCategoryRule, getCategoryRules } from "./storefront-rules.mjs";
-import {
-  CATALOG_DESCRIPTION_READY_SQL,
-  CATALOG_PRODUCT_READY_SQL
-} from "./catalog-publication-rules.mjs";
+import { getCatalogPublicationSql } from "./catalog-publication-rules.mjs";
 
 const DEFAULT_PRICE_LIST = process.env.DEFAULT_PRICE_LIST || "Standard Selling";
 const EXCLUDED_WAREHOUSES = ["Showroom - GL", "Furniture Showroom (Upstairs) - GL"];
@@ -43,7 +40,7 @@ function numericOption(value) {
   return Number.isFinite(number) ? number : null;
 }
 
-function itemWhere({ q, category, categoryNames, categories, featured, includeHidden, includeWeakGroups, categoryRule, hasItemFields, hasGroupFields, minPrice, maxPrice }) {
+function itemWhere({ q, category, categoryNames, categories, featured, includeHidden, includeWeakGroups, categoryRule, hasItemFields, hasGroupFields, minPrice, maxPrice, productReadySql }) {
   const clauses = [
     "IFNULL(i.disabled, 0) = 0",
     "IFNULL(i.is_sales_item, 1) = 1",
@@ -64,7 +61,7 @@ function itemWhere({ q, category, categoryNames, categories, featured, includeHi
     clauses.push("IFNULL(i.website_featured, 0) = 1");
   }
 
-  if (!includeHidden) clauses.push(CATALOG_PRODUCT_READY_SQL);
+  if (!includeHidden) clauses.push(productReadySql);
 
   if (!includeWeakGroups) {
     const excluded = EXCLUDED_STOREFRONT_GROUPS.map((_, index) => `:excludedGroup${index}`).join(", ");
@@ -207,7 +204,7 @@ export async function getCatalogProducts(options = {}) {
   }
 
   const priceList = String(categoryRule.priceList || DEFAULT_PRICE_LIST).trim() || DEFAULT_PRICE_LIST;
-  const [hasItemFields, hasGroupFields] = await Promise.all([
+  const [hasItemFields, hasGroupFields, publication] = await Promise.all([
     availableCustomFields("Item", [
       "website_show_on_storefront",
       "website_price_mode_override",
@@ -215,12 +212,13 @@ export async function getCatalogProducts(options = {}) {
       "website_sort_order",
       "website_featured"
     ]),
-    availableCustomFields("Item Group", ["website_show_on_storefront"])
+    availableCustomFields("Item Group", ["website_show_on_storefront"]),
+    getCatalogPublicationSql()
   ]);
 
   const base = itemBaseSql(priceList);
   const categoryNames = category ? await getItemGroupBranchNames(category) : [];
-  const where = itemWhere({ q, category, categoryNames, categories, featured, includeHidden, includeWeakGroups, categoryRule, hasItemFields, hasGroupFields, minPrice, maxPrice });
+  const where = itemWhere({ q, category, categoryNames, categories, featured, includeHidden, includeWeakGroups, categoryRule, hasItemFields, hasGroupFields, minPrice, maxPrice, productReadySql: publication.productReady });
   const params = {
     ...baseParams(priceList),
     ...where.params,
@@ -240,7 +238,7 @@ export async function getCatalogProducts(options = {}) {
         i.item_group AS category,
         i.stock_uom AS uom,
         i.image,
-        IFNULL(NULLIF(i.web_long_description, ''), i.description) AS description,
+        ${publication.descriptionValue} AS description,
         IFNULL(price.price_list_rate, 0) AS price,
         IFNULL(price.currency, :defaultCurrency) AS currency,
         GREATEST(FLOOR(IFNULL(stock.actual_qty, 0)), 0) AS quantity,
@@ -439,6 +437,7 @@ function normalizeQualityRows(rows, key) {
 }
 
 export async function getCatalogQualityReport() {
+  const publication = await getCatalogPublicationSql();
   const base = catalogQualityBaseSql();
   const params = { priceList: DEFAULT_PRICE_LIST };
   const where = `
@@ -446,13 +445,13 @@ export async function getCatalogQualityReport() {
     AND IFNULL(i.is_sales_item, 1) = 1
     AND IFNULL(i.has_variants, 0) = 0
   `;
-  const readyCountSql = `SUM(CASE WHEN ${CATALOG_PRODUCT_READY_SQL} THEN 1 ELSE 0 END)`;
+  const readyCountSql = `SUM(CASE WHEN ${publication.productReady} THEN 1 ELSE 0 END)`;
   const qualityColumns = `
     COUNT(*) AS total,
     ${readyCountSql} AS ready,
     SUM(CASE WHEN IFNULL(i.image, '') = '' THEN 1 ELSE 0 END) AS missing_image,
     SUM(CASE WHEN IFNULL(price.price_list_rate, 0) <= 0 THEN 1 ELSE 0 END) AS missing_price,
-    SUM(CASE WHEN NOT (${CATALOG_DESCRIPTION_READY_SQL}) THEN 1 ELSE 0 END) AS incomplete_description
+    SUM(CASE WHEN NOT (${publication.descriptionReady}) THEN 1 ELSE 0 END) AS incomplete_description
   `;
   const pool = getErpPool();
   const [[summaryRows], [groupRows], [brandRows]] = await Promise.all([
@@ -489,6 +488,7 @@ export async function getCatalogQualityReport() {
 }
 
 export async function getCatalogDiagnostics() {
+  const publication = await getCatalogPublicationSql();
   const [rows] = await getErpPool().execute(
     `
       SELECT
@@ -497,8 +497,8 @@ export async function getCatalogDiagnostics() {
         SUM(CASE WHEN IFNULL(i.image, '') = '' THEN 1 ELSE 0 END) without_image,
         SUM(CASE WHEN IFNULL(i.item_group, '') IN ('', 'All Item Groups') THEN 1 ELSE 0 END) weak_group,
         SUM(CASE WHEN IFNULL(price.price_list_rate, 0) <= 0 THEN 1 ELSE 0 END) without_selling_price,
-        SUM(CASE WHEN IFNULL(i.disabled, 0) = 0 AND ${CATALOG_PRODUCT_READY_SQL} THEN 1 ELSE 0 END) publication_ready,
-        SUM(CASE WHEN NOT (${CATALOG_DESCRIPTION_READY_SQL}) THEN 1 ELSE 0 END) incomplete_description
+        SUM(CASE WHEN IFNULL(i.disabled, 0) = 0 AND ${publication.productReady} THEN 1 ELSE 0 END) publication_ready,
+        SUM(CASE WHEN NOT (${publication.descriptionReady}) THEN 1 ELSE 0 END) incomplete_description
       FROM \`tabItem\` i
       LEFT JOIN (
         SELECT item_code, MAX(price_list_rate) AS price_list_rate

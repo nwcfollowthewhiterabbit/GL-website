@@ -25,7 +25,7 @@ services:
     depends_on:
       - api
     ports:
-      - "127.0.0.1:8094:8080"
+      - "127.0.0.1:${WEBSITE_LOCAL_PORT:-8094}:8080"
     read_only: true
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=32m
@@ -65,4 +65,4 @@ services:
 networks:
   erp_testing:
     external: true
-    name: testingerpgreenleafpacificcom_default
+    name: ${ERPNEXT_DOCKER_NETWORK:-testingerpgreenleafpacificcom_default}

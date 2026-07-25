@@ -1,5 +1,5 @@
 import { getErpPool } from "./erpnext-db.mjs";
-import { CATALOG_PRODUCT_READY_SQL } from "./catalog-publication-rules.mjs";
+import { getCatalogPublicationSql } from "./catalog-publication-rules.mjs";
 
 const fieldCache = new Map();
 
@@ -59,6 +59,7 @@ export async function getCategoryRule(category) {
 }
 
 export async function getCategoryRules() {
+  const publication = await getCatalogPublicationSql();
   const fields = await availableCustomFields("Item Group", CATEGORY_RULE_FIELDS);
   const selected = Object.keys(fields);
   const selectFields = selected.length ? `, ${selected.map((field) => `ig.\`${field}\``).join(", ")}` : "";
@@ -81,7 +82,7 @@ export async function getCategoryRules() {
         WHERE IFNULL(i.disabled, 0) = 0
           AND IFNULL(i.is_sales_item, 1) = 1
           AND IFNULL(i.has_variants, 0) = 0
-          AND ${CATALOG_PRODUCT_READY_SQL}
+          AND ${publication.productReady}
       ) i ON i.item_group = ig.name
       GROUP BY ig.name, ig.parent_item_group, ig.is_group, ig.lft${selected.map((field) => `, ig.\`${field}\``).join("")}
       ORDER BY ${fields.website_sort_order ? "IFNULL(ig.website_sort_order, 0)," : ""} ig.lft

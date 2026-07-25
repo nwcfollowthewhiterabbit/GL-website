@@ -45,6 +45,7 @@ const provisionedAccess = {
     roles: ["Website Customer"]
   },
   customerNames: ["CUSTOMER-0001"],
+  customers: [{ name: "CUSTOMER-0001", email: "" }],
   contacts: [{ user: "buyer@example.com" }]
 };
 assert.equal(isProvisionedWebsiteCustomerAccess(provisionedAccess, "CUSTOMER-0001"), true);
@@ -54,6 +55,38 @@ assert.equal(
     "CUSTOMER-0001"
   ),
   false
+);
+
+const backendCustomerAccess = {
+  email: "buyer@example.com",
+  user: null,
+  customerNames: ["CUSTOMER-0001"],
+  customers: [{ name: "CUSTOMER-0001", email: "buyer@example.com" }],
+  contacts: []
+};
+assert.equal(
+  isProvisionedWebsiteCustomerAccess(backendCustomerAccess, "CUSTOMER-0001"),
+  true
+);
+assert.equal(
+  isProvisionedWebsiteCustomerAccess(
+    {
+      ...backendCustomerAccess,
+      customers: [{ name: "CUSTOMER-0001", email: "other@example.com" }]
+    },
+    "CUSTOMER-0001"
+  ),
+  false
+);
+
+const backendContactAccess = {
+  ...backendCustomerAccess,
+  customers: [{ name: "CUSTOMER-0001", email: "" }],
+  contacts: [{ email: "buyer@example.com", user: "" }]
+};
+assert.equal(
+  isProvisionedWebsiteCustomerAccess(backendContactAccess, "CUSTOMER-0001"),
+  true
 );
 assert.equal(
   isProvisionedWebsiteCustomerAccess({ ...provisionedAccess, contacts: [{ user: "" }] }, "CUSTOMER-0001"),

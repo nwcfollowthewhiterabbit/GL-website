@@ -1,0 +1,22 @@
+{
+  "doctype": "DocType",
+  "name": "Website Department Item Group",
+  "module": "Green Leaf Website",
+  "custom": 0,
+  "istable": 1,
+  "fields": [
+    {
+      "fieldname": "item_group",
+      "label": "ERP Item Group",
+      "fieldtype": "Link",
+      "options": "Item Group",
+      "reqd": 1
+    },
+    {
+      "fieldname": "sort_order",
+      "label": "Sort Order",
+      "fieldtype": "Int",
+      "default": "0"
+    }
+  ]
+}
