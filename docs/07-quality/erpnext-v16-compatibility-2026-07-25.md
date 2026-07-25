@@ -73,9 +73,8 @@ ERP_RUNTIME_BASE_URL=http://web:8080 ACCOUNT_TEST_PASSWORD=... npm run test:acco
 
 ## Remaining Gates
 
-- Rehearse a production-data clone only after an authorized, separately
-  supplied production backup is available. Do not connect this process to
-  production directly.
+- Production-data upgrade rehearsal is complete. See
+  [Production ERP v16 upgrade rehearsal](production-erp-v16-upgrade-rehearsal-2026-07-25.md).
 - Reconcile production custom fields and naming defaults against the manifest.
 - Test Sales Invoice and Payment Entry after Windcave UAT credentials and
   accounting mappings are confirmed.

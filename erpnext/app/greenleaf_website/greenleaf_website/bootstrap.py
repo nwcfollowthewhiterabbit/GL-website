@@ -63,6 +63,22 @@ def ensure_integration_user():
 	return {"user": user.name, "roles": sorted(row.role for row in user.roles)}
 
 
+def set_integration_credentials(api_key, api_secret):
+	if not isinstance(api_key, str) or len(api_key) < 15:
+		frappe.throw("Integration API key must contain at least 15 characters")
+	if not isinstance(api_secret, str) or len(api_secret) < 24:
+		frappe.throw("Integration API secret must contain at least 24 characters")
+
+	ensure_integration_user()
+	frappe.db.set_value("User", INTEGRATION_USER, "api_key", api_key)
+
+	from frappe.utils.password import set_encrypted_password
+
+	set_encrypted_password("User", INTEGRATION_USER, api_secret, "api_secret")
+	frappe.db.commit()
+	return {"user": INTEGRATION_USER, "api_key_configured": True}
+
+
 def ensure_compatibility_data():
 	company = frappe.defaults.get_global_default("company")
 	currency = frappe.defaults.get_global_default("currency") or "FJD"

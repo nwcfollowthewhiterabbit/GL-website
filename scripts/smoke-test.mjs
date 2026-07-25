@@ -41,6 +41,13 @@ function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
+function assertContentOrDeclaredFallback(resource, items, label) {
+  assert(
+    items.length > 0 || resource.fallback?.degraded === true,
+    `${label} returned no content without declaring a degraded fallback`
+  );
+}
+
 async function main() {
   const health = await readJson("/health");
   assert(health.ok, "Health endpoint is not ok");
@@ -70,7 +77,7 @@ async function main() {
 
   const websiteCatalogs = await readJson("/api/storefront/catalogs");
   assert(Array.isArray(websiteCatalogs.catalogs), "Website catalogs response is invalid");
-  assert(websiteCatalogs.catalogs.length > 0, "Website catalogs returned no downloads");
+  assertContentOrDeclaredFallback(websiteCatalogs, websiteCatalogs.catalogs, "Website catalogs");
   assert(typeof websiteCatalogs.source === "string", "Website catalogs source is missing");
 
   const websiteManufacturers = await readJson("/api/storefront/manufacturers");
@@ -78,7 +85,11 @@ async function main() {
   const customerCorner = await readJson("/api/storefront/customer-corner");
   assert(customerCorner.settings?.title, "Customer corner settings response is invalid");
   assert(typeof customerCorner.settings.loginEnabled === "boolean", "Customer account login state is invalid");
-  assert(websiteManufacturers.manufacturers.length > 0, "Website manufacturers returned no logos");
+  assertContentOrDeclaredFallback(
+    websiteManufacturers,
+    websiteManufacturers.manufacturers,
+    "Website manufacturers"
+  );
   assert(typeof websiteManufacturers.source === "string", "Website manufacturers source is missing");
 
   const product = await readJson(`/api/catalog/product?sku=${encodeURIComponent(catalog.products[0].sku)}`);

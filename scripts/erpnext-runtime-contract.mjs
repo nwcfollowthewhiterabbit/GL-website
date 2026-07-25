@@ -3,6 +3,9 @@ import assert from "node:assert/strict";
 const baseUrl = (process.env.ERP_RUNTIME_BASE_URL || "http://localhost:8080").replace(/\/+$/, "");
 const itemCode = process.env.ERP_RUNTIME_ITEM_CODE || "GL-WEB-E2E-ITEM-001";
 const requestId = process.env.ERP_RUNTIME_QUOTE_ID || "GL-WEB-E2E-V16-CONTRACT-001";
+const expectedRate = Number(process.env.ERP_RUNTIME_EXPECTED_RATE || 125);
+
+assert.ok(Number.isFinite(expectedRate) && expectedRate > 0, "ERP_RUNTIME_EXPECTED_RATE must be positive");
 
 async function json(path, options) {
   const response = await fetch(`${baseUrl}${path}`, options);
@@ -47,6 +50,6 @@ assert.ok(["created", "idempotent"].includes(first.mode));
 assert.equal(second.mode, "idempotent");
 assert.ok(quotationName(first));
 assert.equal(quotationName(second), quotationName(first));
-assert.equal(first.validLines?.[0]?.rate, 125);
+assert.equal(first.validLines?.[0]?.rate, expectedRate);
 
 console.log(`ERPNext runtime contract passed: ${quotationName(first)}.`);

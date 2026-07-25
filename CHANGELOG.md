@@ -26,6 +26,8 @@
 - Изолированный ERPNext v16 compatibility stand и минимальный
   `greenleaf_website` app с website DocTypes, fixtures и synthetic runtime
   contracts.
+- Воспроизводимый изолированный rehearsal stack для миграции SQL-копии
+  production ERP с v14 через v15 на v16.
 
 ### Changed
 
@@ -43,6 +45,10 @@
   catalog и file proxy получили rate и resource limits.
 - Catalog и customer account SQL совместимы с ERPNext v14/v16; backend-created
   Customer может получить website password без отдельного Frappe Website User.
+- Runtime contracts используют фактическую ERP price-list rate, а storefront
+  smoke различает ERP content и явно объявленный degraded fallback.
+- API secret интеграционного пользователя сохраняется через encrypted-password
+  API Frappe, совместимый с v16.
 
 ### Known limitations
 
@@ -51,5 +57,5 @@
 - Внешний alert recipient и controlled restore drill требуют operations
   configuration/evidence.
 - Самостоятельная регистрация клиента пока не реализована.
-- Перенос website-layer на чистый ERPNext v16 проверен; production-data clone,
-  UAT и cutover остаются отдельными release gates.
+- Перенос website-layer на чистый ERPNext v16 и миграция SQL-копии production
+  v14 до v16 проверены; business UAT и cutover остаются release gates.

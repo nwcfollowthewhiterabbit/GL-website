@@ -26,6 +26,7 @@
 - [Стратегия качества](07-quality/test-strategy.md)
 - [Приёмочные сценарии](07-quality/acceptance-guide.md)
 - [Трассировка требований](07-quality/traceability.md)
+- [Репетиция обновления production ERP до v16](07-quality/production-erp-v16-upgrade-rehearsal-2026-07-25.md)
 - [Тестовые данные и очистка](07-quality/test-data-and-cleanup.md)
 - [Эксплуатация](08-operations/README.md)
 - [Окружения](08-operations/environments.md)
