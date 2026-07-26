@@ -7,7 +7,7 @@
   padding: 16px;
   border: 1px solid rgba(31, 76, 52, 0.2);
   border-radius: 8px;
-  background: #f5f8f2;
+  background: var(--panel-soft);
 }
 
 .payment-trust__copy {

@@ -11,7 +11,7 @@
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.97);
+  background: var(--panel-glass-strong);
   box-shadow: 0 14px 32px rgba(23, 35, 27, 0.06);
 }
 
@@ -20,7 +20,7 @@
 .account-disabled {
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.96);
+  background: var(--panel-glass-strong);
   box-shadow: 0 14px 32px rgba(23, 35, 27, 0.06);
 }
 
@@ -47,7 +47,7 @@
 .account-login__copy > p {
   max-width: 700px;
   margin: 0;
-  color: #405449;
+  color: var(--muted);
   font-size: 17px;
   line-height: 1.65;
 }
@@ -115,7 +115,7 @@
   border: 0;
   border-left: 1px solid var(--line);
   border-radius: 0;
-  background: #f6f8f4;
+  background: var(--panel-soft);
   box-shadow: none;
 }
 
@@ -154,7 +154,7 @@
   padding: 14px;
   border: 1px solid rgba(46, 111, 74, 0.24);
   border-radius: 8px;
-  background: #f3f8f0;
+  background: var(--panel-soft);
 }
 
 .account-auth__state div {
@@ -184,7 +184,7 @@
 
 .account-password-toggle:hover {
   color: var(--leaf-dark);
-  background: #edf3eb;
+  background: var(--panel-soft);
 }
 
 .account-panel__head span {
@@ -288,7 +288,7 @@
   padding: 4px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #f2f5f0;
+  background: var(--panel-soft);
 }
 
 .account-tab {
@@ -301,7 +301,7 @@
   border: 0;
   border-radius: 6px;
   background: transparent;
-  color: #526158;
+  color: var(--muted);
   font: inherit;
   font-weight: 900;
   cursor: pointer;
@@ -309,12 +309,12 @@
 
 .account-tab:hover {
   color: var(--ink);
-  background: rgba(255, 255, 255, 0.64);
+  background: var(--panel-glass);
 }
 
 .account-tab--active {
   color: var(--leaf-dark);
-  background: #fff;
+  background: var(--panel);
   box-shadow: 0 2px 8px rgba(23, 35, 27, 0.08);
 }
 
@@ -326,8 +326,8 @@
   height: 24px;
   padding: 0 7px;
   border-radius: 12px;
-  background: #e5ece3;
-  color: #34463a;
+  background: var(--panel-soft);
+  color: var(--muted);
   font-size: 12px;
 }
 
@@ -374,13 +374,13 @@
   padding: 14px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
+  background: var(--panel);
   box-shadow: 0 12px 28px rgba(23, 35, 27, 0.05);
 }
 
 .account-quotes article:hover,
 .recent-quotes__list article:hover {
-  background: #fbfcf8;
+  background: var(--panel-soft);
 }
 
 .account-quotes div {
@@ -395,7 +395,7 @@
 }
 
 .account-quotes .account-status-copy {
-  color: #53645a;
+  color: var(--muted);
   font-size: 13px;
   font-weight: 700;
   line-height: 1.4;
@@ -413,8 +413,8 @@
   min-height: 28px;
   padding: 4px 9px;
   border-radius: 999px;
-  background: #eef3ec;
-  color: #33483a;
+  background: var(--panel-soft);
+  color: var(--muted);
   font-size: 12px;
   font-weight: 900;
 }
@@ -425,7 +425,7 @@
 .account-status--paid,
 .account-status--submitted,
 .account-status--to-deliver-and-bill {
-  background: #eaf5ee;
+  background: var(--success-surface);
   color: var(--leaf-dark);
 }
 
@@ -435,15 +435,15 @@
 .account-status--partially-delivered,
 .account-status--preparing,
 .account-status--payment-due {
-  background: #f6f0dc;
-  color: #735f20;
+  background: var(--warning-surface);
+  color: var(--warning-ink);
 }
 
 .account-status--cancelled,
 .account-status--not-proceeding,
 .account-status--expired {
-  background: #f8ece8;
-  color: #8b3d2f;
+  background: var(--danger-surface);
+  color: var(--danger-ink);
 }
 
 .account-empty {
@@ -453,7 +453,7 @@
   padding: 20px;
   border: 1px dashed rgba(102, 113, 104, 0.34);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--panel-glass);
 }
 
 .account-empty svg {
@@ -493,7 +493,7 @@
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fbfcf8;
+  background: var(--panel-soft);
 }
 
 .account-detail__meta span,
@@ -528,7 +528,7 @@
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
+  background: var(--panel);
 }
 
 .account-detail__lines div {
@@ -546,6 +546,6 @@
 .account-detail__progress span {
   padding: 8px 10px;
   border-radius: 999px;
-  background: #eef3ec;
-  color: #33483a;
+  background: var(--panel-soft);
+  color: var(--muted);
 }

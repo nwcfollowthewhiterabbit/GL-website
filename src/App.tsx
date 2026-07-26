@@ -20,6 +20,7 @@ import { featuredProducts as fallbackProducts } from "./data/catalog";
 import { matchedItemGroups, websiteCategoryCount } from "./data/websiteCategories";
 import { useCustomerAccount } from "./hooks/useCustomerAccount";
 import { useStorefrontContent } from "./hooks/useStorefrontContent";
+import { useTheme } from "./hooks/useTheme";
 import {
   createQuoteRequest,
   fetchCatalogDiagnostics,
@@ -128,6 +129,7 @@ export function App({ initialRoute }: AppProps = {}) {
   const [quoteResult, setQuoteResult] = useState<QuoteResult | null>(null);
   const storefront = useStorefrontContent();
   const account = useCustomerAccount(route.view === "account");
+  const { theme, toggleTheme } = useTheme();
   const websiteNavigationCategories = storefront.departments;
 
   useEffect(() => {
@@ -590,7 +592,13 @@ export function App({ initialRoute }: AppProps = {}) {
 
   return (
     <main className="app">
-      <SiteHeader departments={websiteNavigationCategories} quoteCount={quoteCount} onOpenQuote={() => setQuoteOpen(true)} />
+      <SiteHeader
+        departments={websiteNavigationCategories}
+        quoteCount={quoteCount}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        onOpenQuote={() => setQuoteOpen(true)}
+      />
       {route.view === "catalog" ? (
         <HeroSection banners={storefront.banners} />
       ) : null}

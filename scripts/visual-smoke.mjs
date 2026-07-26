@@ -187,6 +187,10 @@ async function main() {
   try {
     await getJson(`http://127.0.0.1:${debuggingPort}/json/version`);
     const page = await connectToPage(`${baseUrl}/catalog?visual-smoke=1`);
+    await page.send("Page.addScriptToEvaluateOnNewDocument", {
+      source: `if (!localStorage.getItem("green-leaf-theme")) localStorage.setItem("green-leaf-theme", "light");`
+    });
+    await page.send("Page.navigate", { url: `${baseUrl}/catalog?visual-smoke=1` });
     await waitForSelector(page.send, ".product-card");
 
     await scrollToSelector(page.send, "#catalog");
@@ -201,6 +205,56 @@ async function main() {
       mobile: false
     }, ".product-card");
     assert(mobile.productCards > 0 && desktop.productCards > 0, "Catalog has no product cards");
+
+    const initialTheme = await page.send("Runtime.evaluate", {
+      returnByValue: true,
+      expression: `({
+        theme: document.documentElement.dataset.theme,
+        pressed: document.querySelector(".nav__theme-button")?.getAttribute("aria-pressed")
+      })`
+    });
+    assert(initialTheme.result.result.value.theme === "light", "Visual smoke did not start in light theme");
+    assert(initialTheme.result.result.value.pressed === "false", "Theme control does not reflect light theme");
+    await page.send("Runtime.evaluate", {
+      expression: `document.querySelector(".nav__theme-button")?.click()`
+    });
+    await wait(250);
+    const darkTheme = await page.send("Runtime.evaluate", {
+      returnByValue: true,
+      expression: `({
+        theme: document.documentElement.dataset.theme,
+        stored: localStorage.getItem("green-leaf-theme"),
+        pressed: document.querySelector(".nav__theme-button")?.getAttribute("aria-pressed"),
+        bodyBackground: getComputedStyle(document.body).backgroundColor
+      })`
+    });
+    assert(darkTheme.result.result.value.theme === "dark", "Theme control did not activate dark theme");
+    assert(darkTheme.result.result.value.stored === "dark", "Dark theme preference was not persisted");
+    assert(darkTheme.result.result.value.pressed === "true", "Theme control does not reflect dark theme");
+    assert(darkTheme.result.result.value.bodyBackground !== "rgb(246, 247, 243)", "Dark theme kept the light page background");
+    await page.send("Page.reload", { ignoreCache: true });
+    await waitForSelector(page.send, ".product-card");
+    const persistedTheme = await page.send("Runtime.evaluate", {
+      returnByValue: true,
+      expression: `document.documentElement.dataset.theme`
+    });
+    assert(persistedTheme.result.result.value === "dark", "Dark theme preference did not survive reload");
+    await scrollToSelector(page.send, "#catalog");
+    const darkMobile = await captureViewport(page.send, "catalog-dark-mobile", {
+      width: 390,
+      height: 1200,
+      mobile: true
+    }, ".product-card");
+    const darkDesktop = await captureViewport(page.send, "catalog-dark-desktop", {
+      width: 1440,
+      height: 1200,
+      mobile: false
+    }, ".product-card");
+    assert(darkMobile.productCards > 0 && darkDesktop.productCards > 0, "Dark catalog has no product cards");
+    await page.send("Runtime.evaluate", {
+      expression: `document.querySelector(".nav__theme-button")?.click()`
+    });
+    await wait(250);
 
     await page.send("Runtime.evaluate", {
       expression: `document.querySelector(".product-card .primary-button")?.click()`
@@ -509,6 +563,8 @@ async function main() {
     console.log("Visual smoke checks passed");
     console.log(`- Mobile width: ${mobile.innerWidth}, scroll width: ${mobile.scrollWidth}`);
     console.log(`- Desktop width: ${desktop.innerWidth}, scroll width: ${desktop.scrollWidth}`);
+    console.log(`- Dark mobile width: ${darkMobile.innerWidth}, scroll width: ${darkMobile.scrollWidth}`);
+    console.log(`- Dark desktop width: ${darkDesktop.innerWidth}, scroll width: ${darkDesktop.scrollWidth}`);
     console.log(`- Basket mobile width: ${basketMobile.innerWidth}, scroll width: ${basketMobile.scrollWidth}`);
     console.log(`- Basket desktop width: ${basketDesktop.innerWidth}, scroll width: ${basketDesktop.scrollWidth}`);
     console.log(`- Account mobile width: ${accountMobile.innerWidth}, scroll width: ${accountMobile.scrollWidth}`);

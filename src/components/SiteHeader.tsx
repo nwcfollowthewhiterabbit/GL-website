@@ -1,15 +1,18 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Mail, MapPin, Phone, ShoppingCart, UserRound } from "lucide-react";
+import { ArrowRight, Mail, MapPin, Moon, Phone, ShoppingCart, Sun, UserRound } from "lucide-react";
 import { legacyBrand } from "../data/legacyContent";
+import type { ColorTheme } from "../hooks/useTheme";
 import type { WebsiteCategory } from "../types";
 
 type SiteHeaderProps = {
   departments: WebsiteCategory[];
   quoteCount: number;
+  theme: ColorTheme;
+  onToggleTheme: () => void;
   onOpenQuote: () => void;
 };
 
-export function SiteHeader({ departments, quoteCount, onOpenQuote }: SiteHeaderProps) {
+export function SiteHeader({ departments, quoteCount, theme, onToggleTheme, onOpenQuote }: SiteHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const navRef = useRef<HTMLElement | null>(null);
 
@@ -93,6 +96,16 @@ export function SiteHeader({ departments, quoteCount, onOpenQuote }: SiteHeaderP
             >
               <UserRound />
             </a>
+            <button
+              type="button"
+              className="icon-button nav__theme-button"
+              aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+              aria-pressed={theme === "dark"}
+              title={theme === "dark" ? "Light theme" : "Dark theme"}
+              onClick={onToggleTheme}
+            >
+              {theme === "dark" ? <Sun /> : <Moon />}
+            </button>
             <button type="button" className="icon-button" aria-label="Cart" title="Cart" onClick={onOpenQuote}>
               <ShoppingCart />
               {quoteCount ? <span className="cart-badge">{quoteCount}</span> : null}
