@@ -80,7 +80,6 @@ export function SiteHeader({ departments, quoteCount, theme, onToggleTheme, onOp
             >
               Catalog
             </button>
-            <a href="/catalog#catalogs" onClick={closeMenu}>Catalogues</a>
             <a href="/catalog#brands" onClick={closeMenu}>Brands</a>
             <a href="/catalog#service" onClick={closeMenu}>Service</a>
             <a href="/account" onClick={closeMenu}>Account</a>
@@ -134,7 +133,6 @@ export function SiteHeader({ departments, quoteCount, theme, onToggleTheme, onOp
             ))}
           </div>
           <div className="nav-menu__links">
-            <a href="/catalog#catalogs" onClick={closeMenu}>Catalogues</a>
             <a href="/catalog#brands" onClick={closeMenu}>Brands</a>
             <a href="/catalog#service" onClick={closeMenu}>Service</a>
             <a href="/catalog#contact" onClick={closeMenu}>Contact</a>

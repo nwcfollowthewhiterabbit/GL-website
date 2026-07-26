@@ -205,6 +205,15 @@ async function main() {
       mobile: false
     }, ".product-card");
     assert(mobile.productCards > 0 && desktop.productCards > 0, "Catalog has no product cards");
+    const catalogueDownloadState = await page.send("Runtime.evaluate", {
+      returnByValue: true,
+      expression: `({
+        section: Boolean(document.querySelector(".catalog-downloads")),
+        links: document.querySelectorAll('a[href="/catalog#catalogs"]').length
+      })`
+    });
+    assert(!catalogueDownloadState.result.result.value.section, "Supplier catalogue download block is still visible");
+    assert(catalogueDownloadState.result.result.value.links === 0, "Navigation still links to the removed catalogue block");
 
     const initialTheme = await page.send("Runtime.evaluate", {
       returnByValue: true,

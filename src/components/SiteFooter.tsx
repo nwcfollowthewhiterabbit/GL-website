@@ -27,7 +27,6 @@ export function SiteFooter({ departments }: SiteFooterProps) {
           <span>Information</span>
           <a href="/about-us">About Us</a>
           <a href="/how-we-operate">How We Operate</a>
-          <a href="/catalog#catalogs">Catalogues</a>
           <a href="/account">Account</a>
         </div>
         <div>

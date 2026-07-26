@@ -2,7 +2,6 @@ import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { flushSync } from "react-dom";
 import { AboutPage } from "./components/AboutPage";
 import { AccountPage } from "./components/AccountPage";
-import { CatalogDownloadsSection } from "./components/CatalogDownloadsSection";
 import { CatalogServiceBand } from "./components/CatalogServiceBand";
 import { CatalogSection } from "./components/CatalogSection";
 import { HeroSection } from "./components/HeroSection";
@@ -682,7 +681,6 @@ export function App({ initialRoute }: AppProps = {}) {
       {route.view === "catalog" ? (
         <RecommendedProductsSection products={storefront.recommendedProducts} onSelectProduct={openProductPreview} />
       ) : null}
-      {route.view === "catalog" ? <CatalogDownloadsSection catalogs={storefront.catalogs} /> : null}
       {route.view === "catalog" ? <LegacyContentSection manufacturers={storefront.manufacturers} /> : null}
       {route.view === "how-we-operate" || route.view === "about" || route.view === "account" ? null : (
         <ServiceContactSection onOpenQuote={() => setQuoteOpen(true)} />

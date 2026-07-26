@@ -2514,76 +2514,6 @@ textarea:focus-visible {
   font-weight: 800;
 }
 
-.catalog-downloads {
-  padding-top: 34px;
-}
-
-.catalog-downloads__grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.catalog-download-card {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 14px;
-  align-items: start;
-  min-height: 210px;
-  padding: 18px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background:
-    linear-gradient(180deg, var(--panel), var(--cream)),
-    var(--panel);
-  box-shadow: var(--shadow);
-}
-
-.catalog-download-card__icon {
-  display: grid;
-  place-items: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 8px;
-  background: var(--success-surface);
-  color: var(--leaf-dark);
-}
-
-.catalog-download-card span {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 900;
-  text-transform: uppercase;
-}
-
-.catalog-download-card h3 {
-  margin: 8px 0;
-  color: var(--ink);
-  font-size: 21px;
-  line-height: 1.15;
-}
-
-.catalog-download-card p {
-  margin: 0;
-  color: var(--muted);
-  line-height: 1.5;
-}
-
-.catalog-download-card a {
-  display: inline-flex;
-  grid-column: 1 / -1;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 42px;
-  margin-top: auto;
-  border-radius: 8px;
-  background: var(--leaf);
-  color: #fff;
-  font-weight: 900;
-  text-decoration: none;
-}
-
 .diagnostic-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -4079,7 +4009,6 @@ textarea:focus-visible {
   .product-page__hero,
   .related-products__grid,
   .account-login,
-  .catalog-downloads__grid,
   .operations-section__intro,
   .operations-erp-layout,
   .operations-outcomes-layout,
