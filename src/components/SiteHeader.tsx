@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Mail, MapPin, Menu, Phone, ShoppingCart } from "lucide-react";
+import { ArrowRight, Mail, MapPin, Phone, ShoppingCart, UserRound } from "lucide-react";
 import { legacyBrand } from "../data/legacyContent";
 import type { WebsiteCategory } from "../types";
 
@@ -84,16 +84,15 @@ export function SiteHeader({ departments, quoteCount, onOpenQuote }: SiteHeaderP
             <a href="/catalog#contact" onClick={closeMenu}>Contact</a>
           </div>
           <div className="nav__actions">
-            <button
-              type="button"
-              className="icon-button nav__menu-button"
-              aria-label={menuOpen ? "Close menu" : "Open menu"}
-              aria-expanded={menuOpen}
-              title="Menu"
-              onClick={() => setMenuOpen((value) => !value)}
+            <a
+              className="icon-button nav__account-button"
+              href="/account"
+              aria-label="Customer account"
+              title="Customer account"
+              onClick={closeMenu}
             >
-              <Menu />
-            </button>
+              <UserRound />
+            </a>
             <button type="button" className="icon-button" aria-label="Cart" title="Cart" onClick={onOpenQuote}>
               <ShoppingCart />
               {quoteCount ? <span className="cart-badge">{quoteCount}</span> : null}
