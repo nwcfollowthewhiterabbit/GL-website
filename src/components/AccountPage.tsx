@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
   Eye,
@@ -11,7 +11,8 @@ import {
   ReceiptText,
   RefreshCcw,
   ShieldCheck,
-  UserRound
+  UserRound,
+  X
 } from "lucide-react";
 import type { AccountDocumentDetail, AccountSession, CustomerCornerSettings, RecentQuote } from "../types";
 
@@ -105,6 +106,160 @@ function customerStatus(
     return { label: "Payment due", detail: `${money(Number(values.outstandingAmount || 0))} FJD outstanding.` };
   }
   return { label: status || "Issued", detail: `${money(Number(values.outstandingAmount || 0))} FJD outstanding.` };
+}
+
+type AccountDocumentModalProps = {
+  detail: AccountDocumentDetail;
+  salesEmail: string;
+  onClose: () => void;
+};
+
+function AccountDocumentModal({ detail, salesEmail, onClose }: AccountDocumentModalProps) {
+  const dialogRef = useRef<HTMLElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    closeButtonRef.current?.focus();
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+
+      if (event.key !== "Tab" || !dialogRef.current) return;
+      const focusable = Array.from(
+        dialogRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )
+      );
+      if (!focusable.length) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+      previousFocus?.focus();
+    };
+  }, []);
+
+  const title = detail.type === "quote"
+    ? "Quotation details"
+    : detail.type === "invoice"
+      ? "Invoice details"
+      : "Sales order details";
+  const displayStatus = customerStatus(detail.type, detail.status, {
+    perDelivered: detail.type === "order" ? detail.perDelivered : undefined,
+    perBilled: detail.type === "order" ? detail.perBilled : undefined,
+    outstandingAmount: detail.type === "invoice" ? detail.outstandingAmount : undefined
+  });
+
+  return (
+    <div
+      className="account-detail-backdrop"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <section
+        ref={dialogRef}
+        className="account-detail-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="account-document-title"
+      >
+        <header className="account-detail-modal__header">
+          <div>
+            <span>{title}</span>
+            <h3 id="account-document-title">{detail.name}</h3>
+          </div>
+          <button
+            ref={closeButtonRef}
+            className="icon-button"
+            type="button"
+            onClick={onClose}
+            aria-label="Close document details"
+            title="Close"
+          >
+            <X size={20} />
+          </button>
+        </header>
+
+        <div className="account-detail-modal__body">
+          <div className="account-detail__meta">
+            <article>
+              <span>Status</span>
+              <strong>{displayStatus.label}</strong>
+            </article>
+            <article>
+              <span>Customer</span>
+              <strong>{detail.customer}</strong>
+            </article>
+            <article>
+              <span>{detail.type === "quote" ? "Valid until" : detail.type === "invoice" ? "Due date" : "Delivery date"}</span>
+              <strong>{detail.type === "quote" ? shortDate(detail.validTill) : detail.type === "invoice" ? shortDate(detail.dueDate) : shortDate(detail.deliveryDate)}</strong>
+            </article>
+            <article>
+              <span>Total</span>
+              <strong>{money(detail.grandTotal)} FJD</strong>
+            </article>
+          </div>
+          <div className="account-detail__actions">
+            <a className="secondary-button" href={`mailto:${salesEmail}?subject=${encodeURIComponent(`Update request for ${detail.name}`)}`}>
+              <Mail size={16} /> Request update
+            </a>
+          </div>
+          <div className="account-detail__lines">
+            {detail.lines.length ? (
+              detail.lines.map((line) => (
+                <article key={`${detail.name}-${line.itemCode}-${line.qty}`}>
+                  <div>
+                    <strong>{line.itemName}</strong>
+                    <span>{line.itemCode}</span>
+                  </div>
+                  <span>{line.qty} {line.uom}</span>
+                  <span>{money(line.rate)} FJD</span>
+                  <strong>{money(line.amount)} FJD</strong>
+                </article>
+              ))
+            ) : (
+              <p className="empty-state">No item lines available for this document.</p>
+            )}
+          </div>
+          {detail.type === "order" ? (
+            <div className="account-detail__progress">
+              <span>Delivered {percent(detail.perDelivered)}</span>
+              <span>Billed {percent(detail.perBilled)}</span>
+            </div>
+          ) : null}
+          {detail.type === "invoice" ? (
+            <div className="account-detail__progress">
+              <span>Outstanding {money(detail.outstandingAmount)} FJD</span>
+              <span>Due {shortDate(detail.dueDate)}</span>
+            </div>
+          ) : null}
+        </div>
+      </section>
+    </div>
+  );
 }
 
 export function AccountPage({
@@ -417,77 +572,10 @@ export function AccountPage({
         </section>
         ) : null}
 
-        {detail ? (
-          <section className="account-panel account-panel--wide account-detail">
-            <div className="account-panel__head">
-              <div>
-                <span>{detail.type === "quote" ? "Quotation details" : detail.type === "invoice" ? "Invoice details" : "Sales order details"}</span>
-                <h3>{detail.name}</h3>
-              </div>
-              <button className="secondary-button" type="button" onClick={onCloseDetail}>
-                Close
-              </button>
-            </div>
-            <div className="account-detail__meta">
-              <article>
-                <span>Status</span>
-                <strong>{customerStatus(detail.type, detail.status, {
-                  perDelivered: detail.type === "order" ? detail.perDelivered : undefined,
-                  perBilled: detail.type === "order" ? detail.perBilled : undefined,
-                  outstandingAmount: detail.type === "invoice" ? detail.outstandingAmount : undefined
-                }).label}</strong>
-              </article>
-              <article>
-                <span>Customer</span>
-                <strong>{detail.customer}</strong>
-              </article>
-              <article>
-                <span>{detail.type === "quote" ? "Valid until" : detail.type === "invoice" ? "Due date" : "Delivery date"}</span>
-                <strong>{detail.type === "quote" ? shortDate(detail.validTill) : detail.type === "invoice" ? shortDate(detail.dueDate) : shortDate(detail.deliveryDate)}</strong>
-              </article>
-              <article>
-                <span>Total</span>
-                <strong>{money(detail.grandTotal)} FJD</strong>
-              </article>
-            </div>
-            <div className="account-detail__actions">
-              <a className="secondary-button" href={`mailto:${settings.salesEmail}?subject=${encodeURIComponent(`Update request for ${detail.name}`)}`}>
-                <Mail size={16} /> Request update
-              </a>
-            </div>
-            <div className="account-detail__lines">
-              {detail.lines.length ? (
-                detail.lines.map((line) => (
-                  <article key={`${detail.name}-${line.itemCode}-${line.qty}`}>
-                    <div>
-                      <strong>{line.itemName}</strong>
-                      <span>{line.itemCode}</span>
-                    </div>
-                    <span>{line.qty} {line.uom}</span>
-                    <span>{money(line.rate)} FJD</span>
-                    <strong>{money(line.amount)} FJD</strong>
-                  </article>
-                ))
-              ) : (
-                <p className="empty-state">No item lines available for this document.</p>
-              )}
-            </div>
-            {detail.type === "order" ? (
-              <div className="account-detail__progress">
-                <span>Delivered {percent(detail.perDelivered)}</span>
-                <span>Billed {percent(detail.perBilled)}</span>
-              </div>
-            ) : null}
-            {detail.type === "invoice" ? (
-              <div className="account-detail__progress">
-                <span>Outstanding {money(detail.outstandingAmount)} FJD</span>
-                <span>Due {shortDate(detail.dueDate)}</span>
-              </div>
-            ) : null}
-          </section>
-        ) : null}
-
       </div> : null}
+      {isAuthenticated && detail ? (
+        <AccountDocumentModal detail={detail} salesEmail={settings.salesEmail} onClose={onCloseDetail} />
+      ) : null}
     </section>
   );
 }

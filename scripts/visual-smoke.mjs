@@ -132,6 +132,19 @@ async function waitForSelector(send, selector, timeoutMs = 15000) {
   throw new Error(`Timed out waiting for ${selector}`);
 }
 
+async function waitForMissingSelector(send, selector, timeoutMs = 5000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const result = await send("Runtime.evaluate", {
+      returnByValue: true,
+      expression: `!document.querySelector(${JSON.stringify(selector)})`
+    });
+    if (result.result.result.value) return;
+    await wait(100);
+  }
+  throw new Error(`Timed out waiting for ${selector} to close`);
+}
+
 async function waitForStableSelector(send, selector, timeoutMs = 20000, stableMs = 1500) {
   const deadline = Date.now() + timeoutMs;
   let stableSince = 0;
@@ -421,6 +434,73 @@ async function main() {
               }
             }));
           }
+          if (url === "/api/account/orders/SO-TEST-0001") {
+            return Promise.resolve(json({
+              order: {
+                type: "order",
+                name: "SO-TEST-0001",
+                customer: "Island Resort Supplies",
+                transactionDate: "2026-07-20",
+                deliveryDate: "2026-07-30",
+                grandTotal: 1240,
+                status: "To Deliver and Bill",
+                perDelivered: 0,
+                perBilled: 0,
+                lines: [{
+                  itemCode: "GL-CHAIR-01",
+                  itemName: "Commercial dining chair",
+                  qty: 4,
+                  uom: "Nos",
+                  rate: 310,
+                  amount: 1240
+                }]
+              }
+            }));
+          }
+          if (url === "/api/account/quotes/QTN-TEST-0001") {
+            return Promise.resolve(json({
+              quote: {
+                type: "quote",
+                name: "QTN-TEST-0001",
+                customer: "Island Resort Supplies",
+                transactionDate: "2026-07-18",
+                validTill: "2026-08-18",
+                grandTotal: 1240,
+                status: "Open",
+                marker: "Website quotation",
+                lines: [{
+                  itemCode: "GL-CHAIR-01",
+                  itemName: "Commercial dining chair",
+                  qty: 4,
+                  uom: "Nos",
+                  rate: 310,
+                  amount: 1240
+                }]
+              }
+            }));
+          }
+          if (url === "/api/account/invoices/ACC-SINV-TEST-0001") {
+            return Promise.resolve(json({
+              invoice: {
+                type: "invoice",
+                name: "ACC-SINV-TEST-0001",
+                customer: "Island Resort Supplies",
+                postingDate: "2026-07-21",
+                dueDate: "2026-08-21",
+                grandTotal: 1240,
+                outstandingAmount: 1240,
+                status: "Unpaid",
+                lines: [{
+                  itemCode: "GL-CHAIR-01",
+                  itemName: "Commercial dining chair",
+                  qty: 4,
+                  uom: "Nos",
+                  rate: 310,
+                  amount: 1240
+                }]
+              }
+            }));
+          }
           return originalFetch(input, options);
         };
       })();`
@@ -476,6 +556,83 @@ async function main() {
     assert(!accountState.result.result.value.hasCatalogs, "Supplier catalogues leaked into the customer account");
     assert(!accountState.result.result.value.hasManufacturers, "Manufacturer content leaked into the customer account");
     assert(!accountState.result.result.value.hasServicePromotion, "Storefront service promotion leaked into the customer account");
+
+    await page.send("Runtime.evaluate", {
+      expression: `document.querySelector(".account-quotes article button")?.click()`
+    });
+    await waitForSelector(page.send, ".account-detail-modal");
+    const orderModalState = await page.send("Runtime.evaluate", {
+      returnByValue: true,
+      expression: `({
+        name: document.querySelector("#account-document-title")?.textContent?.trim() || "",
+        label: document.querySelector(".account-detail-modal__header span")?.textContent?.trim() || "",
+        item: document.querySelector(".account-detail__lines article strong")?.textContent?.trim() || "",
+        modal: document.querySelector(".account-detail-modal")?.getAttribute("aria-modal"),
+        bodyOverflow: document.body.style.overflow,
+        closeFocused: document.activeElement?.getAttribute("aria-label") === "Close document details"
+      })`
+    });
+    assert(orderModalState.result.result.value.name === "SO-TEST-0001", "Order details did not open in the popup");
+    assert(orderModalState.result.result.value.label === "Sales order details", "Order popup has the wrong document type");
+    assert(orderModalState.result.result.value.item === "Commercial dining chair", "Order popup item lines are missing");
+    assert(orderModalState.result.result.value.modal === "true", "Order popup is not marked as a modal dialog");
+    assert(orderModalState.result.result.value.bodyOverflow === "hidden", "Page scroll was not locked behind the popup");
+    assert(orderModalState.result.result.value.closeFocused, "Popup focus did not move to the close control");
+    const orderModalDesktop = await captureViewport(page.send, "account-order-modal-desktop", {
+      width: 1440,
+      height: 900,
+      mobile: false
+    }, ".account-detail-modal");
+    await page.send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape" });
+    await page.send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape" });
+    await waitForMissingSelector(page.send, ".account-detail-modal");
+
+    await page.send("Runtime.evaluate", {
+      expression: `[...document.querySelectorAll(".account-tab")].find((button) => button.textContent?.includes("Quotations"))?.click()`
+    });
+    await wait(150);
+    await page.send("Runtime.evaluate", {
+      expression: `document.querySelector(".account-quotes article button")?.click()`
+    });
+    await waitForSelector(page.send, ".account-detail-modal");
+    const quoteModalName = await page.send("Runtime.evaluate", {
+      returnByValue: true,
+      expression: `document.querySelector("#account-document-title")?.textContent?.trim() || ""`
+    });
+    assert(quoteModalName.result.result.value === "QTN-TEST-0001", "Quotation details did not open in the popup");
+    await page.send("Runtime.evaluate", {
+      expression: `document.querySelector('button[aria-label="Close document details"]')?.click()`
+    });
+    await waitForMissingSelector(page.send, ".account-detail-modal");
+
+    await page.send("Runtime.evaluate", {
+      expression: `[...document.querySelectorAll(".account-tab")].find((button) => button.textContent?.includes("Invoices"))?.click()`
+    });
+    await wait(150);
+    await page.send("Runtime.evaluate", {
+      expression: `document.querySelector(".account-quotes article button")?.click()`
+    });
+    await waitForSelector(page.send, ".account-detail-modal");
+    const invoiceModalState = await page.send("Runtime.evaluate", {
+      returnByValue: true,
+      expression: `({
+        name: document.querySelector("#account-document-title")?.textContent?.trim() || "",
+        label: document.querySelector(".account-detail-modal__header span")?.textContent?.trim() || "",
+        outstanding: document.querySelector(".account-detail__progress span")?.textContent?.trim() || ""
+      })`
+    });
+    assert(invoiceModalState.result.result.value.name === "ACC-SINV-TEST-0001", "Invoice details did not open in the popup");
+    assert(invoiceModalState.result.result.value.label === "Invoice details", "Invoice popup has the wrong document type");
+    assert(invoiceModalState.result.result.value.outstanding.includes("1,240.00 FJD"), "Invoice outstanding amount is missing");
+    const invoiceModalMobile = await captureViewport(page.send, "account-invoice-modal-mobile", {
+      width: 390,
+      height: 900,
+      mobile: true
+    }, ".account-detail-modal");
+    await page.send("Runtime.evaluate", {
+      expression: `document.querySelector('button[aria-label="Close document details"]')?.click()`
+    });
+    await waitForMissingSelector(page.send, ".account-detail-modal");
 
     await page.send("Page.navigate", { url: `${baseUrl}/privacy?visual-smoke=1` });
     await waitForSelector(page.send, ".policy-page");
@@ -578,6 +735,8 @@ async function main() {
     console.log(`- Basket desktop width: ${basketDesktop.innerWidth}, scroll width: ${basketDesktop.scrollWidth}`);
     console.log(`- Account mobile width: ${accountMobile.innerWidth}, scroll width: ${accountMobile.scrollWidth}`);
     console.log(`- Account desktop width: ${accountDesktop.innerWidth}, scroll width: ${accountDesktop.scrollWidth}`);
+    console.log(`- Order popup desktop width: ${orderModalDesktop.innerWidth}, scroll width: ${orderModalDesktop.scrollWidth}`);
+    console.log(`- Invoice popup mobile width: ${invoiceModalMobile.innerWidth}, scroll width: ${invoiceModalMobile.scrollWidth}`);
     console.log(`- Account login mobile width: ${accountLoginMobile.innerWidth}, scroll width: ${accountLoginMobile.scrollWidth}`);
     console.log(`- Account login desktop width: ${accountLoginDesktop.innerWidth}, scroll width: ${accountLoginDesktop.scrollWidth}`);
     console.log(`- Policy mobile width: ${policyMobile.innerWidth}, scroll width: ${policyMobile.scrollWidth}`);
