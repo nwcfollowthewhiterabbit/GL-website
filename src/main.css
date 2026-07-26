@@ -1881,7 +1881,11 @@ textarea:focus-visible {
   height: 190px;
   object-fit: contain;
   mix-blend-mode: multiply;
-  background: var(--panel-soft);
+  background: var(--media-surface);
+}
+
+:root[data-theme="dark"] .recommended-product img {
+  mix-blend-mode: normal;
 }
 
 .recommended-product span {

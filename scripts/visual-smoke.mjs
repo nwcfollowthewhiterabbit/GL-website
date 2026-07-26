@@ -273,6 +273,35 @@ async function main() {
       mobile: false
     }, ".product-card");
     assert(darkMobile.productCards > 0 && darkDesktop.productCards > 0, "Dark catalog has no product cards");
+    await scrollToSelector(page.send, ".recommended-section");
+    await waitForStableSelector(page.send, ".recommended-product img");
+    const darkRecommendedState = await page.send("Runtime.evaluate", {
+      returnByValue: true,
+      expression: `(() => {
+        const image = document.querySelector(".recommended-product img");
+        if (!image) return null;
+        const style = getComputedStyle(image);
+        return {
+          cards: document.querySelectorAll(".recommended-product").length,
+          blendMode: style.mixBlendMode,
+          backgroundColor: style.backgroundColor,
+          imageLoaded: image.naturalWidth > 0
+        };
+      })()`
+    });
+    assert(darkRecommendedState.result.result.value?.cards > 0, "Dark recommended section has no product cards");
+    assert(darkRecommendedState.result.result.value?.blendMode === "normal", "Dark recommended product images are still multiplied into the card background");
+    assert(darkRecommendedState.result.result.value?.imageLoaded, "Dark recommended product image did not load");
+    const darkRecommendedMobile = await captureViewport(page.send, "recommended-dark-mobile", {
+      width: 390,
+      height: 900,
+      mobile: true
+    }, ".recommended-product img");
+    const darkRecommendedDesktop = await captureViewport(page.send, "recommended-dark-desktop", {
+      width: 1440,
+      height: 900,
+      mobile: false
+    }, ".recommended-product img");
     await page.send("Runtime.evaluate", {
       expression: `document.querySelector(".nav__theme-button")?.click()`
     });
@@ -731,6 +760,8 @@ async function main() {
     console.log(`- Desktop width: ${desktop.innerWidth}, scroll width: ${desktop.scrollWidth}`);
     console.log(`- Dark mobile width: ${darkMobile.innerWidth}, scroll width: ${darkMobile.scrollWidth}`);
     console.log(`- Dark desktop width: ${darkDesktop.innerWidth}, scroll width: ${darkDesktop.scrollWidth}`);
+    console.log(`- Dark recommended mobile width: ${darkRecommendedMobile.innerWidth}, scroll width: ${darkRecommendedMobile.scrollWidth}`);
+    console.log(`- Dark recommended desktop width: ${darkRecommendedDesktop.innerWidth}, scroll width: ${darkRecommendedDesktop.scrollWidth}`);
     console.log(`- Basket mobile width: ${basketMobile.innerWidth}, scroll width: ${basketMobile.scrollWidth}`);
     console.log(`- Basket desktop width: ${basketDesktop.innerWidth}, scroll width: ${basketDesktop.scrollWidth}`);
     console.log(`- Account mobile width: ${accountMobile.innerWidth}, scroll width: ${accountMobile.scrollWidth}`);
