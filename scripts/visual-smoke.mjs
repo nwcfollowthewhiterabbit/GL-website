@@ -292,11 +292,25 @@ async function main() {
     assert(darkRecommendedState.result.result.value?.cards > 0, "Dark recommended section has no product cards");
     assert(darkRecommendedState.result.result.value?.blendMode === "normal", "Dark recommended product images are still multiplied into the card background");
     assert(darkRecommendedState.result.result.value?.imageLoaded, "Dark recommended product image did not load");
+    await page.send("Emulation.setDeviceMetricsOverride", {
+      width: 390,
+      height: 900,
+      deviceScaleFactor: 1,
+      mobile: true
+    });
+    await scrollToSelector(page.send, ".recommended-section");
     const darkRecommendedMobile = await captureViewport(page.send, "recommended-dark-mobile", {
       width: 390,
       height: 900,
       mobile: true
     }, ".recommended-product img");
+    await page.send("Emulation.setDeviceMetricsOverride", {
+      width: 1440,
+      height: 900,
+      deviceScaleFactor: 1,
+      mobile: false
+    });
+    await scrollToSelector(page.send, ".recommended-section");
     const darkRecommendedDesktop = await captureViewport(page.send, "recommended-dark-desktop", {
       width: 1440,
       height: 900,
