@@ -59,7 +59,7 @@ export function getPaymentConfig() {
     currency: PAYMENT_CURRENCY,
     cardBrands: SUPPORTED_CARD_BRANDS,
     cardDataHandledBy: "windcave",
-    pciQuestionnaire: "SAQ A",
+    pciQuestionnaire: "SAQ A-EP",
     paymentLinkValidityDays: PAYMENT_LINK_VALIDITY_DAYS,
     environment: paymentEnvironment(credentials.apiBaseUrl),
     payableDoctype,

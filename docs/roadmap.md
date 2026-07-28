@@ -13,7 +13,8 @@
 - Подтвердить реализованный Sales Invoice/outstanding-total payment mode.
 - Проверить HPP redirect, approved, declined, cancelled и notification.
 - Подтвердить идемпотентную Payment Entry запись в UAT.
-- Выполнить Westpac review и SAQ A.
+- Выполнить Westpac review и SAQ A-EP, включая письменное разрешение
+  расхождения по merchant-side ASV scanning.
 
 ## Перед production
 

@@ -181,7 +181,7 @@ const policyContent: Record<PolicySlug, PolicyContent> = {
         title: "Windcave Hosted Payment Page",
         paragraphs: [
           "At checkout, the customer is redirected to Windcave's secure hosted page to enter card details and is then returned to Green Leaf Pacific. The Green Leaf Pacific website does not request, receive or store full card numbers or card verification codes.",
-          "Transactions are processed in Fijian dollars (FJD). Visa, Mastercard and American Express are accepted. The hosted integration follows the PCI SAQ A model."
+          "Transactions are processed in Fijian dollars (FJD). Visa, Mastercard and American Express are accepted. Westpac has requested PCI DSS SAQ A-EP for the hosted integration."
         ]
       },
       {

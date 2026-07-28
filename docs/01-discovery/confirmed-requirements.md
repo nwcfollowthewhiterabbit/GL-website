@@ -23,7 +23,9 @@
 - Метод: Hosted Payment Page; cardholder data остается у Windcave.
 - Карты: Visa, Mastercard, American Express.
 - Валюта transaction/settlement: FJD.
-- PCI flow: SAQ A для HPP.
+- Westpac прислал для заполнения PCI DSS v4.0.1 SAQ A-EP для Windcave HPP.
+  Требование 11.3.2 по merchant-side ASV scanning требует отдельного
+  письменного согласования с Westpac до подписания анкеты.
 - Testing URL допускается для Westpac review.
 - Payment остается выключенным до UAT credentials и проверки callback flow.
 

@@ -10,6 +10,20 @@
 4. Какие ERPNext mode-of-payment, receivable и Windcave clearing accounts
    использовать для Payment Entry?
 
+## Блокируют подписание PCI SAQ A-EP
+
+1. Westpac сообщил, что Windcave покрывает vulnerability scanning при HPP, но
+   присланный Westpac SAQ A-EP v4.0.1 требует в пункте 11.3.2 passing external
+   scan от PCI SSC Approved Scanning Vendor не реже одного раза в три месяца.
+   Перед заполнением Requirement 11 обязательно напомнить об этом расхождении
+   и получить письменное указание Westpac: кто выполняет merchant-side ASV
+   scan и какое evidence должно быть приложено.
+2. Подтверждает ли Westpac, что именно SAQ A-EP, а не SAQ A, является
+   обязательной формой для финального Windcave HPP redirect?
+3. Кто является merchant executive signatory и официальным PCI contact?
+4. Какие hosting, development/operations и другие TPSP входят в assessment
+   scope, и получены ли их актуальные PCI compliance подтверждения?
+
 ## Можно уточнить на техническом этапе
 
 1. Refund выполняется только в Windcave portal или через API сайта?

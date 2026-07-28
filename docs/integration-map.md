@@ -170,7 +170,9 @@ Westpac-confirmed gateway rules:
 - Integration: Hosted Payment Page; all cardholder data stays in Windcave.
 - Accepted cards: Visa, Mastercard and American Express.
 - Transaction and settlement currency: FJD.
-- PCI model: SAQ A for HPP; Windcave covers the hosted card-entry environment.
+- PCI model requested by Westpac: SAQ A-EP for HPP; Windcave covers the hosted
+  card-entry environment. Merchant-side ASV evidence under Requirement 11.3.2
+  remains an explicit pre-submission clarification.
 - The non-indexed testing URL can be used for Westpac review.
 
 Remaining technical-stage inputs:
