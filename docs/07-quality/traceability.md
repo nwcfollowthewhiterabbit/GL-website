@@ -5,6 +5,9 @@
 | ERP-backed catalog | `api/catalog-service.mjs`, storefront components | smoke + ERP validation |
 | Idempotent quotation | quote API, stable client id and ERP fields | `test:integration` + smoke |
 | Password customer login | versioned session, account service, `AccountPage.tsx` | `test:account` + actual login |
+| Verified registration/recovery | account self-service, challenge migration003, SendGrid transport | `test:self-service` + isolated mailbox flow |
+| Account-bound quote/no payments | quote identity binding, complete cart validation, quote basket | `test:customer-quotes` + runtime quote replay |
+| Full customer history | paged scoped quotes/orders/invoices | history contract + runtime owner/foreign checks |
 | Customer isolation | scoped queries plus result boundary check | `test:integration` + protected route |
 | Windcave HPP only | server-side session/notification verification | `test:payments` + `test:integration` + UAT |
 | Idempotent ERP payment effect | website payment event + transaction reference lookup | `test:integration` + Windcave UAT |

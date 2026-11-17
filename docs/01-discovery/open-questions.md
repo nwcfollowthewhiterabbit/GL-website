@@ -32,11 +32,12 @@
 
 ## Backlog, не блокирует текущую итерацию
 
-1. Self-registration и email verification.
-2. Self-service customer password recovery.
-3. Customer-group price lists после входа.
-4. Multiple product images.
-5. Точные permissions роли Website Content Manager.
+1. Customer-group price lists после входа.
+2. Multiple product images.
+3. Точные permissions роли Website Content Manager.
+
+Self-registration/email verification и password recovery включены владельцем
+в customer release от2026-11-17; используется существующий Sales Team SendGrid sender.
 
 Ответ переносится в
 [confirmed requirements](confirmed-requirements.md), а долговременное

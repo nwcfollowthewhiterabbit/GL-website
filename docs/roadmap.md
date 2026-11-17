@@ -1,9 +1,10 @@
 # Roadmap
 
-## Текущий этап: testing hardening
+## Текущий этап: customer release без онлайн-оплаты
 
 - Поддерживать approved visual baseline.
-- Довести customer account и customer-scoped documents.
+- Регистрация с подтверждением email, восстановление пароля, корзина → draft Quotation, статусы и постраничная история своих документов.
+- Пройти isolated/native/browser acceptance и выпустить на testing hostname с production ERP.
 - Устранить catalog/content quality gaps через ERP controls.
 - Сохранить noindex и безопасные testing defaults.
 

@@ -5,6 +5,7 @@
 ```text
 ERP-visible item
 -> customer adds quantity to Order basket
+-> customer registers/verifies email or signs in (basket persists)
 -> API validates customer and SKU lines
 -> API resolves ERP price and idempotency marker
 -> draft Quotation is created once
@@ -18,17 +19,32 @@ ERP-visible item
 ## Customer account
 
 ```text
-existing ERP Customer with assigned website password
+verified self-registered customer or existing ERP Customer with assigned website password
 -> customer signs in
 -> backend verifies scrypt hash
 -> signed secure cookie is issued
 -> email resolves allowed ERP Customer links
 -> orders/quotations/invoices are filtered by those links
 -> customer opens a document and sees customer-friendly status
+-> customer loads older history pages when needed
 ```
 
 Неверный пароль возвращает одинаковую ошибку без раскрытия существования email.
 Прямой URL другого customer document должен вернуть отказ.
+
+## Email registration and recovery
+
+```text
+email request -> generic response -> single-use30-minute mailbox link
+-> customer chooses password after opening link
+-> registration creates one credential and links/creates native Customer
+OR reset changes password and revokes previous sessions
+```
+
+Ссылка хранится в URL fragment, очищается из адреса после чтения и не попадает
+в request/access logs. Повтор, истёкшая ссылка, отключённый доступ и конфликт
+версии credential отклоняются. Перезапрос ограничен по email и IP. Staff system
+accounts не регистрируются этим способом. Повторный submit не создаёт дубль.
 
 ## Windcave HPP
 

@@ -10,7 +10,8 @@ const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
 assert.equal(manifest.schemaVersion, 1);
 assert.deepEqual(websiteMigrationIds(), [
   "001-website-customer-credentials",
-  "002-website-payment-event"
+  "002-website-payment-event",
+  "003-website-account-challenge"
 ]);
 
 const fixtureDocTypes = new Set();

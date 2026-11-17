@@ -1,5 +1,10 @@
 import type {
   AccountLoginResponse,
+  AccountConfig,
+  AccountActionResult,
+  AccountHistoryKind,
+  CustomerOrder,
+  CustomerInvoice,
   AccountInvoiceDetail,
   AccountOrderDetail,
   AccountQuoteDetail,
@@ -117,7 +122,7 @@ export async function loginAccount(email: string, password: string): Promise<Acc
 
 export async function fetchAccountSession() {
   const response = await fetch("/api/account/session");
-  if (!response.ok) throw new Error("account_session_failed");
+  if (!response.ok) throw Object.assign(new Error("account_session_failed"), { status: response.status });
   const data = (await response.json()) as { account: AccountSession };
   return data.account;
 }
@@ -144,9 +149,8 @@ export async function fetchAccountInvoiceDetail(name: string) {
 }
 
 export async function logoutAccount() {
-  await fetch("/api/account/logout", {
-    method: "POST"
-  });
+  const response = await fetch("/api/account/logout", { method: "POST" });
+  if (!response.ok) throw new Error("account_logout_failed");
 }
 
 export async function createQuoteRequest(payload: QuoteRequestPayload): Promise<QuoteRequestResponse> {
@@ -170,4 +174,28 @@ export async function createQuoteRequest(payload: QuoteRequestPayload): Promise<
     body: JSON.stringify({ ...payload, id })
   });
   return response.json();
+}
+
+export function fetchAccountConfig() {
+  return getJson<AccountConfig>("/api/account/config");
+}
+
+export async function accountAction(path: string, body: Record<string, string>): Promise<AccountActionResult> {
+  const response = await fetch(`/api/account/${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  if (response.status === 429) return { ok: false, error: "too_many_requests" };
+  return response.json();
+}
+
+export function fetchAccountHistory(kind: AccountHistoryKind, offset: number) {
+  return getJson<{
+    quotes?: RecentQuote[];
+    orders?: CustomerOrder[];
+    invoices?: CustomerInvoice[];
+    hasMore: boolean;
+    nextOffset: number | null;
+  }>(`/api/account/${kind}?limit=20&offset=${offset}`);
 }

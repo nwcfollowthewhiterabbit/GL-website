@@ -32,8 +32,15 @@
 - `POST /api/admin/customer-access/enable` повторно включает существующий
   credential без смены пароля и также отзывает старые сессии.
 - Все admin endpoints защищены `ADMIN_API_TOKEN` и rate limit.
-- Self-registration и self-service password recovery не активируются до
-  согласования email verification/delivery процесса.
+- Self-registration и recovery используют email-first single-use challenge.
+  Registration не перезаписывает credential; reset не включает disabled access.
+  Password вводится только после mailbox link. Challenge хранит SHA-256 token,
+  срок и использованность; reset связан с версией credential.
+  IP и durable per-email throttles ограничивают отправку. SendGrid sender —
+  существующий Sales Team; секрет доступен только backend через protected env.
+  Isolated test outbox допускается только при explicit test environment.
+- Quote creation требует verified session и использует Customer credential,
+  а не присланное браузером имя Customer. Изменённый email отклоняется.
 
 Credential и payment event tables создаются не request-кодом, а
 `api/migrations/runner.mjs`. Migration ids/checksums записываются в

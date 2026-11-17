@@ -217,7 +217,8 @@ assert.equal(paymentEntry.references[0].reference_name, "SINV-0001");
 assert.equal(paymentEntry.references[0].allocated_amount, 125.5);
 assert.deepEqual(websiteMigrationIds(), [
   "001-website-customer-credentials",
-  "002-website-payment-event"
+  "002-website-payment-event",
+  "003-website-account-challenge"
 ]);
 
 console.log("Integration contract tests passed.");

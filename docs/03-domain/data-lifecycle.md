@@ -7,13 +7,17 @@ render. Local seed используется только как явно обо�
 
 ## Quote request
 
-Browser basket -> backend validation -> idempotency marker -> draft ERPNext
+Browser basket -> verified account -> backend SKU/quantity/identity validation -> idempotency marker -> draft ERPNext
 Quotation -> response reference. Исправление выполняется sales process в ERP.
 
 ## Account
 
-Admin assigns password -> salted hash stored against ERP Customer -> login issues
-short-lived signed session -> each list/detail resolves allowed Customer scope.
+Email request -> hashed expiring challenge -> mailbox link -> password/company/contact
+completion -> native Customer/Contact resolution or creation -> insert-only salted
+scrypt credential -> signed session. Existing admin-provisioned access remains.
+Reset challenge snapshots credential version; successful reset consumes the token
+and increments session version. Disabled access remains disabled.
+Each paged list/detail resolves allowed Customer scope.
 Logout clears the browser session cookie.
 
 ## Payment

@@ -38,7 +38,8 @@
   "websiteOwnedTables": [
     "tabGL Website Schema Migration",
     "tabWebsite Customer Credential",
-    "tabWebsite Payment Event"
+    "tabWebsite Payment Event",
+    "tabWebsite Account Challenge"
   ],
   "erpnextReadModels": [
     "Bin",

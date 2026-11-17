@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
+  Building2,
+  Phone,
   Eye,
   EyeOff,
   FileText,
@@ -14,9 +16,11 @@ import {
   UserRound,
   X
 } from "lucide-react";
+import type { useCustomerAccount } from "../hooks/useCustomerAccount";
 import type { AccountDocumentDetail, AccountSession, CustomerCornerSettings, RecentQuote } from "../types";
 
 type AccountPageProps = {
+  auth: ReturnType<typeof useCustomerAccount>;
   email: string;
   password: string;
   quotes: RecentQuote[];
@@ -73,14 +77,14 @@ function customerStatus(
   if (normalized.includes("closed")) return { label: "Closed", detail: "No further action is expected." };
 
   if (type === "order") {
+    if (normalized.includes("hold")) return { label: "On hold", detail: "Green Leaf will contact you with the next update." };
+    if (normalized === "draft") return { label: "Awaiting confirmation", detail: "The order is being reviewed." };
     if (normalized === "completed" || Number(values.perDelivered || 0) >= 100) {
       return { label: "Completed", detail: "The order has been delivered." };
     }
     if (Number(values.perDelivered || 0) > 0) {
       return { label: "Partially delivered", detail: `${percent(values.perDelivered)} delivered.` };
     }
-    if (normalized.includes("hold")) return { label: "On hold", detail: "Green Leaf will contact you with the next update." };
-    if (normalized === "draft") return { label: "Awaiting confirmation", detail: "The order is being reviewed." };
     if (normalized.includes("deliver") || normalized.includes("bill")) {
       return { label: "Confirmed", detail: "The order is being prepared for delivery." };
     }
@@ -91,7 +95,8 @@ function customerStatus(
     if (normalized === "ordered") return { label: "Order created", detail: "The quotation has been converted to an order." };
     if (normalized.includes("expire")) return { label: "Expired", detail: "Contact Green Leaf to request an updated quotation." };
     if (normalized === "lost") return { label: "Not proceeding", detail: "The quotation was closed without an order." };
-    if (normalized === "open" || normalized === "draft") {
+    if (normalized === "open") return { label: "Quotation ready", detail: "Green Leaf has prepared this quotation. Contact sales to confirm your order." };
+    if (normalized === "draft") {
       return { label: "Under review", detail: "Green Leaf is reviewing pricing and availability." };
     }
     return { label: status || "Under review", detail: "The quotation is being processed." };
@@ -263,6 +268,7 @@ function AccountDocumentModal({ detail, salesEmail, onClose }: AccountDocumentMo
 }
 
 export function AccountPage({
+  auth,
   email,
   password,
   quotes,
@@ -290,8 +296,24 @@ export function AccountPage({
   const profile = account?.profile;
   const quotesVisible = settings.showQuoteHistory;
   const ordersVisible = settings.showPurchaseHistory;
-  const [activeTab, setActiveTab] = useState<AccountTab>("orders");
+  const [activeTab, setActiveTab] = useState<AccountTab>("quotes");
   const [showPassword, setShowPassword] = useState(false);
+  const completing = auth.authMode.endsWith("complete");
+  const showAccount = isAuthenticated && !completing;
+  const authTitles = {
+    login: "Sign in",
+    register: "Create your account",
+    reset: "Reset your password",
+    "register-complete": "Finish your registration",
+    "reset-complete": "Choose a new password"
+  };
+  const authCopy = {
+    login: "Use your customer email and password.",
+    register: "We will email you a link to verify your address before you set a password.",
+    reset: "Enter your account email to receive a password reset link.",
+    "register-complete": "Choose a password and add your business details to request quotes.",
+    "reset-complete": "Choose a strong password. Your previous sessions will be signed out."
+  };
 
   if (!settings.enabled) {
     return (
@@ -315,14 +337,14 @@ export function AccountPage({
 
   return (
     <section className="shell section account-page">
-      {!isAuthenticated ? (
+      {!showAccount ? (
         <div className="account-login">
           <div className="account-login__copy">
             <span className="eyebrow">
               <ShieldCheck size={16} /> Customer account
             </span>
             <h1>{settings.title}</h1>
-            <p>{settings.introCopy}</p>
+            <p>Create an account to request quotes, follow their progress and view your order history. Online payment is not available in this version.</p>
             <div className="account-login__support">
               <Mail size={18} />
               <div>
@@ -332,69 +354,49 @@ export function AccountPage({
             </div>
           </div>
 
-          <aside className="account-auth" aria-label="Customer login">
+          <form className="account-auth" aria-label={authTitles[auth.authMode]} onSubmit={(event) => { event.preventDefault(); void auth.submitAuth(); }}>
             <div className="account-auth__head">
               <UserRound size={20} />
-              <div>
-                <strong>Sign in</strong>
-                <span>Use your customer email and password.</span>
-              </div>
+              <div><strong>{authTitles[auth.authMode]}</strong><span>{authCopy[auth.authMode]}</span></div>
             </div>
-            {!settings.loginEnabled ? (
-              <div className="account-auth__state">
-                <Mail size={18} />
-                <div>
-                  <strong>Customer login is disabled</strong>
-                  <span>Contact {settings.salesEmail} for account history.</span>
-                </div>
-              </div>
+            {!settings.loginEnabled || !auth.config.loginEnabled ? (
+              <div className="account-auth__state"><Mail size={18} /><div><strong>Account access is temporarily unavailable</strong><span>Contact {settings.salesEmail} for help.</span></div></div>
             ) : (
               <>
-                <label className="field">
+                {!completing ? <label className="field">
                   <Mail size={18} />
-                  <input
-                    placeholder="Customer email"
-                    type="email"
-                    autoComplete="username"
-                    aria-label="Customer email"
-                    value={email}
-                    onChange={(event) => onEmailChange(event.target.value)}
-                  />
-                </label>
-                <div className="field">
-                  <ShieldCheck size={18} />
-                  <input
-                    placeholder="Password"
-                    type={showPassword ? "text" : "password"}
-                    autoComplete="current-password"
-                    aria-label="Password"
-                    value={password}
-                    onChange={(event) => onPasswordChange(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") onLogin();
-                    }}
-                  />
-                  <button
-                    className="account-password-toggle"
-                    type="button"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                    title={showPassword ? "Hide password" : "Show password"}
-                    onClick={() => setShowPassword((value) => !value)}
-                  >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
-                <button className="quote-button" onClick={onLogin} disabled={isLoading}>
-                  {isLoading ? "Signing in..." : "Sign in"}
+                  <input placeholder="Customer email" type="email" autoComplete="username" aria-label="Customer email" required maxLength={140} value={email} onChange={(event) => onEmailChange(event.target.value)} />
+                </label> : null}
+                {auth.authMode === "register-complete" ? <>
+                  <label className="field"><Building2 size={18} /><input placeholder="Company or business name" aria-label="Company or business name" autoComplete="organization" required maxLength={140} value={auth.company} onChange={(event) => auth.setCompany(event.target.value)} /></label>
+                  <label className="field"><UserRound size={18} /><input placeholder="Contact name" aria-label="Contact name" autoComplete="name" required maxLength={140} value={auth.contact} onChange={(event) => auth.setContact(event.target.value)} /></label>
+                  <label className="field"><Phone size={18} /><input placeholder="Phone number" aria-label="Phone number" type="tel" autoComplete="tel" required maxLength={40} value={auth.phone} onChange={(event) => auth.setPhone(event.target.value)} /></label>
+                </> : null}
+                {auth.authMode === "login" || completing ? <>
+                  <div className="field">
+                    <ShieldCheck size={18} />
+                    <input placeholder={completing ? "New password (10+ characters)" : "Password"} type={showPassword ? "text" : "password"} autoComplete={completing ? "new-password" : "current-password"} aria-label={completing ? "New password" : "Password"} required minLength={completing ? 10 : undefined} maxLength={128} value={password} onChange={(event) => onPasswordChange(event.target.value)} />
+                    <button className="account-password-toggle" type="button" aria-label={showPassword ? "Hide password" : "Show password"} onClick={() => setShowPassword((value) => !value)}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>
+                  </div>
+                  {completing ? <label className="field"><ShieldCheck size={18} /><input placeholder="Confirm new password" aria-label="Confirm new password" type={showPassword ? "text" : "password"} autoComplete="new-password" required maxLength={128} value={auth.confirmPassword} onChange={(event) => auth.setConfirmPassword(event.target.value)} /></label> : null}
+                </> : null}
+                <button className="quote-button" type="submit" disabled={isLoading}>
+                  {isLoading ? "Please wait..." : auth.authMode === "login" ? "Sign in" : auth.authMode === "register" ? "Send verification email" : auth.authMode === "reset" ? "Send reset email" : auth.authMode === "register-complete" ? "Create account" : "Save new password"}
                 </button>
+                <div className="account-auth__links">
+                  {auth.authMode !== "login" ? <button type="button" onClick={() => auth.changeAuthMode("login")}>Back to sign in</button> : null}
+                  {auth.config.registrationEnabled && auth.authMode !== "register" ? <button type="button" onClick={() => auth.changeAuthMode("register")}>{completing ? "Request a new verification link" : "Create an account"}</button> : null}
+                  {auth.config.passwordResetEnabled && auth.authMode !== "reset" ? <button type="button" onClick={() => auth.changeAuthMode("reset")}>{completing ? "Request a password reset link" : "Forgot password?"}</button> : null}
+                </div>
               </>
             )}
-            {status ? <p className="quote-panel__status">{status}</p> : null}
-          </aside>
+            {status ? <p className="quote-panel__status" role="status">{status}</p> : null}
+            <p className="account-auth__note">Your basket stays on this device while you register or sign in.</p>
+          </form>
         </div>
       ) : null}
 
-      {isAuthenticated ? <div className="account-content">
+      {showAccount ? <div className="account-content">
         <header className="account-header account-panel--wide">
           <div>
             <span className="eyebrow">
@@ -402,7 +404,7 @@ export function AccountPage({
             </span>
             <h1>{profile?.customerName || account?.email}</h1>
             <div className="account-header__meta">
-              <span><Mail size={15} /> {profile?.email || account?.email}</span>
+              <span><Mail size={15} /> {account?.email}</span>
               {profile?.territory ? <span><MapPin size={15} /> {profile.territory}</span> : null}
               {profile?.group ? <span>{profile.group}</span> : null}
             </div>
@@ -420,15 +422,21 @@ export function AccountPage({
         <div className="account-history-head account-panel--wide">
           <div>
             <span>Account activity</span>
-            <h2>Documents</h2>
+            <h2>Your requests and orders</h2>
           </div>
-          <p>Track orders, quotations and invoices linked to this customer.</p>
+          <p>Quote requests appear here first. Confirmed orders and invoices are added as Green Leaf processes your request.</p>
         </div>
 
+        <div className="account-next-actions account-panel--wide">
+          <a className="secondary-button" href="/catalog">Browse products <ArrowRight size={16} /></a>
+          <button className="quote-button" type="button" onClick={onOpenQuote}>Open quote basket</button>
+        </div>
+        {status ? <p className="account-feedback account-panel--wide" role="status">{status}</p> : null}
         <nav className="account-tabs account-panel--wide" aria-label="Account history">
           <button
             className={activeTab === "orders" ? "account-tab account-tab--active" : "account-tab"}
             type="button"
+            aria-pressed={activeTab === "orders"}
             onClick={() => setActiveTab("orders")}
           >
             <PackageCheck size={18} /> Orders <span>{orders.length}</span>
@@ -436,6 +444,7 @@ export function AccountPage({
           <button
             className={activeTab === "quotes" ? "account-tab account-tab--active" : "account-tab"}
             type="button"
+            aria-pressed={activeTab === "quotes"}
             onClick={() => setActiveTab("quotes")}
           >
             <FileText size={18} /> Quotations <span>{accountQuotes.length}</span>
@@ -443,6 +452,7 @@ export function AccountPage({
           <button
             className={activeTab === "invoices" ? "account-tab account-tab--active" : "account-tab"}
             type="button"
+            aria-pressed={activeTab === "invoices"}
             onClick={() => setActiveTab("invoices")}
           >
             <ReceiptText size={18} /> Invoices <span>{invoices.length}</span>
@@ -467,7 +477,7 @@ export function AccountPage({
                   <div>
                     <strong>{quote.name}</strong>
                     <span>{quote.customer}</span>
-                    <small>{quote.marker || quote.orderType || "Website quotation"}</small>
+                    <small>Requested {shortDate(quote.transactionDate || quote.creation)}</small>
                   </div>
                   <span className={statusClass(displayStatus.label)} title={`ERP status: ${quote.status}`}>{displayStatus.label}</span>
                   <span className="account-status-copy">{displayStatus.detail}</span>
@@ -480,10 +490,10 @@ export function AccountPage({
             ) : (
               <div className="account-empty">
                 <FileText size={24} />
-                <strong>No quote history loaded</strong>
-                <p>{isAuthenticated ? "New quote requests will appear here after Green Leaf prepares the quotation." : "Sign in to load quotation history for this customer account."}</p>
+                <strong>No quote requests yet</strong>
+                <p>{isAuthenticated ? "Your submitted quote requests appear here immediately for sales review." : "Sign in to load quotation history for this customer account."}</p>
                 <button className="secondary-button" type="button" onClick={onOpenQuote}>
-                  Start order <ArrowRight size={16} />
+                  Open quote basket <ArrowRight size={16} />
                 </button>
               </div>
             )}
@@ -572,8 +582,9 @@ export function AccountPage({
         </section>
         ) : null}
 
+        {auth.historyMore[activeTab] ? <button className="secondary-button account-load-more" type="button" onClick={() => void auth.loadMore(activeTab)} disabled={Boolean(auth.historyLoading)}>{auth.historyLoading === activeTab ? "Loading older records..." : "Load older records"}</button> : null}
       </div> : null}
-      {isAuthenticated && detail ? (
+      {showAccount && detail ? (
         <AccountDocumentModal detail={detail} salesEmail={settings.salesEmail} onClose={onCloseDetail} />
       ) : null}
     </section>

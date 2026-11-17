@@ -17,11 +17,23 @@
 
 ## Customer account
 
-1. Login form contains email/password and no email-code step.
+1. Email-first registration creates no Customer/credential before mailbox proof.
 2. Wrong password returns a generic failure.
 3. Correct Customer sees only linked orders, quotations and invoices.
 4. Direct request for another Customer document is denied.
 5. Logout removes account access.
+6. Verification/reset links expire, work once and never leak through logs/referrers.
+7. Existing credentials cannot be overwritten by registration; disabled accounts
+   cannot be restored by password reset. Reset invalidates old sessions.
+8. Page through older orders, quotes and invoices; direct foreign-document requests fail.
+9. Anonymous cart survives sign-in/verification. Sending a quote requires session;
+   spoofed email, malformed lines and unknown SKUs create no partial quotation.
+10. Two equivalent submissions return one request; customer sees it Under review.
+11. Native stage order/status fixtures appear only for their owner and are cleaned.
+
+Registration delivery is tested with an isolated protected outbox. Production
+SendGrid configuration is checked with sandbox mode (no message delivered);
+receipt evidence must distinguish API acceptance from a real mailbox delivery.
 
 ## Payment UAT
 

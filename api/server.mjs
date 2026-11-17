@@ -22,6 +22,7 @@ import {
   requestMetrics
 } from "./observability.mjs";
 import { createQuoteRequest, getRecentWebsiteQuotes } from "./quote-service.mjs";
+import { accountHistoryPage, accountHistoryResult } from "./account-history.mjs";
 import { getPaymentConfig } from "./payment-service.mjs";
 import {
   createPaymentSessionForAccount,
@@ -61,6 +62,7 @@ import {
 import {
   JSON_BODY_OPTIONS,
   accountLoginLimiter,
+  accountSelfServiceLimiter,
   adminLimiter,
   catalogLimiter,
   corsOptions,
@@ -70,6 +72,7 @@ import {
   quoteRequestLimiter,
   requireAdminToken
 } from "./security.mjs";
+import { accountSelfServiceConfig, requestAccountEmail, completeAccountEmail } from "./account-self-service.mjs";
 import { catalogStats, categories, featuredProducts, manufacturers } from "../src/data/catalog.mjs";
 
 const app = express();
@@ -103,7 +106,14 @@ app.set("trust proxy", 2);
 app.use(cors(corsOptions));
 app.use(express.json(JSON_BODY_OPTIONS));
 app.use(requestMetrics);
+app.use("/api/account", (_req, res, next) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("Referrer-Policy", "no-referrer");
+  next();
+});
 app.use("/api/account/login", accountLoginLimiter);
+app.use("/api/account/register", accountSelfServiceLimiter);
+app.use("/api/account/password-reset", accountSelfServiceLimiter);
 app.use("/api/catalog", catalogLimiter);
 app.use("/api/storefront", catalogLimiter);
 app.use("/api/files", fileProxyLimiter);
@@ -432,30 +442,60 @@ app.get("/api/files/:filename", async (req, res) => {
   }
 });
 
-app.post("/api/quote-requests", (req, res) => {
-  createQuoteRequest(req.body || {})
-    .then((result) => {
-      const status = result.mode === "validation_failed" ? 422 : result.mode === "created" ? 201 : 200;
-      res.status(status).json(result);
-    })
-    .catch((error) => {
-      serviceFailure(res, "erpnext_quote_unavailable", error);
-    });
-});
-
-app.get("/api/account/quotes", async (req, res) => {
-  const session = await getVerifiedAccountSession(req);
-  if (!session) {
-    res.status(401).json({ error: "not_authenticated" });
-    return;
+app.post("/api/quote-requests", async (req, res) => {
+  try {
+    const session = await getVerifiedAccountSession(req);
+    if (!session) return res.status(401).json({ mode: "validation_failed", error: "not_authenticated" });
+    const result = await createQuoteRequest(req.body || {}, session);
+    const status = result.mode === "validation_failed" ? 422 : result.mode === "created" ? 201 : 200;
+    res.status(status).json(result);
+  } catch (error) {
+    serviceFailure(res, "erpnext_quote_unavailable", error);
   }
-
-  getCustomerQuotesForAccount(session.email, req.query.limit)
-    .then((quotes) => res.json({ quotes }))
-    .catch((error) => {
-      serviceFailure(res, "erpnext_account_quotes_unavailable", error);
-    });
 });
+
+for (const [kind, loader] of Object.entries({
+  quotes: getCustomerQuotesForAccount, orders: getCustomerOrdersByEmail, invoices: getCustomerInvoicesByEmail
+})) {
+  app.get(`/api/account/${kind}`, async (req, res) => {
+    try {
+      const session = await getVerifiedAccountSession(req);
+      if (!session) return res.status(401).json({ error: "not_authenticated" });
+      const page = accountHistoryPage(req.query);
+      const rows = await loader(session.email, page.limit + 1, page.offset);
+      res.json(accountHistoryResult(kind, rows, page));
+    } catch (error) {
+      serviceFailure(res, `erpnext_account_${kind}_unavailable`, error);
+    }
+  });
+}
+
+app.get("/api/account/config", (_req, res) => {
+  res.json(accountSelfServiceConfig());
+});
+
+for (const [route, purpose] of [["register", "register"], ["password-reset", "reset"]]) {
+  app.post(`/api/account/${route}/request`, async (req, res) => {
+    try {
+      const result = await requestAccountEmail(purpose, req.body?.email);
+      res.status(result.ok ? 200 : result.error === "self_service_unavailable" ? 503 : 400).json(result);
+    } catch (error) {
+      serviceFailure(res, "account_service_unavailable", error);
+    }
+  });
+  app.post(`/api/account/${route}/complete`, async (req, res) => {
+    try {
+      const { sessionToken, ...result } = await completeAccountEmail(purpose, req.body || {});
+      if (sessionToken) res.cookie(ACCOUNT_SESSION_COOKIE, sessionToken, accountSessionCookieOptions(req));
+      if (result.ok && purpose === "reset") res.clearCookie(ACCOUNT_SESSION_COOKIE, { ...accountSessionCookieOptions(req), maxAge: undefined });
+      const status = result.ok ? 200 : result.error === "self_service_unavailable" ? 503 :
+        ["account_already_exists", "customer_access_unavailable"].includes(result.error) ? 409 : 400;
+      res.status(status).json(result);
+    } catch (error) {
+      serviceFailure(res, "account_service_unavailable", error);
+    }
+  });
+}
 
 app.post("/api/account/login", async (req, res) => {
   try {

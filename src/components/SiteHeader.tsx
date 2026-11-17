@@ -110,7 +110,7 @@ export function SiteHeader({ departments, quoteCount, theme, onToggleTheme, onOp
               {quoteCount ? <span className="cart-badge">{quoteCount}</span> : null}
             </button>
             <button type="button" className="primary-button" onClick={onOpenQuote}>
-              Order basket <ArrowRight />
+              Quote basket <ArrowRight />
             </button>
           </div>
         </div>
@@ -137,7 +137,7 @@ export function SiteHeader({ departments, quoteCount, theme, onToggleTheme, onOp
             <a href="/catalog#service" onClick={closeMenu}>Service</a>
             <a href="/catalog#contact" onClick={closeMenu}>Contact</a>
             <a href="/account" onClick={closeMenu}>Account</a>
-            <button type="button" onClick={() => { closeMenu(); onOpenQuote(); }}>Order basket</button>
+            <button type="button" onClick={() => { closeMenu(); onOpenQuote(); }}>Quote basket</button>
           </div>
         </div>
       </nav>

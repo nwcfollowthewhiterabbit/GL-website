@@ -69,7 +69,6 @@ function quoteResultFromResponse(data: QuoteRequestResponse, email: string, opti
     customerEmail: email,
     fulfillmentMode: data.fulfillment?.mode,
     requiresSalesConfirmation: data.fulfillment?.requiresSalesConfirmation,
-    depositPercent: data.fulfillment?.depositPercent,
     ...options
   };
 }
@@ -100,7 +99,13 @@ export function App({ initialRoute }: AppProps = {}) {
   const [quoteCompany, setQuoteCompany] = useState("");
   const [quoteEmail, setQuoteEmail] = useState("");
   const [quoteStatus, setQuoteStatus] = useState("");
-  const [quoteLines, setQuoteLines] = useState<QuoteLine[]>([]);
+  const [quoteLines, setQuoteLines] = useState<QuoteLine[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const saved = JSON.parse(window.localStorage.getItem("greenleaf.quoteLines") || "[]");
+      return Array.isArray(saved) ? saved.filter((line) => typeof line?.sku === "string" && Number.isFinite(line.qty) && line.qty > 0).slice(0, 100) : [];
+    } catch { return []; }
+  });
   const [quoteOpen, setQuoteOpen] = useState(false);
   const [buyerContact, setBuyerContact] = useState("");
   const [buyerPhone, setBuyerPhone] = useState("");
@@ -320,21 +325,41 @@ export function App({ initialRoute }: AppProps = {}) {
   }, []);
 
   useEffect(() => {
-    const saved = window.localStorage.getItem("greenleaf.quoteLines");
-    if (!saved) return;
-    try {
-      const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed)) {
-        setQuoteLines(parsed);
-      }
-    } catch {
-      window.localStorage.removeItem("greenleaf.quoteLines");
-    }
-  }, []);
+    try { window.localStorage.setItem("greenleaf.quoteLines", JSON.stringify(quoteLines)); } catch { /* The basket still works when browser storage is unavailable. */ }
+  }, [quoteLines]);
 
   useEffect(() => {
-    window.localStorage.setItem("greenleaf.quoteLines", JSON.stringify(quoteLines));
-  }, [quoteLines]);
+    if (!account.session) {
+      setQuoteEmail("");
+      setQuoteCompany("");
+      setBuyerContact("");
+      setBuyerPhone("");
+      setDeliveryLocation("");
+      setQuoteNotes("");
+      return;
+    }
+    setQuoteEmail(account.session.email);
+    setQuoteCompany(account.session.profile?.customerName || "");
+    setBuyerPhone(account.session.profile?.phone || "");
+    setBuyerContact(account.contact || "");
+    try {
+      const draft = JSON.parse(window.localStorage.getItem(`greenleaf.quoteDetails.${account.session.email}`) || "null");
+      if (draft) {
+        setBuyerContact(String(draft.contact || ""));
+        setBuyerPhone(String(draft.phone || account.session.profile?.phone || ""));
+        setDeliveryLocation(String(draft.location || ""));
+        setQuoteNotes(String(draft.notes || ""));
+      }
+    } catch { /* Ignore an invalid local draft. */ }
+    if (new URLSearchParams(window.location.search).get("basket") === "1") setQuoteOpen(true);
+  }, [account.session?.email]);
+
+  useEffect(() => {
+    if (!account.session || quoteEmail !== account.session.email) return;
+    try {
+      window.localStorage.setItem(`greenleaf.quoteDetails.${account.session.email}`, JSON.stringify({ contact: buyerContact, phone: buyerPhone, location: deliveryLocation, notes: quoteNotes }));
+    } catch { /* The form remains usable without browser storage. */ }
+  }, [account.session?.email, quoteEmail, buyerContact, buyerPhone, deliveryLocation, quoteNotes]);
 
   const products = useMemo<CatalogProduct[]>(() => {
     if (catalogState === "fallback") return fallbackProducts;
@@ -459,6 +484,9 @@ export function App({ initialRoute }: AppProps = {}) {
   }
 
   function addToQuote(product: CatalogProduct) {
+    if (quoteResult) {
+      try { window.localStorage.removeItem("greenleaf.lastQuoteRequest"); } catch { /* No persistent request cache. */ }
+    }
     setQuoteResult(null);
     setQuoteLines((current) => {
       const existing = current.find((line) => line.sku === product.sku);
@@ -489,59 +517,15 @@ export function App({ initialRoute }: AppProps = {}) {
     if (!quoteCompany.trim()) return "Company name is required.";
     if (!quoteEmail.trim()) return "Buyer email is required.";
     if (!isValidEmail(quoteEmail)) return "Enter a valid buyer email.";
+    if (requireLines && !buyerContact.trim()) return "Contact name is required.";
     if (requireLines && !buyerPhone.trim()) return "Buyer phone is required.";
     if (requireLines && !deliveryLocation.trim()) return "Delivery location is required.";
     return "";
   }
 
-  async function submitQuickQuote() {
-    const validationError = validateQuoteForm(false);
-    if (validationError) {
-      setQuoteResult(null);
-      setQuoteStatus(validationError);
-      return;
-    }
-
-    const product = products[0];
-    if (!product?.sku) {
-      setQuoteStatus("Catalog is still loading.");
-      return;
-    }
-
-    setQuoteSubmitting(true);
-    setQuoteResult(null);
-    setQuoteStatus("Sending quote request...");
-    try {
-      const data = await createQuoteRequest({
-        customer: {
-          company: quoteCompany,
-          email: quoteEmail
-        },
-        lines: [{ sku: product.sku, qty: 1 }],
-        notes: "Quick quote from storefront hero form"
-      });
-
-      const name = quotationName(data);
-      if (name && typeof data.quotation !== "string") {
-        setQuoteResult(quoteResultFromResponse(data, quoteEmail));
-        setQuoteStatus("Quote request sent. Green Leaf sales will confirm price, stock and lead time.");
-      } else if (name) {
-        setQuoteResult(quoteResultFromResponse(data, quoteEmail, { reused: true }));
-        setQuoteStatus("This quote request was already received. We opened the existing ERP quotation.");
-      } else if (data.mode === "validated_dry_run") {
-        setQuoteResult(quoteResultFromResponse(data, quoteEmail, { dryRun: true }));
-        setQuoteStatus("Validated locally. ERPNext REST credentials are not configured.");
-      } else {
-        setQuoteStatus(data.error || "Quote request processed.");
-      }
-    } catch {
-      setQuoteStatus("Quote request failed.");
-    } finally {
-      setQuoteSubmitting(false);
-    }
-  }
-
   async function submitQuote() {
+    if (quoteSubmitting) return;
+    if (!account.session) { setQuoteStatus("Sign in or create an account to request a quote. Your basket is saved."); return; }
     const validationError = validateQuoteForm(true);
     if (validationError) {
       setQuoteResult(null);
@@ -551,13 +535,13 @@ export function App({ initialRoute }: AppProps = {}) {
 
     setQuoteSubmitting(true);
     setQuoteResult(null);
-    setQuoteStatus("Preparing order in ERPNext...");
+    setQuoteStatus("Sending your quote request...");
     try {
       const data = await createQuoteRequest({
         customer: {
           company: quoteCompany,
           contact: buyerContact,
-          email: quoteEmail,
+          email: account.session.email,
           phone: buyerPhone,
           location: deliveryLocation
         },
@@ -568,22 +552,33 @@ export function App({ initialRoute }: AppProps = {}) {
       const name = quotationName(data);
       if (name && typeof data.quotation !== "string") {
         setQuoteResult(quoteResultFromResponse(data, quoteEmail));
-        setQuoteStatus(data.fulfillment?.requiresSalesConfirmation ? "Request sent. Green Leaf sales will confirm stock or ETA before payment." : "Our sales team will confirm availability, delivery and payment details.");
+        setQuoteStatus("Request received. Green Leaf sales will confirm pricing, availability and delivery. Follow its progress in your account.");
+        void account.refresh();
         setQuoteLines([]);
       } else if (name) {
         setQuoteResult(quoteResultFromResponse(data, quoteEmail, { reused: true }));
-        setQuoteStatus("This order request was already received. We opened the existing ERP record.");
+        setQuoteStatus("This quote request was already received. Its reference is shown above.");
         setQuoteLines([]);
+      } else if (data.error === "not_authenticated") {
+        setQuoteStatus("Your session has expired. Sign in again; your basket is saved.");
+        void account.refresh();
       } else if (data.mode === "validation_failed") {
-        setQuoteStatus("No valid ERPNext items in basket.");
+        setQuoteStatus("Some items or quantities could not be quoted. Review your basket and try again.");
       } else if (data.mode === "validated_dry_run") {
         setQuoteResult(quoteResultFromResponse(data, quoteEmail, { dryRun: true }));
         setQuoteStatus("Validated locally. ERPNext REST credentials are not configured.");
       } else {
-        setQuoteStatus(data.error || "Quote request processed.");
+        const errors: Record<string, string> = {
+          account_login_required: "Your session has expired. Sign in again; your basket is saved.",
+          authentication_required: "Your session has expired. Sign in again; your basket is saved.",
+          account_email_mismatch: "Your account has changed. Reload this page before submitting your basket.",
+          invalid_quote_lines: "Review the products and quantities in your basket.",
+          invalid_customer_details: "Check your contact and delivery details."
+        };
+        setQuoteStatus(errors[data.error || ""] || "The request was not submitted. Check your basket and try again.");
       }
     } catch {
-      setQuoteStatus("Quote request failed.");
+      setQuoteStatus("The request could not be confirmed. Your basket is saved; try again to check the same request.");
     } finally {
       setQuoteSubmitting(false);
     }
@@ -611,6 +606,7 @@ export function App({ initialRoute }: AppProps = {}) {
         <NotFoundPage />
       ) : route.view === "account" ? (
         <AccountPage
+          auth={account}
           email={account.email}
           password={account.password}
           quotes={account.quotes}
@@ -689,6 +685,8 @@ export function App({ initialRoute }: AppProps = {}) {
       <ProductModal product={previewProduct} onClose={() => setPreviewProduct(null)} onAddToQuote={addToQuote} />
       <QuoteDrawer
         isOpen={quoteOpen}
+        isAuthenticated={Boolean(account.session)}
+        isAccountLoading={!account.sessionReady}
         quoteLines={quoteLines}
         quoteCount={quoteCount}
         quoteTotal={quoteTotal}
@@ -714,6 +712,7 @@ export function App({ initialRoute }: AppProps = {}) {
           setQuoteLines([]);
         }}
         onNewQuote={() => {
+          try { window.localStorage.removeItem("greenleaf.lastQuoteRequest"); } catch { /* No persistent request cache. */ }
           setQuoteResult(null);
           setQuoteStatus("");
           setQuoteLines([]);

@@ -1,10 +1,12 @@
-import { AlertTriangle, ArrowRight, Building2, CheckCircle2, ClipboardCheck, Mail, MapPin, Minus, Phone, Plus, RotateCcw, Send, StickyNote, Trash2, UserRound } from "lucide-react";
-import { isSpecialOrder, priceLabel, productImage, productPlaceholder, purchaseFlowLabel, requiresAvailabilityConfirmation } from "../lib/catalog";
+import { useEffect, useRef } from "react";
+import { ArrowRight, Building2, CheckCircle2, ClipboardCheck, Mail, MapPin, Minus, Phone, Plus, RotateCcw, Send, StickyNote, Trash2, UserRound } from "lucide-react";
+import { priceLabel, productImage, productPlaceholder, purchaseFlowLabel } from "../lib/catalog";
 import type { QuoteLine, QuoteResult } from "../types";
-import { PaymentTrustMarks } from "./PaymentTrustMarks";
 
 type QuoteDrawerProps = {
   isOpen: boolean;
+  isAuthenticated: boolean;
+  isAccountLoading: boolean;
   quoteLines: QuoteLine[];
   quoteCount: number;
   quoteTotal: number;
@@ -31,230 +33,86 @@ type QuoteDrawerProps = {
   onSubmit: () => void;
 };
 
-export function QuoteDrawer({
-  isOpen,
-  quoteLines,
-  quoteCount,
-  quoteTotal,
-  quoteCompany,
-  buyerContact,
-  quoteEmail,
-  buyerPhone,
-  deliveryLocation,
-  quoteNotes,
-  quoteStatus,
-  quoteResult,
-  isSubmitting,
-  onClose,
-  onCompanyChange,
-  onContactChange,
-  onEmailChange,
-  onPhoneChange,
-  onDeliveryLocationChange,
-  onNotesChange,
-  onSetLineQty,
-  onRemoveLine,
-  onClear,
-  onNewQuote,
-  onSubmit
-}: QuoteDrawerProps) {
-  const canSubmit = quoteLines.length > 0 && !isSubmitting && !quoteResult;
+export function QuoteDrawer(props: QuoteDrawerProps) {
+  const { isOpen, isAuthenticated, isAccountLoading, quoteLines, quoteCount, quoteTotal, quoteCompany, buyerContact, quoteEmail, buyerPhone, deliveryLocation, quoteNotes, quoteStatus, quoteResult, isSubmitting, onClose, onContactChange, onPhoneChange, onDeliveryLocationChange, onNotesChange, onSetLineQty, onRemoveLine, onClear, onNewQuote, onSubmit } = props;
+  const canSubmit = isAuthenticated && quoteLines.length > 0 && !isSubmitting && !quoteResult;
   const quoteTotalLabel = quoteTotal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const basketRequiresConfirmation = quoteLines.some((line) => requiresAvailabilityConfirmation(line, line.qty));
-  const basketHasSpecialOrder = quoteLines.some(isSpecialOrder);
-  const requiresConfirmation = quoteResult?.requiresSalesConfirmation ?? basketRequiresConfirmation;
-  const hasSpecialOrder = quoteResult?.fulfillmentMode === "special_order" || basketHasSpecialOrder;
-  const resultTitle = quoteResult?.dryRun
-    ? "Order validated"
-    : quoteResult?.reused
-      ? "Existing ERP request"
-      : requiresConfirmation
-        ? "Availability request sent"
-        : "Order prepared";
+  const drawerRef = useRef<HTMLElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  useEffect(() => {
+    if (!isOpen) return;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    closeRef.current?.focus();
+    function handleKey(event: KeyboardEvent) {
+      if (event.key === "Escape") { event.preventDefault(); onCloseRef.current(); }
+      if (event.key !== "Tab") return;
+      const elements = Array.from(drawerRef.current?.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled])') || []);
+      const first = elements[0];
+      const last = elements[elements.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    }
+    document.addEventListener("keydown", handleKey);
+    return () => { document.body.style.overflow = previousOverflow; document.removeEventListener("keydown", handleKey); previousFocus?.focus(); };
+  }, [isOpen]);
 
-  return (
-    <>
-      <button
-        type="button"
-        className={`quote-backdrop ${isOpen ? "is-open" : ""}`}
-        aria-label="Close order basket"
-        onClick={onClose}
-        tabIndex={isOpen ? 0 : -1}
-      />
-      <aside className={`quote-drawer ${isOpen ? "is-open" : ""}`} aria-label="Order basket" aria-hidden={!isOpen}>
-        <div className="quote-drawer__header">
-          <div>
-            <span>{requiresConfirmation ? "Sales confirmation path" : "In-stock checkout path"}</span>
-            <h2>Order basket</h2>
-            <p>{quoteResult ? "ERP request recorded" : `${quoteCount} item${quoteCount === 1 ? "" : "s"} selected from the live ERP catalog`}</p>
-          </div>
-          <button type="button" className="icon-button" onClick={onClose} aria-label="Close order basket">
-            <ArrowRight />
-          </button>
-        </div>
-
-        <div className="quote-drawer__progress" aria-label="Order steps">
-          <span className={quoteLines.length || quoteResult ? "is-complete" : ""}>Products</span>
-          <span className={quoteCompany && quoteEmail && buyerPhone && deliveryLocation ? "is-complete" : ""}>Details</span>
-          <span className={quoteResult ? "is-complete" : ""}>Payment</span>
-        </div>
-
-        <div className="quote-drawer__content">
-          <div className="quote-drawer__lines">
-            {quoteLines.length ? (
-              <>
-                <div className="quote-drawer__section-title">
-                  <span>Selected products</span>
-                  <button type="button" onClick={onClear} disabled={!quoteLines.length || isSubmitting || Boolean(quoteResult)}>
-                    Clear all
-                  </button>
-                </div>
-                {quoteLines.map((line) => (
-                  <article className="quote-line" key={line.sku}>
-                    <img
-                      src={productImage(line)}
-                      alt=""
-                      onError={(event) => {
-                        event.currentTarget.src = productPlaceholder;
-                      }}
-                    />
-                    <div className="quote-line__body">
-                      <h3>{line.name}</h3>
-                      <p>{line.sku}</p>
-                      <strong>{priceLabel(line)}</strong>
-                      <small>{purchaseFlowLabel(line)}</small>
-                    </div>
-                    <div className="qty-control">
-                      <button type="button" className="icon-button" onClick={() => onSetLineQty(line.sku, line.qty - 1)} disabled={isSubmitting || Boolean(quoteResult)} aria-label="Decrease quantity">
-                        <Minus />
-                      </button>
-                      <span>{line.qty}</span>
-                      <button type="button" className="icon-button" onClick={() => onSetLineQty(line.sku, line.qty + 1)} disabled={isSubmitting || Boolean(quoteResult)} aria-label="Increase quantity">
-                        <Plus />
-                      </button>
-                      <button type="button" className="icon-button" onClick={() => onRemoveLine(line.sku)} disabled={isSubmitting || Boolean(quoteResult)} aria-label="Remove item">
-                        <Trash2 />
-                      </button>
-                    </div>
-                  </article>
-                ))}
-              </>
-            ) : quoteResult ? (
-              <div className="quote-confirmation-empty">
-                <ClipboardCheck size={22} />
-                <strong>Your request has been received</strong>
-                <p>{requiresConfirmation ? "Sales will confirm stock or ETA before payment." : "Sales will confirm your order and payment details."}</p>
+  return <>
+    <button type="button" className={`quote-backdrop ${isOpen ? "is-open" : ""}`} aria-label="Close quote basket" onClick={onClose} tabIndex={-1} />
+    <aside ref={drawerRef} className={`quote-drawer ${isOpen ? "is-open" : ""}`} role="dialog" aria-modal={isOpen || undefined} aria-label="Quote basket" aria-hidden={!isOpen} inert={!isOpen}>
+      <div className="quote-drawer__header">
+        <div><span>Request a quotation</span><h2>Quote basket</h2><p>{quoteResult ? "Your request has been received" : `${quoteCount} item${quoteCount === 1 ? "" : "s"} selected`}</p></div>
+        <button ref={closeRef} type="button" className="icon-button" onClick={onClose} aria-label="Close quote basket"><ArrowRight /></button>
+      </div>
+      <div className="quote-drawer__progress" aria-label="Quote request steps">
+        <span className={quoteLines.length || quoteResult ? "is-complete" : ""}>Products</span>
+        <span className={isAuthenticated ? "is-complete" : ""}>Your details</span>
+        <span className={quoteResult ? "is-complete" : ""}>Request sent</span>
+      </div>
+      <div className="quote-drawer__content">
+        <div className="quote-drawer__lines">
+          {quoteLines.length ? <>
+            <div className="quote-drawer__section-title"><span>Selected products</span><button type="button" onClick={onClear} disabled={isSubmitting || Boolean(quoteResult)}>Clear all</button></div>
+            {quoteLines.map((line) => <article className="quote-line" key={line.sku}>
+              <img src={productImage(line)} alt="" onError={(event) => { event.currentTarget.src = productPlaceholder; }} />
+              <div className="quote-line__body"><h3>{line.name}</h3><p>{line.sku}</p><strong>{priceLabel(line)}</strong><small>{purchaseFlowLabel(line)}</small></div>
+              <div className="qty-control">
+                <button type="button" className="icon-button" onClick={() => onSetLineQty(line.sku, line.qty - 1)} disabled={line.qty <= 1 || isSubmitting || Boolean(quoteResult)} aria-label={`Decrease quantity of ${line.name}`}><Minus /></button>
+                <span aria-label={`Quantity of ${line.name}`}>{line.qty}</span>
+                <button type="button" className="icon-button" onClick={() => onSetLineQty(line.sku, line.qty + 1)} disabled={isSubmitting || Boolean(quoteResult)} aria-label={`Increase quantity of ${line.name}`}><Plus /></button>
+                <button type="button" className="icon-button" onClick={() => onRemoveLine(line.sku)} disabled={isSubmitting || Boolean(quoteResult)} aria-label={`Remove ${line.name}`}><Trash2 /></button>
               </div>
-            ) : (
-              <div className="quote-empty">
-                <strong>No products selected</strong>
-                <p>Add products from the catalog. In-stock items proceed to checkout; low-stock and special-order items are confirmed first.</p>
-                <a className="secondary-button" href="/catalog" onClick={onClose}>
-                  Browse catalog
-                </a>
-              </div>
-            )}
-          </div>
-
-          <div className="quote-form">
-            {quoteResult ? (
-              <div className="quote-result" role="status">
-                <div className="quote-result__header">
-                  <CheckCircle2 size={20} />
-                  <div>
-                    <span>{resultTitle}</span>
-                    <strong>{quoteResult.name}</strong>
-                  </div>
-                </div>
-                <div className="quote-result__meta">
-                  {quoteResult.customerEmail ? <span>{quoteResult.customerEmail}</span> : null}
-                  {quoteResult.id ? <span>Request ID {quoteResult.id}</span> : null}
-                  {typeof quoteResult.validLineCount === "number" ? <span>{quoteResult.validLineCount} ERP line{quoteResult.validLineCount === 1 ? "" : "s"}</span> : null}
-                </div>
-                <ol className="quote-result__steps">
-                  {requiresConfirmation ? <li>Sales confirms stock or ETA before payment.</li> : <li>ERP stock is sufficient for the requested quantity.</li>}
-                  <li>{hasSpecialOrder ? "A 70% deposit applies to special-order items." : "Full payment applies to in-stock items."}</li>
-                  <li>Card entry takes place only on Windcave's secure hosted payment page.</li>
-                </ol>
-                {quoteResult.missingCount ? (
-                  <div className="quote-result__warning">
-                    <AlertTriangle size={16} />
-                    <div>
-                      <strong>{quoteResult.missingCount} SKU not matched in ERPNext</strong>
-                      <p>These products need ERP item mapping before sales can quote them.</p>
-                      {quoteResult.missingSkus?.length ? (
-                        <div className="quote-result__chips">
-                          {quoteResult.missingSkus.slice(0, 6).map((sku) => (
-                            <span key={sku}>{sku}</span>
-                          ))}
-                          {quoteResult.missingSkus.length > 6 ? <span>+{quoteResult.missingSkus.length - 6}</span> : null}
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-                ) : null}
-                <div className="quote-result__actions">
-                  <a className="secondary-button" href="/account" onClick={onClose}>
-                    Quote history
-                  </a>
-                  <button type="button" className="secondary-button" onClick={onNewQuote}>
-                    <RotateCcw size={16} /> New quote
-                  </button>
-                </div>
-              </div>
-            ) : null}
-            <div className="quote-drawer__section-title">
-              <span>Buyer details</span>
-              <strong>{quoteTotalLabel} FJD excl. VAT</strong>
-            </div>
-            <label className="field">
-              <Building2 size={18} />
-              <input placeholder="Company" value={quoteCompany} onChange={(event) => onCompanyChange(event.target.value)} />
-            </label>
-            <label className="field">
-              <UserRound size={18} />
-              <input placeholder="Contact person" value={buyerContact} onChange={(event) => onContactChange(event.target.value)} />
-            </label>
-            <label className="field">
-              <Mail size={18} />
-              <input placeholder="Email" type="email" value={quoteEmail} onChange={(event) => onEmailChange(event.target.value)} />
-            </label>
-            <label className="field">
-              <Phone size={18} />
-              <input placeholder="Phone" value={buyerPhone} onChange={(event) => onPhoneChange(event.target.value)} />
-            </label>
-            <label className="field">
-              <MapPin size={18} />
-              <input placeholder="Delivery location" value={deliveryLocation} onChange={(event) => onDeliveryLocationChange(event.target.value)} />
-            </label>
-            <label className="field field--textarea">
-              <StickyNote size={18} />
-              <textarea placeholder="Order notes, timing, substitutions" value={quoteNotes} onChange={(event) => onNotesChange(event.target.value)} />
-            </label>
-            <div className="quote-total">
-              <span>Product subtotal, excluding VAT</span>
-              <strong>{quoteTotalLabel} FJD</strong>
-            </div>
-            <div className={`order-flow-note ${requiresConfirmation ? "is-confirmation" : "is-ready"}`}>
-              <strong>{requiresConfirmation ? "Confirmation required before payment" : "In-stock checkout path"}</strong>
-              <span>
-                {hasSpecialOrder
-                  ? "Sales confirms the ETA; a 70% deposit applies. Payment links remain valid for 30 days."
-                  : requiresConfirmation
-                    ? "Requested quantity exceeds confirmed stock. Sales will verify availability and issue a 30-day payment link."
-                    : "Full payment applies. VAT and any delivery charge will be added before payment."}
-              </span>
-            </div>
-            <PaymentTrustMarks compact />
-            {quoteResult ? null : (
-              <button type="button" className="quote-button" onClick={onSubmit} disabled={!canSubmit}>
-                {isSubmitting ? "Creating..." : requiresConfirmation ? "Request confirmation" : "Prepare checkout"} <Send size={17} />
-              </button>
-            )}
-            {quoteStatus ? <p className="quote-panel__status">{quoteStatus}</p> : null}
-          </div>
+            </article>)}
+          </> : quoteResult ? <div className="quote-confirmation-empty"><ClipboardCheck size={22} /><strong>Thank you for your request</strong><p>Green Leaf sales will review your products, quantities and delivery requirements.</p></div> : <div className="quote-empty"><strong>No products selected</strong><p>Add products from the catalog, then send your basket to Green Leaf for a quote.</p><a className="secondary-button" href="/catalog" onClick={onClose}>Browse catalog</a></div>}
         </div>
-      </aside>
-    </>
-  );
+        <div className="quote-form">
+          {quoteResult ? <div className="quote-result" role="status">
+            <div className="quote-result__header"><CheckCircle2 size={20} /><div><span>{quoteResult.dryRun ? "Request not submitted" : quoteResult.reused ? "Your existing quote request" : "Quote request received"}</span><strong>{quoteResult.name}</strong></div></div>
+            <div className="quote-result__meta">{quoteResult.customerEmail ? <span>{quoteResult.customerEmail}</span> : null}</div>
+            <ol className="quote-result__steps"><li>Your request is awaiting sales review.</li><li>Green Leaf will confirm pricing, availability and delivery.</li><li>Follow the quotation and any confirmed orders in your account.</li></ol>
+            <div className="quote-result__actions"><a className="secondary-button" href="/account#quotes" onClick={onClose}>View quote history</a><button type="button" className="secondary-button" onClick={onNewQuote}><RotateCcw size={16} /> New request</button></div>
+          </div> : !isAuthenticated ? <div className="quote-signin-notice">
+            <UserRound size={24} /><strong>{isAccountLoading ? "Checking your account..." : "Sign in to request a quote"}</strong>
+            <p>Create an account or sign in to send this basket and track your request. Your selected products will stay in the basket.</p>
+            {!isAccountLoading ? <a className="quote-button" href="/account?basket=1" onClick={onClose}>Sign in or create account <ArrowRight size={17} /></a> : null}
+          </div> : <form onSubmit={(event) => { event.preventDefault(); onSubmit(); }}>
+            <div className="quote-drawer__section-title"><span>Your details</span></div>
+            <label className="field"><Building2 size={18} /><input aria-label="Company" value={quoteCompany} readOnly /></label>
+            <label className="field"><Mail size={18} /><input aria-label="Verified account email" type="email" value={quoteEmail} readOnly /></label>
+            <label className="field"><UserRound size={18} /><input placeholder="Contact person" aria-label="Contact person" autoComplete="name" required maxLength={140} value={buyerContact} onChange={(event) => onContactChange(event.target.value)} /></label>
+            <label className="field"><Phone size={18} /><input placeholder="Phone" aria-label="Phone" type="tel" autoComplete="tel" required maxLength={40} value={buyerPhone} onChange={(event) => onPhoneChange(event.target.value)} /></label>
+            <label className="field"><MapPin size={18} /><input placeholder="Delivery location" aria-label="Delivery location" autoComplete="street-address" required maxLength={200} value={deliveryLocation} onChange={(event) => onDeliveryLocationChange(event.target.value)} /></label>
+            <label className="field field--textarea"><StickyNote size={18} /><textarea placeholder="Notes, timing or alternatives" aria-label="Quote notes" maxLength={2000} value={quoteNotes} onChange={(event) => onNotesChange(event.target.value)} /></label>
+            <div className="quote-total"><span>Indicative subtotal, excluding VAT</span><strong>{quoteTotalLabel} FJD</strong></div>
+            <div className="order-flow-note is-confirmation"><strong>Sales will confirm your quote</strong><span>Prices, availability, VAT and delivery are confirmed in your quotation. Sending a request does not place a confirmed order. No online payment is taken.</span></div>
+            <button type="submit" className="quote-button" disabled={!canSubmit}>{isSubmitting ? "Sending request..." : "Request a quote"} <Send size={17} /></button>
+          </form>}
+          {quoteStatus ? <p className="quote-panel__status" role="status">{quoteStatus}</p> : null}
+        </div>
+      </div>
+    </aside>
+  </>;
 }

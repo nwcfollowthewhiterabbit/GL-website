@@ -73,8 +73,8 @@ export function requiresAvailabilityConfirmation(product: CatalogProduct, reques
 }
 
 export function purchaseFlowLabel(product: CatalogProduct) {
-  if (isSpecialOrder(product)) return "ETA confirmed before payment · 70% deposit";
-  return "Excl. VAT · usually delivered within 72 hours";
+  if (isSpecialOrder(product)) return "Sales will confirm availability and lead time";
+  return "Excl. VAT · final price and delivery confirmed by sales";
 }
 
 export function productSpecs(product: CatalogProduct) {

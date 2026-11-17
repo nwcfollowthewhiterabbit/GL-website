@@ -64,7 +64,7 @@ export function CatalogServiceBand({ onOpenQuote }: CatalogServiceBandProps) {
         <span>One operational workflow</span>
         <h2>From catalog browsing to resort-ready supply planning.</h2>
         <p>
-          Build an order basket across kitchen equipment, buffet service, housekeeping, linen and fitout products. In-stock items proceed to payment; other items are confirmed by Green Leaf sales.
+          Build an order basket across kitchen equipment, buffet service, housekeeping, linen and fitout products. Send your basket for a quotation. Green Leaf sales will confirm pricing, availability and delivery.
         </p>
         <button type="button" className="catalog-service-band__button" onClick={onOpenQuote}>
           Open order basket <ArrowRight size={18} />

@@ -63,9 +63,10 @@ function normalizeLines(lines) {
   if (!Array.isArray(lines)) return [];
   return lines
     .slice(0, MAX_QUOTE_LINES)
+    .filter((line) => line && typeof line === "object")
     .map((line) => ({
       sku: clean(line.sku || line.item_code || line.itemCode),
-      qty: Number(line.qty || line.quantity || 1),
+      qty: Number(line.qty ?? line.quantity ?? 1),
       note: clean(line.note).slice(0, 500)
     }))
     .filter(
@@ -76,6 +77,21 @@ function normalizeLines(lines) {
         line.qty > 0 &&
         line.qty <= MAX_QUOTE_QUANTITY
     );
+}
+
+export function validQuoteLines(lines) {
+  if (!Array.isArray(lines) || !lines.length || lines.length > MAX_QUOTE_LINES) return false;
+  if (lines.some((line) => !line || typeof line !== "object")) return false;
+  const normalized = normalizeLines(lines);
+  return normalized.length === lines.length && new Set(normalized.map((line) => line.sku)).size === normalized.length;
+}
+
+export function bindQuoteToAccount(payload, account) {
+  if (!account?.email || !account?.customer) return { error: "not_authenticated" };
+  const email = clean(account.email).toLowerCase();
+  const suppliedEmail = clean(payload?.customer?.email).toLowerCase();
+  if (suppliedEmail && suppliedEmail !== email) return { error: "account_email_mismatch" };
+  return { payload: { ...payload, customer: { ...payload?.customer, email } } };
 }
 
 export function trustedQuoteRate(item) {
@@ -159,7 +175,7 @@ async function getErpItemsBySku(skus, priceList = DEFAULTS.priceList) {
 async function findCustomerByEmail(email) {
   if (!email) return null;
   const [rows] = await getErpPool().execute(
-    "SELECT name, customer_name FROM `tabCustomer` WHERE email_id = :email LIMIT 1",
+    "SELECT name, customer_name FROM `tabCustomer` WHERE BINARY LOWER(email_id) = BINARY :email LIMIT 1",
     { email }
   );
   return rows[0] || null;
@@ -284,7 +300,7 @@ export function coalesceQuoteRequest(payload, operation) {
   return promise;
 }
 
-export async function prepareQuoteRequest(payload = {}) {
+export async function prepareQuoteRequest(payload = {}, account = null) {
   const id = normalizeQuoteRequestId(payload.id);
   const marker = quoteMarkerFromId(id);
   const customer = payload.customer || {
@@ -336,17 +352,16 @@ export async function prepareQuoteRequest(payload = {}) {
       : validLines.some((line) => line.fulfillmentStatus === "low_stock")
         ? "low_stock"
         : "in_stock",
-    requiresSalesConfirmation: validLines.some((line) => line.fulfillmentStatus !== "in_stock"),
-    depositPercent: validLines.some((line) => line.fulfillmentStatus === "special_order") ? 70 : 100,
-    paymentLinkValidityDays: 30
+    requiresSalesConfirmation: true,
+    onlinePaymentEnabled: false
   };
 
   const duplicate = await existingQuotationByMarker(marker, id, { ...payload, id });
   const duplicateQuotation = duplicate?.name || null;
   const requestConflict = Boolean(duplicate?.conflict);
   // Invalid or repeated requests must not create a new Customer as a side effect.
-  const erpCustomer = validLines.length && !duplicateQuotation && !requestConflict
-    ? await getOrCreateCustomer(normalizedCustomer)
+  const erpCustomer = validLines.length && !missing.length && !duplicateQuotation && !requestConflict
+    ? account?.customer ? { name: account.customer, created: false } : await getOrCreateCustomer(normalizedCustomer)
     : { name: "", created: false };
 
   const notes = [
@@ -356,9 +371,9 @@ export async function prepareQuoteRequest(payload = {}) {
     normalizedCustomer.email ? `Email: ${normalizedCustomer.email}` : "",
     normalizedCustomer.phone ? `Phone: ${normalizedCustomer.phone}` : "",
     normalizedCustomer.location ? `Delivery location: ${normalizedCustomer.location}` : "",
-    `Website order path: ${fulfillment.mode}`,
-    `Payment terms: ${fulfillment.depositPercent}% initial payment; link valid for ${fulfillment.paymentLinkValidityDays} days`,
-    "Catalog prices exclude VAT; apply VAT and delivery charges before payment",
+    `Website quotation request: ${fulfillment.mode}`,
+    "Sales review required. No online payment or confirmed Sales Order is created by this request.",
+    "Catalog prices exclude VAT; confirm availability, VAT, delivery and final quotation with the customer.",
     clean(payload.notes) ? `Notes: ${clean(payload.notes)}` : "",
     missing.length ? `Missing SKU lines: ${missing.map((line) => line.sku).join(", ")}` : ""
   ].filter(Boolean);
@@ -413,13 +428,13 @@ export async function prepareQuoteRequest(payload = {}) {
     duplicateQuotation,
     requestConflict,
     quotationDoc,
-    canCreate: hasErpnextRestCredentials() && validLines.length > 0 && !duplicateQuotation && !requestConflict
+    canCreate: hasErpnextRestCredentials() && validLines.length > 0 && !missing.length && !duplicateQuotation && !requestConflict
   };
 }
 
-async function createQuoteRequestOnce(payload = {}) {
+async function createQuoteRequestOnce(payload = {}, account = null) {
   const customer = payload.customer || {};
-  const requiredCustomerFields = ["company", "email", "phone", "location"].filter((field) => !clean(customer[field]));
+  const requiredCustomerFields = ["company", "contact", "email", "phone", "location"].filter((field) => !clean(customer[field]));
   if (requiredCustomerFields.length) {
     return {
       mode: "validation_failed",
@@ -427,21 +442,19 @@ async function createQuoteRequestOnce(payload = {}) {
       missingCustomerFields: requiredCustomerFields
     };
   }
-  const invalidCustomerFields = ["company", "email", "phone", "location"].filter(
+  const invalidCustomerFields = ["company", "contact", "email", "phone", "location"].filter(
     (field) => clean(customer[field]).length > MAX_CUSTOMER_FIELD_LENGTH
   );
   if (
     invalidCustomerFields.length ||
     !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean(customer.email)) ||
-    !Array.isArray(payload.lines) ||
-    payload.lines.length < 1 ||
-    payload.lines.length > MAX_QUOTE_LINES ||
+    !validQuoteLines(payload.lines) ||
     clean(payload.notes).length > MAX_NOTES_LENGTH
   ) {
     return { mode: "validation_failed", error: "invalid_quote_payload" };
   }
 
-  const prepared = await prepareQuoteRequest(payload);
+  const prepared = await prepareQuoteRequest(payload, account);
 
   if (prepared.requestConflict) {
     return { mode: "validation_failed", error: "request_id_conflict", id: prepared.id };
@@ -458,7 +471,7 @@ async function createQuoteRequestOnce(payload = {}) {
     };
   }
 
-  if (!prepared.validLines.length) {
+  if (!prepared.validLines.length || prepared.missing.length) {
     return {
       mode: "validation_failed",
       id: prepared.id,
@@ -498,10 +511,15 @@ async function createQuoteRequestOnce(payload = {}) {
   };
 }
 
-export async function createQuoteRequest(payload = {}) {
+export async function createQuoteRequest(payload = {}, account = null) {
+  if (account) {
+    const bound = bindQuoteToAccount(payload, account);
+    if (bound.error) return { mode: "validation_failed", error: bound.error };
+    payload = bound.payload;
+  }
   const requestPayload = structuredClone({ ...payload, id: normalizeQuoteRequestId(payload.id) });
   return coalesceQuoteRequest(requestPayload, () =>
-    withQuoteRequestLock(requestPayload.id, () => createQuoteRequestOnce(requestPayload))
+    withQuoteRequestLock(requestPayload.id, () => createQuoteRequestOnce(requestPayload, account))
   );
 }
 

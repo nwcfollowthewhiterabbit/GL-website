@@ -338,14 +338,14 @@ async function main() {
     const basketFields = await page.send("Runtime.evaluate", {
       returnByValue: true,
       expression: `({
-        hasLocation: Boolean(document.querySelector('input[placeholder="Delivery location"]')),
-        hasFlow: Boolean(document.querySelector(".order-flow-note")),
+        hasSignIn: Boolean(document.querySelector('.quote-signin-notice a[href="/account?basket=1"]')),
+        hasRequestSteps: document.querySelector(".quote-drawer__progress")?.textContent?.includes("Request sent"),
         hasPaymentTrust: Boolean(document.querySelector(".quote-form .payment-trust"))
       })`
     });
-    assert(basketFields.result.result.value.hasLocation, "Order basket is missing delivery location");
-    assert(basketFields.result.result.value.hasFlow, "Order basket is missing fulfillment guidance");
-    assert(basketFields.result.result.value.hasPaymentTrust, "Order basket is missing Windcave payment information");
+    assert(basketFields.result.result.value.hasSignIn, "Anonymous quote basket must guide the buyer to sign in");
+    assert(basketFields.result.result.value.hasRequestSteps, "Quote basket is missing its request confirmation step");
+    assert(!basketFields.result.result.value.hasPaymentTrust, "Quote-only basket must not advertise online checkout");
 
     await page.send("Page.addScriptToEvaluateOnNewDocument", {
       source: `(() => {
@@ -590,15 +590,20 @@ async function main() {
       })`
     });
     assert(accountState.result.result.value.customerName === "Island Resort Supplies", "Customer identity is not clear in the account header");
-    assert(accountState.result.result.value.activeTab.startsWith("Orders"), "Orders are not the default account view");
-    assert(accountState.result.result.value.orderName === "SO-TEST-0001", "Account order history did not render");
-    assert(accountState.result.result.value.orderStatus === "Confirmed", "ERP order status was not translated for the customer");
+    assert(accountState.result.result.value.activeTab.startsWith("Quotations"), "Quotations are not the default account view");
+    assert(accountState.result.result.value.orderName === "QTN-TEST-0001", "Account quotation history did not render");
+    assert(accountState.result.result.value.orderStatus === "Quotation ready", "ERP quotation status was not translated for the customer");
     assert(accountState.result.result.value.tabCount === 3, "Account history tabs are incomplete");
     assert(!accountState.result.result.value.hasStorefrontHero, "Storefront campaign hero leaked into the customer account");
     assert(!accountState.result.result.value.hasRecommendations, "Product recommendations leaked into the customer account");
     assert(!accountState.result.result.value.hasCatalogs, "Supplier catalogues leaked into the customer account");
     assert(!accountState.result.result.value.hasManufacturers, "Manufacturer content leaked into the customer account");
     assert(!accountState.result.result.value.hasServicePromotion, "Storefront service promotion leaked into the customer account");
+
+    await page.send("Runtime.evaluate", {
+      expression: `[...document.querySelectorAll(".account-tab")].find((button) => button.textContent?.trim().startsWith("Orders"))?.click()`
+    });
+    await wait(100);
 
     await page.send("Runtime.evaluate", {
       expression: `document.querySelector(".account-quotes article button")?.click()`

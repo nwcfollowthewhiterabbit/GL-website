@@ -3,7 +3,9 @@ import { getErpPool } from "../erpnext-db.mjs";
 import { migration as credentialsMigration } from "./001-website-customer-credentials.mjs";
 import { migration as paymentEventMigration } from "./002-website-payment-event.mjs";
 
-const migrations = [credentialsMigration, paymentEventMigration];
+import { migration as accountChallengeMigration } from "./003-website-account-challenge.mjs";
+
+const migrations = [credentialsMigration, paymentEventMigration, accountChallengeMigration];
 let migrationRun;
 let migrationCheck;
 

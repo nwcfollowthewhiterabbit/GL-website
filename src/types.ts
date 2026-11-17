@@ -278,8 +278,7 @@ export type QuoteRequestResponse = {
   fulfillment?: {
     mode: "in_stock" | "low_stock" | "special_order";
     requiresSalesConfirmation: boolean;
-    depositPercent: number;
-    paymentLinkValidityDays: number;
+    onlinePaymentEnabled: false;
   };
 };
 
@@ -294,5 +293,20 @@ export type QuoteResult = {
   dryRun?: boolean;
   fulfillmentMode?: "in_stock" | "low_stock" | "special_order";
   requiresSalesConfirmation?: boolean;
-  depositPercent?: number;
 };
+
+export type AccountConfig = {
+  loginEnabled: boolean;
+  registrationEnabled: boolean;
+  passwordResetEnabled: boolean;
+};
+
+export type AccountActionResult = {
+  ok: boolean;
+  email?: string;
+  message?: string;
+  error?: string;
+};
+
+export type AccountHistoryKind = "quotes" | "orders" | "invoices";
+export type AccountAuthMode = "login" | "register" | "reset" | "register-complete" | "reset-complete";

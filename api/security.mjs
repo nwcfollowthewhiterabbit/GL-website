@@ -36,6 +36,7 @@ function limiter(limit, message) {
 }
 
 export const accountLoginLimiter = limiter(8, "account_login_rate_limited");
+export const accountSelfServiceLimiter = limiter(12, "account_request_rate_limited");
 export const catalogLimiter = limiter(300, "catalog_rate_limited");
 export const fileProxyLimiter = limiter(60, "file_proxy_rate_limited");
 export const quoteRequestLimiter = limiter(20, "quote_request_rate_limited");

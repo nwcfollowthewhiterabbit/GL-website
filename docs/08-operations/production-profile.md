@@ -57,8 +57,9 @@ Before switching the public route, retain the existing `/catalogues/` and
 SPA fallback is not a successful PDF response: check its type and `%PDF-` signature.
 
 The ERP Website Control Center has its own per-site website URL setting; it must
-point at the matching website environment. Account access is provisioned by staff
-for verified ERP Customer links; public self-registration is not part of launch.
+point at the matching website environment. Account access supports staff provisioning and verified-email self-registration.
+Registration/reset require migration003 and configured SendGrid delivery; isolated
+rehearsal uses the protected outbox. Account submissions require a verified session.
 
 ## Rollback
 

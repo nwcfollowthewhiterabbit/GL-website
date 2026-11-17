@@ -11,10 +11,16 @@ const {
   getAccountSession,
   isAccountSessionCurrent,
   isAccountLoginAvailable,
-  isProvisionedWebsiteCustomerAccess
+  isProvisionedWebsiteCustomerAccess,
+  normalizeAccountEmail,
+  sameAccountEmail
 } = await import("../api/account-service.mjs");
 
 assert.equal(isAccountLoginAvailable(), true);
+assert.equal(normalizeAccountEmail(" BUYER@Example.com "), "buyer@example.com");
+assert.equal(sameAccountEmail("BUYER@example.com", "buyer@example.com"), true);
+assert.equal(sameAccountEmail("josé@example.com", "jose@example.com"), false, "distinct accented mailboxes must never share account identity");
+assert.equal(sameAccountEmail("Straße@example.com", "strasse@example.com"), false, "Unicode collation aliases must not share identity");
 assert.equal(accountSessionCookieOptions({ headers: { "x-forwarded-proto": "https" } }).secure, true);
 
 const token = createAccountSessionToken("buyer@example.com", 3);

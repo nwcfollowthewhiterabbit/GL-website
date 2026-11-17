@@ -1,6 +1,6 @@
 # Backlog
 
-## Blocker
+## Future payment phase (not a blocker for quote-only release)
 
 - Windcave UAT credentials.
 - Подтверждение Sales Invoice/outstanding-total как payable rule.
@@ -8,14 +8,14 @@
 
 ## High
 
-- Self-service password recovery после выбора почтового канала.
+- Self-service password recovery и verified self-registration входят в текущий
+  customer release; критерии приёмки — в quality guide.
 - Windcave callback/3DS/duplicate-notification UAT evidence.
 - Controlled restore drill evidence.
 - Public runtime validation evidence.
 
 ## Medium
 
-- Self-registration с email verification после согласования процесса.
 - Customer-specific price lists.
 - Multiple product images.
 - Product of the month controls.

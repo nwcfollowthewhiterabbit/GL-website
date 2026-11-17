@@ -10,3 +10,10 @@
 8. Повторный verified callback не создает второй ERP payment effect.
 9. Payment/indexing выключены по умолчанию до явного approval.
 10. Website deploy не изменяет ERP runtime.
+11. Регистрация создаёт credential только после проверки одноразового email token;
+    повторная регистрация не заменяет пароль существующего credential.
+12. Reset token привязан к версии credential и не включает отключённый доступ.
+13. Запрос котировки использует Customer/email проверенной сессии, серверные цены
+    и весь валидный набор строк; некорректные строки не отбрасываются молча.
+14. Текущий release не создаёт Sales Order, Invoice, Payment Entry или card session
+    при отправке корзины; все запросы ожидают проверки sales.

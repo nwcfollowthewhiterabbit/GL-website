@@ -98,7 +98,7 @@ export function ProductDetailPage({
             <aside className="product-quote-panel" aria-label="Order this product">
               <span className="product-quote-panel__label">Order preparation</span>
               <strong>{priceLabel(product)}</strong>
-              <p>Price excludes VAT. In-stock items proceed to payment; low-stock and special-order items are confirmed by sales first.</p>
+              <p>Indicative price excludes VAT. Add this product to your basket and request a quote. Sales will confirm final pricing, stock and delivery.</p>
               <button type="button" className="quote-button product-page__quote" onClick={() => onAddToQuote(product)}>
                 <ShoppingCart size={18} /> Add to basket
               </button>

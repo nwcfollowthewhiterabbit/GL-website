@@ -30,7 +30,7 @@ const fallbackCustomerCornerSettings: CustomerCornerSettings = {
   introCopy: "Sign in with your Green Leaf customer credentials to view quotations, orders, invoices and current statuses.",
   salesEmail: "buy@greenleafpacific.com",
   salesPhone: "+679 670 2222",
-  paymentNote: "In-stock items use full payment; special-order items require a 70% deposit."
+  paymentNote: "Request a quote online. Payment arrangements are agreed directly with Green Leaf sales."
 };
 
 const initialSources: StorefrontContentSources = {

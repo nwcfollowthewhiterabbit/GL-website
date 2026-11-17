@@ -1,5 +1,13 @@
 # Журнал изменений
 
+## 2026-11-17 — Customer quotation release (pending runtime acceptance)
+
+- Added email-first registration and single-use password recovery with throttling.
+- Bound quotation submission to the signed-in customer and rejected invalid/partial carts.
+- Added paged account history and preserved the basket during sign-in/registration.
+- Replaced checkout/payment promises with quotation review; online payment remains disabled.
+- Added additive challenge schema and isolated outbox validation; production delivery uses the existing Sales Team sender.
+
 ## 2026-11-17 — Testing website on production ERP and isolated v16 testing
 
 - Published the new ERP-backed website only on the testing domain, with noindex and payments disabled.

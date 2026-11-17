@@ -124,7 +124,7 @@ ACCOUNT_SESSION_SECRET=<unique random value of at least 32 characters>
 
 Assign or replace a password with `POST /api/admin/customer-access/password` using the admin API token. The request body accepts `customer`, `email`, `password`, `firstName`, and `lastName`.
 
-Self-registration is a separate future flow and must verify the email address before creating credentials. Backend-created and existing ERP customers do not require email verification.
+Self-registration verifies email through a single-use link before the customer chooses a password. Existing staff-provisioned accounts still sign in directly. Password recovery also uses a single-use email link. Set `ACCOUNT_SELF_SERVICE_ENABLED=true`, a protected `SENDGRID_API_KEY`, and `ACCOUNT_EMAIL_FROM` only after migration003 and delivery validation. See [the user guide](docs/user-manual.md). Quote submission requires a signed-in account and creates a draft Quotation without online payment.
 
 Seed the synthetic testing account and draft documents by passing a temporary password for one command:
 

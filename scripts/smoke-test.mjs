@@ -144,13 +144,20 @@ async function main() {
   assert(sitemap.includes("/how-we-operate"), "How We Operate is missing from the sitemap");
 
   await expectStatus("/api/account/quotes?email=patch.fields%40example.com", 401);
-  const incompleteOrderResponse = await expectStatus("/api/quote-requests", 422, {
+  const incompleteOrderResponse = await expectStatus("/api/quote-requests", 401, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ customer: { email: "buyer@example.com" }, lines: [{ sku: catalog.products[0].sku, qty: 1 }] })
   });
   const incompleteOrder = await incompleteOrderResponse.json();
-  assert(incompleteOrder.error === "customer_details_required", "Order API accepted incomplete customer details");
+  assert(incompleteOrder.error === "not_authenticated", "Quote API accepted an anonymous request");
+  const accountConfig = await readJson("/api/account/config");
+  assert(typeof accountConfig.registrationEnabled === "boolean", "Registration availability is missing");
+  if (process.env.SMOKE_SELF_SERVICE_ENABLED === "true") {
+    assert(accountConfig.registrationEnabled && accountConfig.passwordResetEnabled, "Customer self-service is unavailable");
+  }
+  await expectStatus("/api/account/orders?offset=20", 401);
+  await expectStatus("/api/account/invoices?offset=20", 401);
   const loginResponse = await expectStatus("/api/account/login", customerCorner.settings.loginEnabled ? 401 : 503, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

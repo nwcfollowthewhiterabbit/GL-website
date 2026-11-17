@@ -54,3 +54,34 @@ Payments не включаются автоматически. Web rollback ос
 и возвращает проверенный route/image. Additive ERP app/schema и уже появившиеся
 business documents сохраняются; возврат старой DB после новых записей запрещён.
 Сверка новых заявок выполняется отдельно до возобновления старого writer.
+
+## Customer quotation release (2026-11-17)
+
+The release adds website-owned migration003 (`tabWebsite Account Challenge`),
+not an ERP app update. Runtime gains only SELECT/INSERT/UPDATE on that table;
+use a temporary table-scoped migration identity and remove it afterwards.
+No ERP containers/images or financial document permissions change.
+
+Production email uses the existing Sales Team sender with the private SendGrid
+credential copied server-to-server into protected website.env. API requires
+outbound HTTPS on the existing edge network and still has no host-published port.
+`ACCOUNT_SELF_SERVICE_ENABLED=true` enables verified registration and recovery;
+payments and payment ERP writes stay false. Never print email tokens/passwords.
+
+The isolated stage uses `ACCOUNT_ENVIRONMENT=test`,
+`ACCOUNT_EMAIL_TRANSPORT=outbox` and a protected mounted absolute outbox directory.
+It has no SendGrid credential and does not deliver messages. A separate browser
+fixture may be written0600 outside source for synthetic acceptance, then removed.
+
+Source/runtime checks: `npm run verify`, `npm run check:release`, exact main SHA/CI,
+fresh bounded SQL + website/config backup, immutable image build, migration,
+`scripts/customer-release-runtime-test.mjs` on stage, browser and public smoke.
+Cleanup must remove only recorded GL-WEB-E2E records and exact EPS delete side
+effects. Preserve newly created real Customer/Quotation records during rollback.
+
+For this website-only operation, a global shared backup lock may coexist with
+a proven read-only immutable-archive verifier, while a dedicated exclusive
+website release lock serializes backup/schema/deploy operations. The shared lock
+blocks scheduled exclusive snapshot/prune producers. Before DDL, also verify no
+mariadb-dump/mysqldump is active. Native ERP app changes retain their existing
+exclusive global lock rule. Record exact lock-holder evidence for this exception.

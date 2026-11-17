@@ -19,8 +19,14 @@ function clean(value) {
   return String(value || "").trim();
 }
 
-function normalizeEmail(value) {
-  return clean(value).toLowerCase();
+export function normalizeAccountEmail(value) {
+  return clean(value).replace(/[A-Z]/g, (character) => character.toLowerCase());
+}
+
+const normalizeEmail = normalizeAccountEmail;
+
+export function sameAccountEmail(left, right) {
+  return normalizeEmail(left) === normalizeEmail(right);
 }
 
 function isValidEmail(value) {
@@ -139,7 +145,7 @@ async function getUserByEmail(email) {
     `
       SELECT name, email, first_name, last_name, full_name, enabled, user_type, last_login, last_active
       FROM \`tabUser\`
-      WHERE LOWER(name) = :email OR LOWER(email) = :email
+      WHERE BINARY LOWER(name) = BINARY :email OR BINARY LOWER(email) = BINARY :email
       LIMIT 1
     `,
     { email }
@@ -171,9 +177,9 @@ async function getContactsByEmail(email) {
       SELECT DISTINCT c.name, c.first_name, c.last_name, c.email_id, c.mobile_no, c.phone, c.user, c.status
       FROM \`tabContact\` c
       LEFT JOIN \`tabContact Email\` ce ON ce.parent = c.name
-      WHERE LOWER(IFNULL(c.email_id, '')) = :email
-         OR LOWER(IFNULL(ce.email_id, '')) = :email
-         OR LOWER(IFNULL(c.user, '')) = :email
+      WHERE BINARY LOWER(IFNULL(c.email_id, '')) = BINARY :email
+         OR BINARY LOWER(IFNULL(ce.email_id, '')) = BINARY :email
+         OR BINARY LOWER(IFNULL(c.user, '')) = BINARY :email
       ORDER BY c.is_primary_contact DESC, c.modified DESC
     `,
     { email }
@@ -204,7 +210,7 @@ async function getFallbackCustomersByEmail(email) {
     `
       SELECT name, customer_name, email_id, mobile_no, customer_group, territory
       FROM \`tabCustomer\`
-      WHERE LOWER(IFNULL(email_id, '')) = :email
+      WHERE BINARY LOWER(IFNULL(email_id, '')) = BINARY :email
       ORDER BY modified DESC
       LIMIT 5
     `,
@@ -313,7 +319,7 @@ function scrypt(value, salt) {
   });
 }
 
-async function hashPassword(password) {
+export async function hashWebsitePassword(password) {
   const salt = crypto.randomBytes(16).toString("base64url");
   const derivedKey = await scrypt(password, salt);
   return `scrypt$${salt}$${derivedKey.toString("base64url")}`;
@@ -354,7 +360,7 @@ export async function setWebsiteCustomerPassword({ customer, email, password }) 
 
   await ensureWebsiteCredentialTable();
   const now = nowSql();
-  const passwordHash = await hashPassword(passwordValue(password));
+  const passwordHash = await hashWebsitePassword(passwordValue(password));
   await getErpPool().execute(
     `
       INSERT INTO \`${WEBSITE_CREDENTIAL_TABLE}\`
@@ -392,13 +398,13 @@ export async function authenticateAccountPassword(emailValue, password) {
     `
       SELECT customer, email, password_hash, enabled, session_version
       FROM \`${WEBSITE_CREDENTIAL_TABLE}\`
-      WHERE LOWER(email) = :email
+      WHERE BINARY LOWER(email) = BINARY :email
       LIMIT 1
     `,
     { email }
   );
   const credential = rows[0];
-  if (!credential || !Boolean(Number(credential.enabled || 0))) {
+  if (!credential || !sameAccountEmail(credential.email, email) || !Boolean(Number(credential.enabled || 0))) {
     await scrypt(passwordValue(password), crypto.randomBytes(16).toString("base64url"));
     return { ok: false, error: "invalid_credentials" };
   }
@@ -412,7 +418,7 @@ export async function authenticateAccountPassword(emailValue, password) {
   }
 
   await getErpPool().execute(
-    `UPDATE \`${WEBSITE_CREDENTIAL_TABLE}\` SET last_login = :now, modified = :now WHERE LOWER(email) = :email`,
+    `UPDATE \`${WEBSITE_CREDENTIAL_TABLE}\` SET last_login = :now, modified = :now WHERE BINARY LOWER(email) = BINARY :email`,
     { email, now: nowSql() }
   );
   const token = createAccountSessionToken(email, credential.session_version);
@@ -451,22 +457,23 @@ export async function getVerifiedAccountSession(req) {
     `
       SELECT
         credential.customer,
+        credential.email,
         credential.enabled,
         credential.session_version,
         CASE WHEN user.name IS NULL THEN 1 ELSE IFNULL(user.enabled, 0) END AS user_enabled
       FROM \`${WEBSITE_CREDENTIAL_TABLE}\` credential
       LEFT JOIN \`tabUser\` user
-        ON LOWER(user.name) = LOWER(credential.email) OR LOWER(user.email) = LOWER(credential.email)
-      WHERE LOWER(credential.email) = :email
+        ON BINARY LOWER(user.name) = BINARY LOWER(credential.email) OR BINARY LOWER(user.email) = BINARY LOWER(credential.email)
+      WHERE BINARY LOWER(credential.email) = BINARY :email
       LIMIT 1
     `,
     { email: session.email }
   );
   const credential = rows[0];
-  if (!isAccountSessionCurrent(session, credential)) return null;
+  if (!isAccountSessionCurrent(session, credential) || !sameAccountEmail(credential.email, session.email)) return null;
 
   const access = await resolveCustomerAccessByEmail(session.email);
-  return isProvisionedWebsiteCustomerAccess(access, credential.customer) ? session : null;
+  return isProvisionedWebsiteCustomerAccess(access, credential.customer) ? { ...session, customer: credential.customer } : null;
 }
 
 export function endAccountSession() {
@@ -477,10 +484,10 @@ export async function getCustomerProfileByEmail(emailValue) {
   return (await resolveCustomerAccessByEmail(emailValue)).profile;
 }
 
-export async function getCustomerQuotesForAccount(emailValue, limit = 20) {
+export async function getCustomerQuotesForAccount(emailValue, limit = 20, offset = 0) {
   const access = await resolveCustomerAccessByEmail(emailValue);
-  const maxLimit = Math.min(Math.max(Number(limit) || 20, 1), 50);
-  const params = { email: access.email, limit: maxLimit };
+  const maxLimit = Math.min(Math.max(Math.trunc(Number(limit)) || 20, 1), 51);
+  const params = { email: access.email, limit: maxLimit, offset: Math.max(0, Math.trunc(Number(offset)) || 0) };
   const customerClause = access.customerNames.length
     ? `OR q.party_name IN (${placeholders(access.customerNames, "customer")})`
     : "";
@@ -490,10 +497,10 @@ export async function getCustomerQuotesForAccount(emailValue, limit = 20) {
     `
       SELECT q.name, q.owner, q.party_name, q.transaction_date, q.valid_till, q.grand_total, q.status, q.order_type, q.creation, q.enq_det
       FROM \`tabQuotation\` q
-      WHERE LOWER(IFNULL(q.website_customer_email, '')) = :email
+      WHERE BINARY LOWER(IFNULL(q.website_customer_email, '')) = BINARY :email
          ${customerClause}
-      ORDER BY q.creation DESC
-      LIMIT :limit
+      ORDER BY q.creation DESC, q.name DESC
+      LIMIT :limit OFFSET :offset
     `,
     params
   );
@@ -512,11 +519,11 @@ export async function getCustomerQuotesForAccount(emailValue, limit = 20) {
   }));
 }
 
-export async function getCustomerOrdersByEmail(emailValue, limit = 20) {
+export async function getCustomerOrdersByEmail(emailValue, limit = 20, offset = 0) {
   const access = await resolveCustomerAccessByEmail(emailValue);
   if (!access.email) return [];
-  const maxLimit = Math.min(Math.max(Number(limit) || 20, 1), 50);
-  const params = { email: access.email, limit: maxLimit };
+  const maxLimit = Math.min(Math.max(Math.trunc(Number(limit)) || 20, 1), 51);
+  const params = { email: access.email, limit: maxLimit, offset: Math.max(0, Math.trunc(Number(offset)) || 0) };
   const customerClause = access.customerNames.length ? `OR so.customer IN (${placeholders(access.customerNames, "customer")})` : "";
   Object.assign(params, namedList(access.customerNames, "customer"));
 
@@ -526,10 +533,10 @@ export async function getCustomerOrdersByEmail(emailValue, limit = 20) {
              so.per_delivered, so.per_billed, so.creation
       FROM \`tabSales Order\` so
       JOIN \`tabCustomer\` c ON c.name = so.customer
-      WHERE LOWER(IFNULL(c.email_id, '')) = :email
+      WHERE BINARY LOWER(IFNULL(c.email_id, '')) = BINARY :email
          ${customerClause}
-      ORDER BY so.creation DESC
-      LIMIT :limit
+      ORDER BY so.creation DESC, so.name DESC
+      LIMIT :limit OFFSET :offset
     `,
     params
   );
@@ -547,11 +554,11 @@ export async function getCustomerOrdersByEmail(emailValue, limit = 20) {
   }));
 }
 
-export async function getCustomerInvoicesByEmail(emailValue, limit = 20) {
+export async function getCustomerInvoicesByEmail(emailValue, limit = 20, offset = 0) {
   const access = await resolveCustomerAccessByEmail(emailValue);
   if (!access.email) return [];
-  const maxLimit = Math.min(Math.max(Number(limit) || 20, 1), 50);
-  const params = { email: access.email, limit: maxLimit };
+  const maxLimit = Math.min(Math.max(Math.trunc(Number(limit)) || 20, 1), 51);
+  const params = { email: access.email, limit: maxLimit, offset: Math.max(0, Math.trunc(Number(offset)) || 0) };
   const customerClause = access.customerNames.length ? `OR si.customer IN (${placeholders(access.customerNames, "customer")})` : "";
   Object.assign(params, namedList(access.customerNames, "customer"));
 
@@ -561,10 +568,10 @@ export async function getCustomerInvoicesByEmail(emailValue, limit = 20) {
              si.status, si.creation
       FROM \`tabSales Invoice\` si
       JOIN \`tabCustomer\` c ON c.name = si.customer
-      WHERE LOWER(IFNULL(c.email_id, '')) = :email
+      WHERE BINARY LOWER(IFNULL(c.email_id, '')) = BINARY :email
          ${customerClause}
-      ORDER BY si.creation DESC
-      LIMIT :limit
+      ORDER BY si.creation DESC, si.name DESC
+      LIMIT :limit OFFSET :offset
     `,
     params
   );
@@ -598,7 +605,7 @@ export async function getAccountQuotationDetailByEmail(emailValue, quotationName
       FROM \`tabQuotation\` q
       WHERE q.name = :name
         AND (
-          LOWER(IFNULL(q.website_customer_email, '')) = :email
+          BINARY LOWER(IFNULL(q.website_customer_email, '')) = BINARY :email
           ${customerClause}
         )
       LIMIT 1
@@ -662,7 +669,7 @@ export async function getAccountOrderDetailByEmail(emailValue, orderName) {
       FROM \`tabSales Order\` so
       JOIN \`tabCustomer\` c ON c.name = so.customer
       WHERE so.name = :name
-        AND (LOWER(IFNULL(c.email_id, '')) = :email ${customerClause})
+        AND (BINARY LOWER(IFNULL(c.email_id, '')) = BINARY :email ${customerClause})
       LIMIT 1
     `,
     params
@@ -717,7 +724,7 @@ export async function getAccountInvoiceDetailByEmail(emailValue, invoiceName) {
       FROM \`tabSales Invoice\` si
       JOIN \`tabCustomer\` c ON c.name = si.customer
       WHERE si.name = :name
-        AND (LOWER(IFNULL(c.email_id, '')) = :email ${customerClause})
+        AND (BINARY LOWER(IFNULL(c.email_id, '')) = BINARY :email ${customerClause})
       LIMIT 1
     `,
     params
@@ -786,7 +793,7 @@ export async function disableWebsiteCustomerAccess(emailValue) {
     `
       UPDATE \`${WEBSITE_CREDENTIAL_TABLE}\`
       SET enabled = 0, session_version = session_version + 1, modified = :now
-      WHERE LOWER(email) = :email
+      WHERE BINARY LOWER(email) = BINARY :email
     `,
     { email, now: nowSql() }
   );
@@ -799,7 +806,7 @@ export async function enableWebsiteCustomerAccess(emailValue) {
 
   await ensureWebsiteCredentialTable();
   const [credentials] = await getErpPool().execute(
-    `SELECT customer FROM \`${WEBSITE_CREDENTIAL_TABLE}\` WHERE LOWER(email) = :email LIMIT 1`,
+    `SELECT customer FROM \`${WEBSITE_CREDENTIAL_TABLE}\` WHERE BINARY LOWER(email) = BINARY :email LIMIT 1`,
     { email }
   );
   if (!credentials[0]) return { ok: false, error: "credential_not_found" };
@@ -814,7 +821,7 @@ export async function enableWebsiteCustomerAccess(emailValue) {
     `
       UPDATE \`${WEBSITE_CREDENTIAL_TABLE}\`
       SET enabled = 1, session_version = session_version + 1, modified = :now
-      WHERE LOWER(email) = :email
+      WHERE BINARY LOWER(email) = BINARY :email
     `,
     { email, now }
   );
@@ -863,10 +870,10 @@ export async function getWebsiteCustomerAccessList({ q = "", limit = 30 } = {}) 
         LEFT JOIN \`tabDynamic Link\` dl ON dl.link_doctype = 'Customer' AND dl.link_name = c.name AND dl.parenttype = 'Contact'
         LEFT JOIN \`tabContact\` ct ON ct.name = dl.parent
         LEFT JOIN \`tabContact Email\` ce ON ce.parent = ct.name
-        LEFT JOIN \`tabUser\` u ON LOWER(u.name) = LOWER(COALESCE(NULLIF(ct.user, ''), NULLIF(ce.email_id, ''), NULLIF(ct.email_id, ''), NULLIF(c.email_id, '')))
-                             OR LOWER(u.email) = LOWER(COALESCE(NULLIF(ce.email_id, ''), NULLIF(ct.email_id, ''), NULLIF(c.email_id, '')))
+        LEFT JOIN \`tabUser\` u ON BINARY LOWER(u.name) = BINARY LOWER(COALESCE(NULLIF(ct.user, ''), NULLIF(ce.email_id, ''), NULLIF(ct.email_id, ''), NULLIF(c.email_id, '')))
+                             OR BINARY LOWER(u.email) = BINARY LOWER(COALESCE(NULLIF(ce.email_id, ''), NULLIF(ct.email_id, ''), NULLIF(c.email_id, '')))
         LEFT JOIN \`${WEBSITE_CREDENTIAL_TABLE}\` credential
-          ON LOWER(credential.email) = LOWER(COALESCE(NULLIF(ce.email_id, ''), NULLIF(ct.email_id, ''), NULLIF(c.email_id, '')))
+          ON BINARY LOWER(credential.email) = BINARY LOWER(COALESCE(NULLIF(ce.email_id, ''), NULLIF(ct.email_id, ''), NULLIF(c.email_id, '')))
         WHERE c.name = :customer
         LIMIT 20
       `,
