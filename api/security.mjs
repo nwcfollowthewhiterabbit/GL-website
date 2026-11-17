@@ -1,6 +1,9 @@
 import crypto from "node:crypto";
 import { rateLimit } from "express-rate-limit";
 
+// Public clients send plain JSON. Reject compressed bodies before decompression.
+export const JSON_BODY_OPTIONS = Object.freeze({ limit: "1mb", inflate: false });
+
 function allowedOrigins() {
   return new Set(
     [process.env.STORE_PUBLIC_URL, ...(process.env.CORS_ALLOWED_ORIGINS || "").split(",")]

@@ -1,4 +1,6 @@
-import { getErpPool } from "./erpnext-db.mjs";
+import crypto from "node:crypto";
+import mysql from "mysql2/promise";
+import { getErpPool, getErpDbConfig } from "./erpnext-db.mjs";
 import { createDoc, hasErpnextRestCredentials, listDoc } from "./erpnext-rest.mjs";
 import { EXCLUDED_STOREFRONT_GROUPS } from "./catalog-service.mjs";
 import { getCatalogPublicationSql } from "./catalog-publication-rules.mjs";
@@ -198,18 +200,88 @@ async function getOrCreateCustomer(customer) {
   return { name: created.name, created: true };
 }
 
-async function existingQuotationByMarker(marker, id) {
-  const hasWebsiteQuoteId = await hasCustomField("Quotation", "website_quote_id");
-  const [rows] = hasWebsiteQuoteId
-    ? await getErpPool().execute(
-        "SELECT name FROM `tabQuotation` WHERE website_quote_id = :id OR enq_det LIKE :marker ORDER BY creation DESC LIMIT 1",
-        { id, marker: `%${marker}%` }
-      )
-    : await getErpPool().execute(
-        "SELECT name FROM `tabQuotation` WHERE enq_det LIKE :marker ORDER BY creation DESC LIMIT 1",
-        { marker: `%${marker}%` }
-      );
-  return rows[0]?.name || null;
+export function quoteRequestFingerprint(payload = {}) {
+  const customer = payload.customer || payload;
+  const binding = {
+    id: normalizeQuoteRequestId(payload.id),
+    customer: {
+      company: clean(customer.company), contact: clean(customer.contact),
+      email: clean(customer.email).toLowerCase(), phone: clean(customer.phone),
+      location: clean(customer.location || payload.deliveryLocation)
+    },
+    lines: normalizeLines(payload.lines),
+    notes: clean(payload.notes)
+  };
+  return crypto.createHash("sha256").update(JSON.stringify(binding)).digest("hex");
+}
+
+export function quoteLookupSql(fields) {
+  const columns = ["name", "enq_det",
+    fields.website_quote_id ? "website_quote_id" : "NULL AS website_quote_id",
+    fields.website_customer_email ? "website_customer_email" : "NULL AS website_customer_email",
+    fields.website_payload ? "website_payload" : "NULL AS website_payload"];
+  // Exact first-line legacy marker, never LIKE: underscores and prefixes are literal.
+  const legacy = "SUBSTRING_INDEX(enq_det, CHAR(10), 1) = :marker";
+  const where = fields.website_quote_id
+    ? `website_quote_id = :id OR ((website_quote_id IS NULL OR website_quote_id = '') AND ${legacy})`
+    : legacy;
+  return `SELECT ${columns.join(", ")} FROM \`tabQuotation\` WHERE ${where} ORDER BY creation DESC LIMIT 2`;
+}
+
+export function quoteReplayMatches(row, payload) {
+  try {
+    const stored = JSON.parse(row.website_payload || "null");
+    if (!stored || stored.id !== payload.id || !stored.customer?.email) return false;
+    const email = clean(payload.customer?.email || payload.email).toLowerCase();
+    if (clean(stored.customer.email).toLowerCase() !== email) return false;
+    if (row.website_customer_email && clean(row.website_customer_email).toLowerCase() !== email) return false;
+    return quoteRequestFingerprint(stored) === quoteRequestFingerprint(payload);
+  } catch {
+    return false;
+  }
+}
+
+async function existingQuotationByMarker(marker, id, payload) {
+  const fields = await hasCustomFields("Quotation", ["website_quote_id", "website_customer_email", "website_payload"]);
+  const [rows] = await getErpPool().execute(quoteLookupSql(fields), { id, marker });
+  if (!rows.length) return null;
+  if (rows.length !== 1 || !quoteReplayMatches(rows[0], payload)) return { conflict: true };
+  return { name: rows[0].name };
+}
+
+export async function withQuoteRequestLock(id, operation, openConnection = null) {
+  // A separate short-lived connection avoids consuming the bounded read pool
+  // while the request's ERP SQL/REST work is in progress.
+  const connect = openConnection || (() => {
+    const { connectionLimit, waitForConnections, ...config } = getErpDbConfig();
+    return mysql.createConnection(config);
+  });
+  const connection = await connect();
+  const lockName = "glquote:" + crypto.createHash("sha256").update(id.toLowerCase()).digest("hex").slice(0, 54);
+  let acquired = false;
+  try {
+    const [rows] = await connection.execute("SELECT GET_LOCK(?, 30) AS acquired", [lockName]);
+    acquired = Number(rows[0]?.acquired) === 1;
+    if (!acquired) throw new Error("quote_request_busy");
+    return await operation();
+  } finally {
+    if (acquired) await connection.execute("SELECT RELEASE_LOCK(?)", [lockName]).catch(() => undefined);
+    await connection.end();
+  }
+}
+
+export function coalesceQuoteRequest(payload, operation) {
+  const fingerprint = quoteRequestFingerprint(payload);
+  const requestKey = payload.id.toLowerCase();
+  const existing = inFlightQuoteRequests.get(requestKey);
+  if (existing) {
+    return existing.fingerprint === fingerprint ? existing.promise : Promise.resolve({
+      mode: "validation_failed", error: "request_id_conflict", id: payload.id
+    });
+  }
+  const promise = Promise.resolve().then(operation).finally(() => inFlightQuoteRequests.delete(requestKey));
+  inFlightQuoteRequests.set(requestKey, { fingerprint, promise });
+  return promise;
 }
 
 export async function prepareQuoteRequest(payload = {}) {
@@ -269,9 +341,11 @@ export async function prepareQuoteRequest(payload = {}) {
     paymentLinkValidityDays: 30
   };
 
-  const duplicateQuotation = await existingQuotationByMarker(marker, id);
+  const duplicate = await existingQuotationByMarker(marker, id, { ...payload, id });
+  const duplicateQuotation = duplicate?.name || null;
+  const requestConflict = Boolean(duplicate?.conflict);
   // Invalid or repeated requests must not create a new Customer as a side effect.
-  const erpCustomer = validLines.length && !duplicateQuotation
+  const erpCustomer = validLines.length && !duplicateQuotation && !requestConflict
     ? await getOrCreateCustomer(normalizedCustomer)
     : { name: "", created: false };
 
@@ -337,8 +411,9 @@ export async function prepareQuoteRequest(payload = {}) {
     fulfillment,
     missing,
     duplicateQuotation,
+    requestConflict,
     quotationDoc,
-    canCreate: hasErpnextRestCredentials() && validLines.length > 0 && !duplicateQuotation
+    canCreate: hasErpnextRestCredentials() && validLines.length > 0 && !duplicateQuotation && !requestConflict
   };
 }
 
@@ -367,6 +442,10 @@ async function createQuoteRequestOnce(payload = {}) {
   }
 
   const prepared = await prepareQuoteRequest(payload);
+
+  if (prepared.requestConflict) {
+    return { mode: "validation_failed", error: "request_id_conflict", id: prepared.id };
+  }
 
   if (prepared.duplicateQuotation) {
     return {
@@ -420,15 +499,10 @@ async function createQuoteRequestOnce(payload = {}) {
 }
 
 export async function createQuoteRequest(payload = {}) {
-  const requestPayload = { ...payload, id: normalizeQuoteRequestId(payload.id) };
-  const existing = inFlightQuoteRequests.get(requestPayload.id);
-  if (existing) return existing;
-
-  const operation = createQuoteRequestOnce(requestPayload).finally(() => {
-    inFlightQuoteRequests.delete(requestPayload.id);
-  });
-  inFlightQuoteRequests.set(requestPayload.id, operation);
-  return operation;
+  const requestPayload = structuredClone({ ...payload, id: normalizeQuoteRequestId(payload.id) });
+  return coalesceQuoteRequest(requestPayload, () =>
+    withQuoteRequestLock(requestPayload.id, () => createQuoteRequestOnce(requestPayload))
+  );
 }
 
 export async function getRecentWebsiteQuotes(limit = 12) {

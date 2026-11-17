@@ -84,3 +84,14 @@
 - Recorded two evidence-based menu reference corrections without changing ERP groups.
 - Website Control Center now uses per-site public/internal URLs and a server-only
   System Manager proxy for customer access; no testing URL or admin token in browser.
+
+## Quote request replay isolation — 2026-11-17
+
+- Request IDs use exact indexed matching and an exact legacy first-line marker;
+  underscores and prefixes no longer match unrelated quotations.
+- Replays are bound to the normalized customer and request payload. Conflicting
+  reuse fails without disclosing another quotation or creating a Customer.
+- In-flight payload checks and a database advisory lock protect repeats across
+  API processes; the lock connection is separate from the catalog read pool.
+
+- Public JSON parsing now rejects compressed request bodies before inflation; plain browser/API JSON remains accepted.

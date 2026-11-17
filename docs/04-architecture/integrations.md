@@ -65,3 +65,14 @@ tests, TypeScript checks, account/payment tests и production build.
   `testinggreenleafpacificcom_api_1`.
 
 Эти имена не являются production identifiers.
+
+## Quote idempotency binding
+
+Website quote IDs match `website_quote_id` exactly. The legacy fallback compares
+the complete first line of `enq_det` only when the ID field is absent/empty; SQL
+wildcards are never used. A replay must have the same normalized customer email,
+customer details, lines and notes as `website_payload`. Missing or conflicting
+bindings return `request_id_conflict` without an existing quotation identifier.
+In-flight repeats share work only for identical fingerprints. A dedicated DB
+connection holds a per-request advisory lock across REST creation, serializing
+multiple API processes without consuming the bounded read pool.

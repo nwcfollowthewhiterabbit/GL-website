@@ -59,6 +59,7 @@ import {
   setWebsiteCustomerPassword
 } from "./account-service.mjs";
 import {
+  JSON_BODY_OPTIONS,
   accountLoginLimiter,
   adminLimiter,
   catalogLimiter,
@@ -100,7 +101,7 @@ function qualityReportCsv(report) {
 app.disable("x-powered-by");
 app.set("trust proxy", 2);
 app.use(cors(corsOptions));
-app.use(express.json({ limit: "1mb" }));
+app.use(express.json(JSON_BODY_OPTIONS));
 app.use(requestMetrics);
 app.use("/api/account/login", accountLoginLimiter);
 app.use("/api/catalog", catalogLimiter);

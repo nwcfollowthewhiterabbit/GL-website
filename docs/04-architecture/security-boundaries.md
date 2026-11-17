@@ -42,3 +42,10 @@ Website Docker Compose stack и ERP stack имеют разные ownership boun
 - Search indexing выключен.
 - Security headers и CORS проверяются smoke test.
 - Admin endpoints требуют token и не публикуют environment values.
+
+## Compressed request bodies
+
+The public API accepts plain JSON up to 1 MiB and configures `inflate: false`.
+Compressed JSON is rejected with HTTP 415 before decompression or business
+handlers. This removes the reachable body-parser decompression crash path while
+retaining the existing browser and ERP proxy request format.
