@@ -31,9 +31,9 @@ export function ServiceContactSection({ onOpenQuote }: ServiceContactSectionProp
               <Wrench size={20} />
             </span>
             <h3>Trade procurement</h3>
-            <p>Use the catalog to build an order. Available stock can proceed directly; low-stock and special-order items are confirmed by sales.</p>
+            <p>Build a quote basket from the catalog. Sales confirms pricing, availability and delivery for every quotation, including in-stock and special-order items.</p>
             <div className="contact-strip">
-              <CheckCircle2 size={18} /> ERP stock-led B2B buying
+              <CheckCircle2 size={18} /> Quotation support from Green Leaf sales
             </div>
           </article>
           <article className="contact-card" id="contact">
@@ -83,7 +83,7 @@ export function ServiceContactSection({ onOpenQuote }: ServiceContactSectionProp
         <div className="shell final-cta__inner">
           <div>
             <span>Ready to source hospitality supplies?</span>
-            <h2>Build an order basket with live ERP stock and pricing.</h2>
+            <h2>Build a quote basket with current catalog prices and availability.</h2>
           </div>
           <button className="primary-button" onClick={onOpenQuote}>
             Open order basket <ArrowRight size={18} />

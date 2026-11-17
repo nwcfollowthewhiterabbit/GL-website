@@ -38,7 +38,7 @@ export function ProductDetailPage({
       </button>
 
       {isLoading ? (
-        <div className="product-page__empty">Loading product from ERPNext...</div>
+        <div className="product-page__empty">Loading product details...</div>
       ) : product ? (
         <>
           <div className="breadcrumbs" aria-label="Breadcrumb">
@@ -104,7 +104,7 @@ export function ProductDetailPage({
               </button>
               <div className="product-quote-panel__notes">
                 <span>
-                  <CheckCircle2 size={16} /> ERP SKU validated
+                  <CheckCircle2 size={16} /> Product reference ready for your quotation
                 </span>
                 <span>
                   <Clock3 size={16} /> In-stock delivery normally within 72 hours
@@ -120,7 +120,7 @@ export function ProductDetailPage({
             <div className="section-heading">
               <div>
                 <h2>Related items</h2>
-                <p>More ERPNext products from the same item group.</p>
+                <p>Explore more products in this category.</p>
               </div>
             </div>
             {relatedProducts.length ? (
@@ -141,13 +141,13 @@ export function ProductDetailPage({
               </div>
             ) : (
               <p className="empty-state">
-                <PackageCheck size={18} /> Related products will appear as the ERP group is loaded.
+                <PackageCheck size={18} /> Browse the catalog to find more products.
               </p>
             )}
           </div>
         </>
       ) : (
-        <div className="product-page__empty">Product was not found in the ERPNext storefront catalog.</div>
+        <div className="product-page__empty">This product could not be found in the catalog.</div>
       )}
     </section>
   );

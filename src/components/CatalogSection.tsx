@@ -128,8 +128,8 @@ export function CatalogSection({
           <h2>Commercial catalog</h2>
           <p>
             {catalogState === "ready"
-              ? "Live ERPNext data with Standard Selling prices excluding VAT. Only products with a valid price, image and description are published."
-              : "Product cards are ready for live prices, quote-only products, lead times, and ERP item groups."}
+              ? "Browse current catalog prices and availability. Prices exclude VAT; sales confirms every quotation."
+              : "Choose products for your quote basket. Sales will confirm pricing, availability and delivery."}
           </p>
         </div>
       </div>
@@ -162,7 +162,7 @@ export function CatalogSection({
 
           {!activeDepartment ? (
             <div className="catalog-sidebar__groups">
-              <span>Popular ERP groups</span>
+              <span>Popular categories</span>
               {sidebarGroups.map((group) => (
                 <button
                   className={`catalog-subcategory ${activeCategory === group.name ? "is-active" : ""}`}
@@ -276,7 +276,7 @@ export function CatalogSection({
           {filtersOpen ? (
             <div className="filter-panel">
               <div className="filter-panel__section">
-                <span className="filter-panel__label">Available ERP item groups</span>
+                <span className="filter-panel__label">Product categories</span>
                 <div className="facet-chip-row">
                   {(activeDepartment ? sidebarGroups : topFacetGroups.slice(0, 24)).map((group) => (
                     <button
@@ -335,7 +335,7 @@ export function CatalogSection({
                       <span className="sku-chip">{product.sku}</span>
                     </div>
                     <h3>{product.name}</h3>
-                    <p>{plainTextDescription(product, "ERP-ready product detail with variants, UOM, tax handling, and buying notes.")}</p>
+                    <p>{plainTextDescription(product, "Contact sales for product details and availability.")}</p>
                     <div className="product-card__footer">
                       <div>
                         <span className="price">{priceLabel(product)}</span>

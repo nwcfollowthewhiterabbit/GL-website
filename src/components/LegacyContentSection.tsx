@@ -19,7 +19,7 @@ export function LegacyContentSection({ manufacturers }: LegacyContentSectionProp
             <Sparkles size={18} /> Brands
           </span>
           <h3>Manufacturers</h3>
-          <p>Manufacturer logos migrated from the old Green Leaf brands page. Each brand can link into catalog search or a managed ERP storefront rule.</p>
+          <p>Explore our manufacturers and ask Green Leaf for help choosing products for your business.</p>
         </div>
         <div className="brands-section__content">
           <div className={`brands-section__logos ${canExpand && !expanded ? "is-collapsed" : ""}`}>
