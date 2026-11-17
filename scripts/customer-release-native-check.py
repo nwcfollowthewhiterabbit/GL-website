@@ -3,7 +3,8 @@
 
 Run with the target bench Python, from its sites directory. Required environment:
 CUSTOMER_NATIVE_SITE and CUSTOMER_NATIVE_DB_HOSTNAME (verified physical @@hostname).
-Input: {action: fixture|cleanup, runId, owned:{accounts,quotations,salesOrders?}}.
+Input: {action: fixture|cleanup, runId, owned:{accounts,quotations,salesOrders?,quoteRequestIds?}}.
+quoteRequestIds maps an exact Quotation name to its captured browser GLQ-UUID id.
 Output is a sanitized receipt. Does not submit documents or restore databases.
 """
 import datetime
@@ -54,11 +55,16 @@ def validate_accounts(payload):
     return accounts
 
 
-def validate_quote(name, accounts, run_id):
+def validate_quote(name, accounts, run_id, quote_request_ids=None):
     quote = frappe.get_doc("Quotation", name)
     customers = {account["customer"]: account["email"] for account in accounts}
     require(quote.docstatus == 0 and quote.quotation_to == "Customer" and quote.party_name in customers, "Quotation is not an owned draft")
-    require((quote.website_quote_id or "").startswith(run_id + "-"), "Quotation run marker mismatch")
+    request_id = quote.website_quote_id or ""
+    captured_ids = quote_request_ids if quote_request_ids is not None else {}
+    require(isinstance(captured_ids, dict), "Exact quotation request-id mapping required")
+    generated_id = re.fullmatch(r"GLQ-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", request_id)
+    captured_browser_id = bool(generated_id and captured_ids.get(name) == request_id)
+    require(request_id.startswith(run_id + "-") or captured_browser_id, "Quotation run marker or exact captured browser id mismatch")
     require((quote.website_customer_email or "").lower() == customers[quote.party_name], "Quotation verified email mismatch")
     require(run_id in (quote.enq_det or ""), "Quotation notes marker mismatch")
     return quote
@@ -88,7 +94,7 @@ def create_fixture(payload, accounts):
     run_id = payload["runId"]
     names = payload["owned"].get("quotations", [])
     require(isinstance(names, list) and 1 <= len(names) <= 20, "Bounded exact quotation receipt required")
-    quotes = [validate_quote(name, accounts, run_id) for name in names]
+    quotes = [validate_quote(name, accounts, run_id, payload["owned"].get("quoteRequestIds")) for name in names]
     customer = accounts[0]["customer"]
     quote = next((doc for doc in quotes if doc.party_name == customer), None)
     require(quote is not None, "First Customer has no owned quotation")
@@ -123,7 +129,7 @@ def cleanup(payload, accounts):
     orders = set(payload["owned"].get("salesOrders", []))
     require(len(quotes) <= 20 and len(orders) <= 10, "Cleanup receipt exceeds bounds")
     for name in quotes:
-        validate_quote(name, accounts, run_id)
+        validate_quote(name, accounts, run_id, payload["owned"].get("quoteRequestIds"))
     for name in orders:
         validate_order(name, accounts, run_id)
     contacts = {}

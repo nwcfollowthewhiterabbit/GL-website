@@ -173,7 +173,16 @@ export async function createQuoteRequest(payload: QuoteRequestPayload): Promise<
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ ...payload, id })
   });
-  return response.json();
+  const result = await response.json() as QuoteRequestResponse;
+  const reference = typeof result.quotation === "string" ? result.quotation : result.quotation?.name;
+  if (response.ok && reference && (result.mode === "created" || result.mode === "idempotent") && typeof window !== "undefined") {
+    try {
+      const cached = JSON.parse(window.localStorage.getItem(storageKey) || "null");
+      // A confirmed request is complete. Retain a newer request cached by another tab.
+      if (cached?.id === id) window.localStorage.removeItem(storageKey);
+    } catch { /* Browser storage is optional; uncertain requests retain their retry identity. */ }
+  }
+  return result;
 }
 
 export function fetchAccountConfig() {
