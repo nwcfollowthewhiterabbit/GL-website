@@ -1,12 +1,15 @@
 # Журнал изменений
 
-## 2026-11-17 — Customer quotation release (pending runtime acceptance)
+## 2026-11-17 — Customer quotation release
 
 - Added email-first registration and single-use password recovery with throttling.
 - Bound quotation submission to the signed-in customer and rejected invalid/partial carts.
 - Added paged account history and preserved the basket during sign-in/registration.
 - Replaced checkout/payment promises with quotation review; online payment remains disabled.
 - Added additive challenge schema and isolated outbox validation; production delivery uses the existing Sales Team sender.
+- Deployed code `88bdf5d` on the testing hostname with production ERP; public account/quote/order browser checks passed.
+- Verified one authorized Inbox delivery and repaired provider-confirmed SendGrid DNS records; the original arrival authentication result remains historical.
+- Recorded source, stage, production and cleanup evidence in [the release record](docs/08-operations/releases/2026-11-17-customer-quotation-release.md).
 
 ## 2026-11-17 — Testing website on production ERP and isolated v16 testing
 

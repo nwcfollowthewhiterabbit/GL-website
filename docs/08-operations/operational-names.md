@@ -1,6 +1,6 @@
 # Операционные имена
 
-Проверено 2026-11-17; [релиз и evidence](releases/2026-11-17-testing-site-production-erp.md).
+Проверено 2026-11-17 20:24 UTC; [customer quotation release и evidence](releases/2026-11-17-customer-quotation-release.md). Первоначальное подключение сайта к ERP сохранено в [историческом release record](releases/2026-11-17-testing-site-production-erp.md).
 
 | Объект | Значение |
 |---|---|

@@ -115,7 +115,7 @@ Useful API endpoints:
 
 ## Customer Account Login
 
-Customer login uses a password assigned to an existing ERP Customer through the protected admin API. Only a `scrypt` password hash is stored.
+Customer login uses a separate website password, created after email verification or assigned through the protected administrator API. Existing administrator-provisioned access remains valid. Only a `scrypt` password hash is stored; registration and recovery do not change the ERP password or roles.
 
 ```text
 ACCOUNT_LOGIN_ENABLED=true

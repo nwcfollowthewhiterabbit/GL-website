@@ -1,5 +1,9 @@
 # 2026-11-17 — Новый testing website → production ERP и изолированная v16 testing
 
+Историческая запись первоначального подключения. Позднейшее требование
+регистрации и customer quotation release описано [отдельно](2026-11-17-customer-quotation-release.md);
+статусы self-registration и runtime pins ниже относятся к этому первоначальному запуску.
+
 - Финальный scope: новый сайт только на testing.greenleafpacific.com, подключённый к production ERP; noindex/payments off.
 - Основной greenleafpacific.com возвращён прежнему OpenCart по уточнению владельца.
 - Решение: GO для исправленного testing-only target; final readiness и read-only browser passed.

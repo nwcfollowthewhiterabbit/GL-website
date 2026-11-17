@@ -17,10 +17,10 @@ otherwise.
 
 ## Create Your Account
 
-1. Open `/account` and select **Create account**.
+1. Open `/account` and select **Create an account**.
 2. Enter your email and request the verification link. Check your spam folder.
-3. Open the link within30 minutes. The newest requested link replaces the old one.
-4. Enter your company, contact name, phone and a password of10–128 characters.
+3. Open the link within 30 minutes. Use the most recent verification email; when a new link is issued, the previous link expires.
+4. Enter your company, contact name, phone and a password of 10–128 characters.
 5. Complete registration. You are signed in and your basket is kept in this browser.
 
 If you already have a website account, sign in or use **Forgot password**.
@@ -51,7 +51,7 @@ submission. Retrying the same request opens its existing quotation.
    status.
 6. Select **Sign out** when finished on a shared device.
 
-Use **Load more** to view older records. A new request appears under quotations
+Use **Load older records** to view older records. A new request appears under quotations
 as **Under review**. When sales issues a quotation or creates an order in ERP,
 refresh your account to see the current status. Orders can be confirmed, on hold,
 partially delivered, completed or cancelled. A quotation and a sales order are
@@ -60,7 +60,7 @@ different documents; submitting a basket creates the quotation request first.
 ## Recover Your Password
 
 Select **Forgot password**, enter your account email and open the newest reset
-link within30 minutes. Choose a new password, then sign in. Links work once;
+link within 30 minutes. Choose a new password, then sign in. Links work once;
 the reset signs out previous sessions. Reset cannot restore disabled access.
 Green Leaf support can reset, disable or restore an existing account.
 Contact `buy@greenleafpacific.com` for access support.
