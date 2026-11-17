@@ -39,6 +39,10 @@
   IP и durable per-email throttles ограничивают отправку. SendGrid sender —
   существующий Sales Team; секрет доступен только backend через protected env.
   Isolated test outbox допускается только при explicit test environment.
+- Активный ERP System User может подтвердить почту и создать отдельный website
+  credential. Регистрация/reset не меняют ERP User, `__Auth` или роли; доступ
+  остаётся ограничен проверенными Customer/Contact links. Отключённый ERP User
+  и отключённый website credential не получают доступ через self-service.
 - Quote creation требует verified session и использует Customer credential,
   а не присланное браузером имя Customer. Изменённый email отклоняется.
 

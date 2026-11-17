@@ -43,8 +43,9 @@ OR reset changes password and revokes previous sessions
 
 Ссылка хранится в URL fragment, очищается из адреса после чтения и не попадает
 в request/access logs. Повтор, истёкшая ссылка, отключённый доступ и конфликт
-версии credential отклоняются. Перезапрос ограничен по email и IP. Staff system
-accounts не регистрируются этим способом. Повторный submit не создаёт дубль.
+версии credential отклоняются. Перезапрос ограничен по email и IP. Владелец
+почты с активным ERP System User также может создать отдельный website account;
+пароль и роли ERP User не меняются. Повторный submit не создаёт дубль.
 
 ## Windcave HPP
 

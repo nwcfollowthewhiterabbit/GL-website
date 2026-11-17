@@ -23,8 +23,10 @@ otherwise.
 4. Enter your company, contact name, phone and a password of10–128 characters.
 5. Complete registration. You are signed in and your basket is kept in this browser.
 
-If you already have an account, sign in or use **Forgot password**. Green Leaf
-staff accounts and disabled customer accounts require help from support.
+If you already have a website account, sign in or use **Forgot password**.
+You can also register using the email of your active ERP account. The website
+uses a separate password; registration and password recovery do not change your
+ERP password or permissions. Disabled accounts require help from support.
 
 ## Request a Quotation
 

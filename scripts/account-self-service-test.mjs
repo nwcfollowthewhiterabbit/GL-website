@@ -150,11 +150,23 @@ for (const mutation of ["disabled", "version"]) {
   check((await f.service.complete("reset", { token: f.token(), password: "New-long-password" })).error === "invalid_or_expired_token", `Reset cannot override admin ${mutation} change`);
   check(credential.password_hash === "old-hash", "Admin credential state preserved");
 }
-for (const user of [{ enabled: false, userType: "Website User" }, { enabled: true, userType: "System User" }]) {
+for (const user of [{ enabled: false, userType: "Website User" }, { enabled: false, userType: "System User" }]) {
   const f = fixture();
   await f.service.request("register", "buyer@example.com");
   f.access({ user, customerNames: ["EXISTING"] });
-  check((await f.service.complete("register", f.details())).error === "customer_access_unavailable" && !f.credentials.size, "Disabled ERP and employee users cannot self-register");
+  check((await f.service.complete("register", f.details())).error === "customer_access_unavailable" && !f.credentials.size, "Disabled ERP users cannot self-register regardless of user type");
+}
+for (const customerNames of [[], ["EXISTING-CUSTOMER"]]) {
+  const f = fixture();
+  const user = Object.freeze({ enabled: true, userType: "System User", roles: Object.freeze(["Employee"]), name: "buyer@example.com" });
+  const userBefore = JSON.stringify(user);
+  f.access({ user, customerNames });
+  await f.service.request("register", "buyer@example.com");
+  check(f.deliveries.length === 1, "Enabled ERP users receive independent website verification");
+  const result = await f.service.complete("register", f.details());
+  check(result.ok && f.credentials.get("buyer@example.com")?.enabled === 1, "Enabled ERP user can create separate website credential after mailbox proof");
+  check(f.customers.length === (customerNames.length ? 0 : 1), "Existing ERP customer is reused, otherwise only Customer is created");
+  check(JSON.stringify(user) === userBefore, "Website registration does not modify ERP User or roles");
 }
 {
   const f = fixture();

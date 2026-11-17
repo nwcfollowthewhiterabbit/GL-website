@@ -162,7 +162,7 @@ export function createAccountSelfService({
         await db.issue({ email, purpose, tokenHash, credentialVersion: Number(credential?.session_version || 0), now: now(), previous });
         if (eligible) {
           const access = await resolveAccess(email);
-          if (!access.user || (access.user.enabled && (purpose !== "register" || access.user.userType !== "System User"))) {
+          if (!access.user || access.user.enabled) {
             const url = new URL("/account", origin());
             url.hash = `${purpose}=${token}`;
             try {
@@ -203,7 +203,7 @@ export function createAccountSelfService({
         if (purpose === "register" && credential) return { ok: false, error: "account_already_exists" };
         if (purpose === "reset" && (!credential || Number(credential.enabled) !== 1 || Number(credential.session_version) !== Number(challenge.credential_version))) return invalidToken();
         const access = await resolveAccess(challenge.email);
-        if (access.user && (!access.user.enabled || (purpose === "register" && access.user.userType === "System User"))) return { ok: false, error: "customer_access_unavailable" };
+        if (access.user && !access.user.enabled) return { ok: false, error: "customer_access_unavailable" };
         let customer = purpose === "reset" ? credential.customer : access.customerNames?.[0];
         // Never accept Customer IDs or email from the completing browser. The verified token is the identity.
         if (!customer && purpose === "register") {
