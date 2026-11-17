@@ -2,7 +2,8 @@
 ARG ERP_BASE_IMAGE
 FROM ${ERP_BASE_IMAGE}
 
-COPY --chown=frappe:frappe erpnext/app/greenleaf_website /home/frappe/frappe-bench/apps/greenleaf_website
+# Current production base: frappe UID 1000, primary GID 0 (no frappe group).
+COPY --chown=1000:0 erpnext/app/greenleaf_website /home/frappe/frappe-bench/apps/greenleaf_website
 
 RUN uv pip install --quiet --no-deps \
     --python /home/frappe/frappe-bench/env/bin/python \

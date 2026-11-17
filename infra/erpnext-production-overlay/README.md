@@ -26,3 +26,8 @@ environment's HTTPS origin. Store `website_admin_api_token` only in protected
 site configuration. No private value is an image build argument.
 
 See [the preservation/import runbook](../../docs/08-operations/website-overlay-preservation.md).
+
+The verified 2026-11-17 production base uses `frappe` UID 1000 and primary GID 0,
+with no group named `frappe`. COPY therefore uses numeric ownership `1000:0`.
+Recheck `id` and the bench owner when changing the base image; do not assume
+that the user and group have matching names or numbers.
