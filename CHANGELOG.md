@@ -7,6 +7,8 @@
   Testing remains non-indexed by default.
 - Parameterized smoke checks for either the testing or production profile.
 - Replaced testing-stage checkout wording with the active sales-confirmation flow.
+- Product preview closes when adding an item so the basket is immediately usable.
+- Successful order requests now describe sales confirmation without checkout rollout details.
 - Quotation dates now follow the configured ERP timezone (Pacific/Fiji default),
   including the UTC-day boundary. Invalid SKU and repeated quote requests no
   longer create an unused Customer before returning their result.

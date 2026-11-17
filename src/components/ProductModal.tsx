@@ -38,7 +38,7 @@ export function ProductModal({ product, onClose, onAddToQuote }: ProductModalPro
             </div>
           </dl>
           <p>{plainTextDescription(product, "No product description available.", 1000)}</p>
-          <button className="quote-button" onClick={() => onAddToQuote(product)}>
+          <button className="quote-button" onClick={() => { onClose(); onAddToQuote(product); }}>
             Add to basket
           </button>
         </div>
