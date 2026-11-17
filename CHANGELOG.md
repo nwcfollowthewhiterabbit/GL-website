@@ -1,5 +1,17 @@
 # Журнал изменений
 
+## 2026-11-17 — Production website profile
+
+- Added explicit public-origin/indexing build settings; robots, sitemap, editorial
+  canonical metadata and nginx indexing headers now use the same profile.
+  Testing remains non-indexed by default.
+- Parameterized smoke checks for either the testing or production profile.
+- Replaced testing-stage checkout wording with the active sales-confirmation flow.
+- Quotation dates now follow the configured ERP timezone (Pacific/Fiji default),
+  including the UTC-day boundary. Invalid SKU and repeated quote requests no
+  longer create an unused Customer before returning their result.
+
+
 Значимые изменения описываются через пользовательский или эксплуатационный
 результат.
 
@@ -64,3 +76,11 @@
 - Самостоятельная регистрация клиента пока не реализована.
 - Перенос website-layer на чистый ERPNext v16 и миграция SQL-копии production
   v14 до v16 проверены; business UAT и cutover остаются release gates.
+
+## ERP overlay preservation — 2026-11-17
+
+- Added read-only export/plan and compare-and-swap import for website-owned content
+  and explicit Item/Item Group website values; existing differing records fail closed.
+- Recorded two evidence-based menu reference corrections without changing ERP groups.
+- Website Control Center now uses per-site public/internal URLs and a server-only
+  System Manager proxy for customer access; no testing URL or admin token in browser.

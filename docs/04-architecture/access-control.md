@@ -52,3 +52,13 @@ UI не является границей доступа. Проверки по�
 - ERP write operations.
 
 Прямой URL или измененный request не должен расширять customer scope.
+
+## ERP Website Control Center
+
+ERP System Manager может выполнять только list/link/disable через
+`greenleaf_website.control_center.customer_access`. Proxy проверяет роль и POST
+для изменений, использует отдельный внутренний API URL и server-only admin token.
+В boot нет token или внутреннего URL. Site config не принимает arbitrary path,
+query, userinfo или redirect. Браузер не обращается к protected website admin
+API напрямую. Остальные ERP роли управляют content только через штатные формы и
+DocType permissions; видимость Page не добавляет им customer-admin права.

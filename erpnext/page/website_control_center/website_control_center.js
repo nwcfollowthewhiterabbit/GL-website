@@ -6,13 +6,23 @@ frappe.pages["website-control-center"].on_page_load = function (wrapper) {
   });
 
   page.set_indicator(__("Website settings"), "green");
-  page.add_inner_button(__("Open Website"), () => window.open("http://localhost:8080/catalog", "_blank"));
+  if (WEBSITE_URL) page.add_inner_button(__("Open Website"), () => window.open(WEBSITE_URL, "_blank", "noopener"));
   page.add_inner_button(__("Refresh"), () => render_website_control_center(page));
   render_website_control_center(page);
 };
 
-const WEBSITE_URL = "https://testing.greenleafpacific.com/catalog";
-const WEBSITE_API_URL = "https://testing.greenleafpacific.com";
+const WEBSITE_PUBLIC_URL = frappe.boot.greenleaf_website?.public_url || "";
+const WEBSITE_URL = WEBSITE_PUBLIC_URL ? `${WEBSITE_PUBLIC_URL}/catalog` : "";
+const WEBSITE_CUSTOMER_ACCESS = Boolean(frappe.boot.greenleaf_website?.customer_access_enabled);
+
+async function website_customer_access(action, payload) {
+  const response = await frappe.call({
+    method: "greenleaf_website.control_center.customer_access",
+    type: "POST",
+    args: { action, payload: JSON.stringify(payload || {}) }
+  });
+  return response.message;
+}
 
 const CONTROL_SECTIONS = [
   {
@@ -231,9 +241,14 @@ async function render_website_control_center(page) {
     </div>
   `);
 
+  if (!WEBSITE_URL) {
+    page.body.find("[data-open-storefront]").prop("disabled", true);
+    page.set_indicator(__("Website URL is not configured"), "orange");
+  }
+  if (!WEBSITE_CUSTOMER_ACCESS) page.body.find(".gl-customer-access").remove();
   bind_common_actions(page.body);
   bind_customer_access_actions(page.body);
-  render_customer_access(page.body);
+  if (WEBSITE_CUSTOMER_ACCESS) render_customer_access(page.body);
 
   const $status = page.body.find(".gl-status-grid");
   const $grid = page.body.find(".gl-control-grid");
@@ -267,7 +282,7 @@ async function render_website_control_center(page) {
 }
 
 function bind_common_actions($body) {
-  $body.find("[data-open-storefront]").off("click").on("click", () => window.open(WEBSITE_URL, "_blank"));
+  $body.find("[data-open-storefront]").off("click").on("click", () => WEBSITE_URL && window.open(WEBSITE_URL, "_blank", "noopener"));
   $body.find("[data-route]").off("click").on("click", function () {
     frappe.set_route($(this).attr("data-route").split("/"));
   });
@@ -295,11 +310,7 @@ async function render_customer_access($body) {
   $list.html(`<div class="gl-loading">${__("Loading customer access...")}</div>`);
 
   try {
-    const params = new URLSearchParams({ limit: "12" });
-    if (query) params.set("q", query);
-    const response = await fetch(`${WEBSITE_API_URL}/api/admin/customer-access?${params.toString()}`);
-    if (!response.ok) throw new Error("customer_access_failed");
-    const data = await response.json();
+    const data = await website_customer_access("list", { limit: 12, q: query });
     const customers = data.customers || [];
     const enabledCount = customers.filter((customer) => customer.websiteAccessEnabled).length;
 
@@ -337,13 +348,8 @@ async function link_customer_access($body) {
     return;
   }
 
-  const response = await fetch(`${WEBSITE_API_URL}/api/admin/customer-access/link`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-  const result = await response.json();
-  if (!response.ok || !result.ok) {
+  const result = await website_customer_access("link", payload);
+  if (!result.ok) {
     frappe.msgprint(__(`Could not link customer access: ${result.error || "unknown error"}`));
     return;
   }
@@ -358,13 +364,8 @@ async function disable_customer_access($body) {
     return;
   }
 
-  const response = await fetch(`${WEBSITE_API_URL}/api/admin/customer-access/disable`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email })
-  });
-  const result = await response.json();
-  if (!response.ok || !result.ok) {
+  const result = await website_customer_access("disable", { email });
+  if (!result.ok) {
     frappe.msgprint(__(`Could not disable website access: ${result.error || "unknown error"}`));
     return;
   }

@@ -33,3 +33,5 @@ fixtures = [
 		]]],
 	},
 ]
+
+boot_session = "greenleaf_website.boot.boot_session"

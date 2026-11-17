@@ -51,3 +51,15 @@ Leaf Pacific's website must not ask for a card number or CVV directly.
 
 Send the page, document reference, time, expected result, actual result and a
 screenshot without passwords, cookies or card details to Green Leaf support.
+
+## Website Control Center in ERP
+
+Open **Website Control Center** from ERP to maintain menu sections, homepage
+slides, downloadable catalogues, featured products and manufacturer logos.
+The Open Website action uses the website configured for that ERP environment.
+If it is unavailable, ask the administrator to configure the site's public URL.
+
+Customer access controls are available to System Managers after the private
+server connection is configured. These controls use the ERP session; never
+paste the website administrator token into a browser or a form. Existing
+Website content forms continue to enforce their ERP roles and permissions.

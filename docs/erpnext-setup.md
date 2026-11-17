@@ -53,11 +53,12 @@ Recommended user:
 website.integration@greenleaf.local
 ```
 
-Required roles:
-
-- `System Manager`
-- `Sales User`
-- `Stock User`
+Production requires a dedicated reviewed integration role. Configure its name in
+`ERPNEXT_REQUIRED_ROLES`; the validator does not require System Manager. Grant
+only the native document permissions needed for Customer and draft Quotation
+creation and their supporting read access. No Submit, financial posting or
+website-administration rights belong to the service account while payments
+remain disabled.
 
 The local development ERPNext copy already has this user and an API token. Production should create a dedicated user with the minimum final role set after permission review.
 
@@ -143,3 +144,5 @@ With website and ERPNext containers running:
 ```bash
 npm run smoke
 ```
+
+For preserving the current website overlay, use the [collision-aware migration](08-operations/website-overlay-preservation.md), not the legacy seed scripts.

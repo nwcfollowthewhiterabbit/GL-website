@@ -1,4 +1,10 @@
+import { siteProfile } from "./site-profile.mjs";
+
 const baseUrl = (process.env.SMOKE_BASE_URL || "http://localhost:8080").replace(/\/+$/, "");
+const profile = siteProfile({
+  PUBLIC_SITE_URL: process.env.SMOKE_PUBLIC_SITE_URL || process.env.PUBLIC_SITE_URL,
+  SITE_INDEXING_ENABLED: process.env.SMOKE_INDEXING_ENABLED || process.env.SITE_INDEXING_ENABLED || "false"
+});
 const catalogQuery = String(process.env.SMOKE_CATALOG_QUERY || "Bath").trim();
 
 async function readJson(path, options) {
@@ -114,7 +120,7 @@ async function main() {
   const operationsPage = await readText("/how-we-operate");
   assert(operationsPage.includes("One connected operation behind every Green Leaf order"), "How We Operate copy is not server-rendered");
   assert(operationsPage.includes('href="https://rabbitsystems.net/cases/ecommerce-erp-sync"'), "Implementation attribution link is missing");
-  assert(operationsPage.includes('rel="canonical" href="https://testing.greenleafpacific.com/how-we-operate"'), "How We Operate canonical is missing");
+  assert(operationsPage.includes(`rel="canonical" href="${profile.publicSiteUrl}/how-we-operate"`), "How We Operate canonical is missing");
   assert(operationsPage.includes('"@type":"WebPage"'), "How We Operate structured data is missing");
   assert((operationsPage.match(/<h1[ >]/g) || []).length === 1, "How We Operate must have exactly one server-rendered H1");
 
@@ -130,8 +136,10 @@ async function main() {
   }
 
   const robots = await readText("/robots.txt");
-  assert(robots.includes("Disallow: /"), "Testing robots policy is missing");
+  assert(profile.indexingEnabled ? !/^Disallow: \/$/m.test(robots) : /^Disallow: \/$/m.test(robots), "Robots policy does not match deployment profile");
+  if (profile.indexingEnabled) assert(robots.includes(`Sitemap: ${profile.publicSiteUrl}/sitemap.xml`), "Production sitemap declaration is missing");
   const sitemap = await readText("/sitemap.xml");
+  assert(sitemap.includes(`${profile.publicSiteUrl}/catalog`), "Sitemap origin does not match deployment profile");
   assert(sitemap.includes("/payment-security"), "Policy sitemap is incomplete");
   assert(sitemap.includes("/how-we-operate"), "How We Operate is missing from the sitemap");
 
@@ -176,7 +184,7 @@ async function main() {
   for (const header of ["content-security-policy", "strict-transport-security", "x-content-type-options", "x-frame-options", "x-robots-tag"]) {
     assert(pageResponse.headers.get(header), `Missing security header: ${header}`);
   }
-  assert(pageResponse.headers.get("x-robots-tag").includes("noindex"), "Testing site indexing is not disabled");
+  assert(pageResponse.headers.get("x-robots-tag") === profile.robots, "Indexing header does not match deployment profile");
 
   console.log("Smoke checks passed");
   console.log(`- Payment path: ${paymentConfig.provider} ${paymentConfig.integration}, ${paymentConfig.status}`);

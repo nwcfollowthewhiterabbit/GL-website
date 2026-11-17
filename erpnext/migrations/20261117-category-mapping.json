@@ -1,0 +1,11 @@
+{
+  "verified_at": "2026-11-17",
+  "mappings": {
+    "Furniture and fitouts": "Furniture and fitout",
+    "Commercial kitchen equipment": null
+  },
+  "evidence": {
+    "Furniture and fitouts": "Current production has Furniture and fitout, parent Products, lft 105/rgt 122 and 207 directly assigned Items. Non-Wooden Furniture and Office  Furniture remain its children. The old plural group is absent.",
+    "Commercial kitchen equipment": "This orphan group is absent in both old testing and production. Its kitchen-equipment department already maps Kitchen, commercial kitchens and the existing Kitchen Equipment AU group. Remove this dead duplicate reference; no business Item Group is created or deleted. Source 64 child mappings become 63."
+  }
+}

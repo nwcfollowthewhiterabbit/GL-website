@@ -1,7 +1,7 @@
 # Текущий scope
 
 - Этап: testing и payment UAT readiness
-- Последнее обновление: 2026-07-24
+- Последнее обновление: 2026-11-17
 - Владелец приемки: Green Leaf Pacific project team
 
 ## Входит в текущий этап
@@ -52,3 +52,12 @@
 Testing runtime automation настроена. Остаточный operational risk:
 controlled restore drill, внешний alert recipient и production target еще не
 подтверждены.
+
+## Разрешённый production запуск — 2026-11-17
+
+Владелец разрешил проверку нового сайта на свежей изолированной копии production
+ERPNext v16, затем перенос проверенного website ERP-слоя и запуск сайта при
+успешной приёмке. Это дополняет прежний testing scope. Payments остаются
+выключенными; UAT credentials, финансовое проведение и self-registration не
+входят в запуск. ERP backup, безопасный overlay import и rollback выполняются
+отдельно по [порядку переноса](../08-operations/website-overlay-preservation.md).

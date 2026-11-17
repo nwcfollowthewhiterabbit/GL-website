@@ -18,6 +18,14 @@ function clean(value) {
   return String(value || "").trim();
 }
 
+export function quoteTransactionDate(now = new Date(), timeZone = process.env.ERP_TIME_ZONE || "Pacific/Fiji") {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone, year: "numeric", month: "2-digit", day: "2-digit"
+  }).formatToParts(now);
+  const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
 function quoteId() {
   return `GLQ-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
@@ -262,7 +270,10 @@ export async function prepareQuoteRequest(payload = {}) {
   };
 
   const duplicateQuotation = await existingQuotationByMarker(marker, id);
-  const erpCustomer = await getOrCreateCustomer(normalizedCustomer);
+  // Invalid or repeated requests must not create a new Customer as a side effect.
+  const erpCustomer = validLines.length && !duplicateQuotation
+    ? await getOrCreateCustomer(normalizedCustomer)
+    : { name: "", created: false };
 
   const notes = [
     marker,
@@ -283,7 +294,7 @@ export async function prepareQuoteRequest(payload = {}) {
     quotation_to: "Customer",
     party_name: erpCustomer.name,
     company: process.env.ERP_COMPANY || DEFAULTS.company,
-    transaction_date: new Date().toISOString().slice(0, 10),
+    transaction_date: quoteTransactionDate(),
     currency: process.env.DEFAULT_CURRENCY || "FJD",
     selling_price_list: process.env.DEFAULT_PRICE_LIST || DEFAULTS.priceList,
     order_type: "Sales",

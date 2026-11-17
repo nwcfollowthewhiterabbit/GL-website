@@ -21,7 +21,11 @@ services:
     restart: unless-stopped
 
   web:
-    build: .
+    build:
+      context: .
+      args:
+        PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-https://testing.greenleafpacific.com}
+        SITE_INDEXING_ENABLED: ${SITE_INDEXING_ENABLED:-false}
     depends_on:
       - api
     ports:

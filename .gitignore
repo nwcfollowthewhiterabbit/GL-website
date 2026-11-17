@@ -10,3 +10,6 @@ __pycache__
 .coverage
 .pytest_cache
 .venv
+
+# Generated from the explicitly selected website build profile.
+nginx.generated.conf

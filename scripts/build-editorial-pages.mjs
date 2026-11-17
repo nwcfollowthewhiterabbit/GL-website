@@ -4,9 +4,11 @@ import React from "react";
 import { renderToString } from "react-dom/server";
 import react from "@vitejs/plugin-react";
 import { createServer } from "vite";
+import { siteProfile } from "./site-profile.mjs";
 import { howWeOperateContent } from "../src/data/editorialContent.mjs";
 
-const publicSiteUrl = (process.env.PUBLIC_SITE_URL || "https://testing.greenleafpacific.com").replace(/\/+$/, "");
+const profile = siteProfile();
+const { publicSiteUrl } = profile;
 const shellPath = path.resolve("dist/index.html");
 
 function escapeHtml(value) {
@@ -53,7 +55,7 @@ function injectHead(shell, route) {
   const schema = JSON.stringify(structuredData(route)).replaceAll("<", "\\u003c");
   const metadata = [
     `<meta name="description" content="${escapeHtml(route.description)}">`,
-    '<meta name="robots" content="index, follow">',
+    `<meta name="robots" content="${profile.robots}">`,
     `<link rel="canonical" href="${canonicalUrl}">`,
     `<meta property="og:type" content="website">`,
     `<meta property="og:site_name" content="Green Leaf Pacific">`,
@@ -67,6 +69,7 @@ function injectHead(shell, route) {
   return shell
     .replace(/<title>.*?<\/title>/s, `<title>${escapeHtml(route.title)}</title>`)
     .replace(/<meta\s+name="description"\s+content="[^"]*"\s*\/?>/i, "")
+    .replace(/<meta\s+name="robots"\s+content="[^"]*"\s*\/?>/gi, "")
     .replace("</head>", `${metadata}</head>`);
 }
 

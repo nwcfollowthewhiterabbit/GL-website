@@ -142,8 +142,8 @@ export function QuoteDrawer({
             ) : quoteResult ? (
               <div className="quote-confirmation-empty">
                 <ClipboardCheck size={22} />
-                <strong>Order details recorded in ERPNext</strong>
-                <p>{requiresConfirmation ? "Sales will confirm stock or ETA before payment." : "The order is ready for secure Windcave checkout once payment testing is activated."}</p>
+                <strong>Your request has been received</strong>
+                <p>{requiresConfirmation ? "Sales will confirm stock or ETA before payment." : "Sales will confirm your order and payment details."}</p>
               </div>
             ) : (
               <div className="quote-empty">
