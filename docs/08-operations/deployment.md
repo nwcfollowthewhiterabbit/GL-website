@@ -1,62 +1,56 @@
 # Deployment
 
-## Автоматизированный testing update
+## Новый testing website → production ERP, с 2026-11-17
 
-```bash
-python3 scripts/deploy_existing_instance.py --execute \
-  --expected-sha <full-40-character-sha> \
-  --evidence /secure/path/deploy-evidence.json
-```
+Активные targets и независимый source checkout перечислены в
+[environments](environments.md). Первый запуск выполнен отдельным reviewed
+operator workflow; [release record](releases/2026-11-17-testing-site-production-erp.md)
+связывает точные source commits, immutable images, acceptance и rollback.
 
-Adapter автоматически:
+Перед следующим обновлением:
 
-1. создает и проверяет website-only backup;
-2. требует clean `main` и exact match expected SHA с `origin/main`;
-3. допускает только fast-forward;
-4. пересобирает `api`, `web` и `monitor`;
-5. проверяет, что website schema migrations уже применены, либо применяет их
-   только при явном `--migrate-schema`;
-6. проверяет containers, health, ERP storefront sources, payment-disabled state
-   и noindex;
-7. возвращает release/backup/rollback references и image digest.
+1. Проверить clean source, отправленный commit, exact remote SHA и успешный CI.
+2. Выбрать конкретный website/rehearsal project и сохранить protected config
+   preimages и проверенный website backup. Не печатать environment values.
+3. Строить web с нужными `PUBLIC_SITE_URL`/`SITE_INDEXING_ENABLED`; API и ERP images
+   могут сохраняться только при доказанной идентичности соответствующих Git trees.
+4. Проверить exact image IDs, native role/grant contract, schema ledger и готовность
+   API на private origin, затем public smoke и customer-scoped UI.
+5. Основной домен не переключать: текущий approved hostname — testing.greenleafpacific.com.
+   Отдельно проверить любые новые business hooks и notification side effects.
+   Service-user email не должен отправляться на reserved `.invalid` address.
+6. Записать receipts, фактический cleanup и rollback boundary.
 
-Если release содержит новую website-owned migration, ее применение должно быть
-явно разрешено:
+Изменение ERP приложения остаётся отдельной операцией с shared
+`/run/greenleaf-stack-backup.lock`, preinstall DB/config backup, maintenance/drain,
+физическим DB guard, native install/migrate и website-only CAS import. Обычное
+обновление website не перезапускает ERP containers и не восстанавливает ERP DB.
 
-```bash
-python3 scripts/deploy_existing_instance.py --execute --migrate-schema \
-  --expected-sha <full-40-character-sha>
-```
+## Legacy runtime adapters
 
-Флаг изменяет только версионированные website-owned tables. Он не запускает ERP
-backup, ERP application migration или restart ERP containers.
+`infra/runtime.testing.json` и `scripts/_runtime_adapter.py` пока привязаны к
+сохранённому `/home/csrss/stacks/testing.greenleafpacific.com` и
+`testinggreenleafpacificcom_*`. Их execute-команды backup/deploy/restore не являются
+операторами новых активных stacks. Публичный testing hostname уже переключён;
+его имя не разрешает заменять target в старом adapter наугад. Перенос adapters,
+их recovery contract и отдельный restore drill требуют reviewed изменения.
 
-## Ручной аварийный порядок
+Не запускать старый `deploy_existing_instance.py --execute` для обновления нового
+testing. Исторические implementation/tests сохранены; новая runtime topology
+документирована отдельно и не выдаётся за автоматически перенесённую automation.
 
-1. `npm run verify`.
-2. Commit и push в `main`.
-3. Подтвердить exact remote SHA и CI.
-4. Зафиксировать website rollback commit и server configuration backup.
-5. На host выполнить fast-forward pull в repository path.
-6. Выполнить `docker-compose build api web monitor`.
-7. Выполнить `docker-compose run --rm -T api npm run erpnext:migrate-website`.
-8. Выполнить `docker-compose up -d --no-build api web monitor`.
-9. Проверить web/API/monitor containers и API logs.
-10. Выполнить public smoke и visual smoke.
-11. Проверить actual customer login, если изменялся account flow.
+## Разрешения и rollback
 
-## Ограничения
+Production API требует explicit non-root DB credentials. Runtime SQL grants
+ограничены нужными ERP tables/columns и website-owned tables. Временный migration
+user с нужным DDL удаляется после schema runner; runtime не получает schema-wide
+DDL или доступ к `__Auth`/секретным полям User.
 
-- Не выполнять force checkout/reset.
-- Не печатать `.env`.
-- Не перезапускать и не изменять ERP stack.
-- Не включать payment/indexing автоматически.
-- Артефакт должен строиться из отправленного commit.
-- Production-mode API требует explicit `ERPNEXT_DB_USER` и
-  `ERPNEXT_DB_PASSWORD`; root user и `DB_ROOT_PASSWORD` fail closed.
-- Database user должен иметь `SELECT` на ERP site database и write/DDL только
-  на `tabWebsite Customer Credential`, `tabWebsite Payment Event` и
-  `tabGL Website Schema Migration`.
+Native integration role разрешает Customer/Contact creation, draft Quotation
+read/create/write и необходимые reference reads, включая Account. Submit,
+финансовые документы и административные права не выдаются.
 
-First-instance deploy остается отдельной операцией и намеренно возвращает
-blocked для существующего testing target.
+Payments не включаются автоматически. Web rollback останавливает новый writer
+и возвращает проверенный route/image. Additive ERP app/schema и уже появившиеся
+business documents сохраняются; возврат старой DB после новых записей запрещён.
+Сверка новых заявок выполняется отдельно до возобновления старого writer.

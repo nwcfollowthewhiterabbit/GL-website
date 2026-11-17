@@ -1,22 +1,25 @@
 # Операционные имена
 
+Проверено 2026-11-17; [релиз и evidence](releases/2026-11-17-testing-site-production-erp.md).
+
 | Объект | Значение |
 |---|---|
-| Repository | `nwcfollowthewhiterabbit/GL-website` |
-| Release branch | `main` |
-| Testing URL | `https://testing.greenleafpacific.com` |
+| Repository / branch | `nwcfollowthewhiterabbit/GL-website` / `main` |
 | SSH alias | `cloud` |
-| Remote repository path | `/home/csrss/stacks/testing.greenleafpacific.com` |
-| Web container | `testinggreenleafpacificcom_web_1` |
-| API container | `testinggreenleafpacificcom_api_1` |
-| Monitor container | `testinggreenleafpacificcom_monitor_1` |
-| Local storefront | `http://localhost:8080` |
-| Public health | `/health` |
-| Account route | `/account` |
+| Source checkout | `/home/csrss/releases/gl-website-20261117-source` |
+| New website project (production ERP) | `gl-website-production-20261117` |
+| New website root | `/home/csrss/stacks/greenleaf-website-20261117` |
+| Main website (unchanged OpenCart) | `https://greenleafpacific.com` |
+| Isolated rehearsal / testing ERP project | `gl-web-stage-20261117` |
+| Isolated rehearsal root | `/home/csrss/stacks/gl-website-stage-20261117` |
+| New website public URL | `https://testing.greenleafpacific.com` |
+| Testing ERP URL | `https://testing.erp.greenleafpacific.com` |
+| Website services | `api`, `web`, `monitor` |
+| Public health / account | `/health` / `/account` |
 | Payment configuration | `/api/payments/config` |
+| ERP content administration | `/app/website-control-center` |
 | Protected metrics | `/api/admin/metrics` |
-| GitHub CI workflow | `CI` |
-| Manual release workflow | `Release readiness` |
+| GitHub workflows | `CI`, `Release readiness` |
 
 ## Read-only checks
 
@@ -24,22 +27,14 @@
 git status --short --branch
 git rev-parse HEAD
 git ls-remote --exit-code origin refs/heads/main
-ssh cloud 'git -C /home/csrss/stacks/testing.greenleafpacific.com status --short --branch'
-ssh cloud 'docker ps --filter name=testinggreenleafpacificcom'
+ssh cloud 'git -C /home/csrss/releases/gl-website-20261117-source status --short --branch'
+ssh cloud 'docker ps --filter label=com.docker.compose.project=gl-website-production-20261117'
+ssh cloud 'docker ps --filter label=com.docker.compose.project=gl-web-stage-20261117'
 curl -fsS https://testing.greenleafpacific.com/health
 gh run list --workflow CI --commit <SHA> --limit 1
 ```
 
-Команды не должны выводить `.env`, cookies или provider credentials.
-
-## Runtime operations
-
-```bash
-python3 scripts/backup.py --execute --evidence /secure/path/backup.json
-python3 scripts/deploy_existing_instance.py --execute \
-  --expected-sha <FULL_SHA> --evidence /secure/path/deploy.json
-python3 scripts/validate_instance.py --execute --evidence /secure/path/instance.json
-python3 scripts/validate_domain.py --execute --evidence /secure/path/domain.json
-python3 scripts/validate_mvp_e2e.py --execute --evidence /secure/path/mvp.json
-python3 scripts/validate_ui_e2e.py --execute --evidence /secure/path/ui.json
-```
+Не выводить `.env`, cookie, site_config или provider credentials.
+Старые `testinggreenleafpacificcom_*` — сохранённый legacy runtime, а не текущий
+публичный testing target. Перед любой write operation прочитать
+[deployment](deployment.md) и проверить точный project/image/target.

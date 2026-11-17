@@ -1,7 +1,8 @@
-# Website production profile
+# Website profiles and current testing rollout
 
-Added 2026-11-17 for the owner-authorized launch. The approved visual design is
-unchanged. Payment activation remains separately gated and disabled for launch.
+Updated 2026-11-17 after the owner clarified scope: the new website is published
+only at testing.greenleafpacific.com and uses production ERP. The main domain stays
+on the existing OpenCart website. Payment activation remains disabled.
 
 ## Build and API settings
 
@@ -15,12 +16,12 @@ editorial canonical URLs and structured data use the same origin. Indexing canno
 be enabled for a non-HTTPS or testing/staging origin. Rebuild the web image when
 changing these settings: they are build inputs, not runtime substitutes.
 
-Production profile:
+Current active website profile (production ERP, testing public hostname):
 
 ```text
-PUBLIC_SITE_URL=https://greenleafpacific.com
-SITE_INDEXING_ENABLED=true
-STORE_PUBLIC_URL=https://greenleafpacific.com
+PUBLIC_SITE_URL=https://testing.greenleafpacific.com
+SITE_INDEXING_ENABLED=false
+STORE_PUBLIC_URL=https://testing.greenleafpacific.com
 ERP_TIME_ZONE=Pacific/Fiji
 ```
 
@@ -40,9 +41,9 @@ idempotency marker does not create another Customer.
 
 ```sh
 npm run test:site-profile
-SMOKE_BASE_URL=https://greenleafpacific.com \
-SMOKE_PUBLIC_SITE_URL=https://greenleafpacific.com \
-SMOKE_INDEXING_ENABLED=true npm run smoke
+SMOKE_BASE_URL=https://testing.greenleafpacific.com \
+SMOKE_PUBLIC_SITE_URL=https://testing.greenleafpacific.com \
+SMOKE_INDEXING_ENABLED=false npm run smoke
 ```
 
 For a private target carrying the production web image, set `SMOKE_BASE_URL` to

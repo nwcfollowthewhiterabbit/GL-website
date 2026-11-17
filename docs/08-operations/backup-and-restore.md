@@ -1,5 +1,18 @@
 # Website backup и restore
 
+## Активные targets после запуска 2026-11-17
+
+Новый website с production ERP и private rehearsal stacks используют отдельные protected конфигурации и
+проверенные rollback artifacts из [release record](releases/2026-11-17-testing-site-production-erp.md).
+Приведённые ниже adapter commands всё ещё настроены на сохранённый legacy testing
+path. Они не применялись к новым stacks; не выполнять их как backup/restore нового
+публичного testing без reviewed переноса bindings и проверки recovery contract.
+
+ERP snapshot/image recovery — отдельная операция. Для запуска выполнены проверка
+production DB/files backup, восстановление свежей testing и preinstall DB/config
+backup под общим stack lock. Проверенный архив не доказывает новый production
+restore drill. После запуска не возвращать старую ERP DB поверх новых заказов.
+
 ## Scope
 
 Website rollback point включает:
@@ -28,7 +41,7 @@ Website code restore должен:
 5. проверить health, smoke, visual и security headers;
 6. записать evidence результата.
 
-## Команды
+## Исторические команды legacy testing adapter
 
 Создание website-only backup:
 

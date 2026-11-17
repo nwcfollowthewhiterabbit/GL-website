@@ -1,5 +1,14 @@
 # Наблюдаемость
 
+## Active runtime — 2026-11-17
+
+В новом website с production ERP и private rehearsal запущен source-provided `monitor` service из того
+же API image. Интервал — 60 секунд; проверяются HTTP health, storefront diagnostics
+и payment readiness. Контейнеры подключены к соответствующей isolated network,
+не имеют ERP credentials и не отправляют внешний webhook. Docker logs ограничены
+10 MB × 3 на контейнер. Alerts пока остаются в логах; external recipient/on-call
+не объявляются настроенными.
+
 ## Текущие сигналы
 
 - Public `/health`.

@@ -1,63 +1,38 @@
 # Текущий scope
 
-- Этап: testing и payment UAT readiness
-- Последнее обновление: 2026-11-17
-- Владелец приемки: Green Leaf Pacific project team
+- Этап: новый сайт только на testing domain, подключённый к production ERP.
+- Последнее уточнение владельца: 2026-11-17.
+- Основной `greenleafpacific.com` остаётся прежним OpenCart сайтом.
+- `testing.greenleafpacific.com` — новый ERP-backed сайт, noindex, реальные production ERP данные.
+- `testing.erp.greenleafpacific.com` — отдельная свежая изолированная ERP-копия для тестового бота.
 
-## Входит в текущий этап
+## Разрешённый сценарий
 
-- ERPNext-backed каталог, поиск, цены, остатки и изображения.
-- Basket -> draft ERPNext Quotation.
-- Личный кабинет с password login и customer-scoped документами.
-- ERP-managed storefront content.
-- Westpac/Windcave website compliance и подготовка HPP.
-- Неиндексируемое testing-окружение.
-- Воспроизводимые repository, CI, smoke и browser checks.
+Каталог, поиск, актуальные цены/остатки/изображения, basket → draft Quotation и
+staff-provisioned customer account работают на testing website. Его integration
+обращается к production ERP; слово testing в hostname не означает sandbox данных.
+Production ERP Website Control Center управляет этим новым сайтом.
 
-## Реализовано и проверено
+Native integration создаёт Customer/Contact и draft Quotation, но не получает
+Submit/Cancel, создание Sales Invoice/Payment Entry или финансовое проведение.
+Payments, payment ERP writes и public self-registration выключены.
+Персонализированные цены не реализованы; baseline — Standard Selling/FJD.
 
-- Production build, account tests и Windcave adapter tests.
-- Smoke checks публичных API, security headers и защищенных маршрутов.
-- Visual smoke на ширинах 390 и 1440 px.
-- Тестовый Customer видит связанные quotations и sales order.
-- Password хранится как `scrypt` hash; сессия использует signed `HttpOnly`,
-  `Secure`, `SameSite=Lax` cookie.
-- Card-entry flow изолирован в Windcave HPP; payment activation выключен.
+Website ERP app/content overlay установлен отдельно в production и свежую
+изолированную копию. Это не замена ERP core. Старые testing документы/credentials
+и OpenCart orders в production ERP не импортировались.
 
-## Текущие блокеры платежного этапа
+Основной домен был временно переключён во время выполнения и возвращён по
+уточнению владельца. История и финальная проверка целевых адресов записаны в
+[release record](../08-operations/releases/2026-11-17-testing-site-production-erp.md).
+Повторное переключение основного домена требует отдельного прямого разрешения.
 
-- Windcave UAT username и API key.
-- Подтверждение ERPNext документа и итоговой суммы для HPP session.
-- UAT 3-D Secure и callback/notification test.
-- Решение по refund process и записи Payment Entry.
+## Отдельные будущие этапы
 
-## Вне текущего этапа
-
-- Production payment activation.
-- Самостоятельная регистрация клиента.
-- Замена или модернизация ERPNext.
-- Backup ERP данных в рамках website release.
-
-## Критерии перехода
-
-1. UAT credentials установлены только в server environment.
-2. HPP session создается из разрешенного payable ERP document.
-3. Approved, declined, cancelled и повторный callback проверены.
-4. ERPNext получает один подтвержденный payment result без дублей.
-5. Smoke и visual checks проходят для точного deployed commit.
-6. Green Leaf Pacific принимает пользовательский сценарий.
-
-## Остаточный риск
-
-Testing runtime automation настроена. Остаточный operational risk:
-controlled restore drill, внешний alert recipient и production target еще не
-подтверждены.
-
-## Разрешённый production запуск — 2026-11-17
-
-Владелец разрешил проверку нового сайта на свежей изолированной копии production
-ERPNext v16, затем перенос проверенного website ERP-слоя и запуск сайта при
-успешной приёмке. Это дополняет прежний testing scope. Payments остаются
-выключенными; UAT credentials, финансовое проведение и self-registration не
-входят в запуск. ERP backup, безопасный overlay import и rollback выполняются
-отдельно по [порядку переноса](../08-operations/website-overlay-preservation.md).
+- Windcave UAT credentials, payable-document/amount contract, 3-D Secure и callback tests;
+  затем отдельная приёмка перед payment activation.
+- Перенос legacy deploy/backup/restore adapters на новые stack bindings.
+- Controlled restore drill и настройка внешнего alert recipient.
+- Dependency maintenance для оставшихся audit advisories.
+- ERP/EPS guard для Customer deletion: правило New может срабатывать через on_change;
+  cleanup этого запуска удаляет только точные synthetic side effects.

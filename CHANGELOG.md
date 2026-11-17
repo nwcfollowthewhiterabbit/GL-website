@@ -1,5 +1,14 @@
 # Журнал изменений
 
+## 2026-11-17 — Testing website on production ERP and isolated v16 testing
+
+- Published the new ERP-backed website only on the testing domain, with noindex and payments disabled.
+- Restored the main OpenCart domain after a temporary cutover, following the owner’s scope correction.
+- Preserved the old website content in a separately installed v16 ERP app and refreshed testing from production.
+- Recorded immutable artifacts, role/permission checks, controlled canary cleanup, route rollback and retained legacy environments.
+- Corrected the private API alias and disabled notification mail only for the reserved integration account.
+- Documented that legacy runtime adapters still target the retained old testing stack.
+
 ## 2026-11-17 — Production website profile
 
 - Added explicit public-origin/indexing build settings; robots, sitemap, editorial

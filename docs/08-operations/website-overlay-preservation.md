@@ -4,6 +4,10 @@
 ERP-слоя и запуск нового сайта при успешной приёмке. Это отдельная ERP-операция:
 обычные website backup/deploy по-прежнему не включают ERP базу и файлы.
 
+Уточнённый final public target — только `testing.greenleafpacific.com`, подключённый
+к production ERP. Основной OpenCart domain сохранён; отдельная свежая testing ERP
+копия/bot не является backend этого нового public website.
+
 ## Что переносится
 
 `erpnext/app/greenleaf_website` устанавливается штатно в текущий v16 image.
@@ -69,7 +73,7 @@ and fitouts соответствует действующей Furniture and fito
 На каждом ERP site задаются отдельно:
 
 - `website_public_url`: HTTPS origin публичного сайта;
-- `website_api_url`: внутренний origin API, например `http://website-api:3001`;
+- `website_api_url`: внутренний origin API, например `http://api:3000` (HTTP разрешён только для host `api`/`website-api`);
 - `website_admin_api_token`: тот же защищённый server-only token, что у website API.
 
 В boot передаётся только публичный URL и доступность customer panel. Customer
@@ -83,3 +87,36 @@ Production переносит тот же проверенный release и со
 Сначала конфигурация/миграции/права, затем приёмка и переключение routes. Payments
 остаются выключены. Откат отключает новый writer и возвращает прежний route/image,
 но не затирает новые ERP business documents полной старой базой.
+
+
+## Служебный пользователь и побочные события
+
+Reserved `website.integration@greenleaf.invalid` имеет отдельную native role;
+не переносить его ключи между окружениями. Customer creation штатно создаёт Contact,
+поэтому role требует Contact.create; расчёт Quotation требует Account read/select.
+
+Для этого пользователя в Notification Settings выключены `enabled`,
+`enable_email_notifications`, `enable_email_energy_point` и
+`energy_points_system_notifications`. Это не глобальное отключение уведомлений.
+Нативный Customer hook может создать Auto Energy Point Log. Canary cleanup должен
+проверять точные reference_doctype/name, user, rule, type, points и owner; не удалять
+чужие logs по широкому фильтру. После удаления очистить только energy cache этого
+пользователя. Notification/Server Script/Webhook и прочие hooks проверяются перед
+production canary; отсутствия Notification definitions недостаточно для вывода,
+что ни один native hook не отправит письмо.
+
+
+При native cleanup обнаружен существующий ERP/EPS edge case: Frappe delete_doc
+загружает документ, ставит `flags.in_delete=True` и вызывает `on_change`; EPS
+`process_energy_points` не проверяет in_delete, а правило New считает отсутствие
+`get_doc_before_save()` признаком создания. Поэтому удаление Customer может
+создать Auto+5 Energy Point Log уже после первоначальной проверки его отсутствия.
+Проверять и удалять точный synthetic Energy Point Log нужно после удаления
+Customer, затем повторно проверять остатки и queue. Это отдельный ERP/EPS defect;
+при website launch core code и глобальные energy rules не менялись.
+
+
+В изолированной ERP-копии `website_public_url` очищен: native boot отдаёт пустой
+URL, header Open Website отсутствует, body preview button отключён без fallback.
+Private API/token копии сохраняются для rehearsal. В production ERP public URL
+указывает на новый testing website, а internal API — `http://api:3000`.
