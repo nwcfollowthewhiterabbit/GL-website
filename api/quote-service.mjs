@@ -134,7 +134,7 @@ async function getErpItemsBySku(skus) {
       SELECT
         i.name AS sku,
         i.item_name AS item_name,
-        i.stock_uom, i.sales_uom, price.uom, price.conversion_factor,
+        i.stock_uom, i.sales_uom, price.uom, price.conversion_factor, price.packing_unit,
         IFNULL(price.price_list_rate, 0) AS price,
         IFNULL(price.currency, :currency) AS currency,
         GREATEST(IFNULL(stock.actual_qty, 0), 0) AS available_quantity
@@ -304,6 +304,11 @@ export function resolveSellingLines(lines, erpItems) {
       : offers.length === 1 ? offers[0] : null;
     if (!item) {
       missing.push({ sku: line.sku, uom: line.uom, reason: offers.length ? "selling_unit_unavailable" : "item_not_found" });
+      continue;
+    }
+    const packingUnit = Number(item.packing_unit || 0);
+    if (packingUnit > 0 && line.qty % packingUnit !== 0) {
+      missing.push({ sku: line.sku, uom: item.uom, reason: "invalid_pack_quantity", packingUnit });
       continue;
     }
     if (line.expectedRate != null && line.expectedRate !== trustedQuoteRate(item)) {
@@ -491,7 +496,7 @@ async function createQuoteRequestOnce(payload = {}, account = null) {
     return {
       mode: "validation_failed",
       id: prepared.id,
-      error: "no_valid_erpnext_items",
+      error: prepared.missing.some((line) => line.reason === "invalid_pack_quantity") ? "invalid_pack_quantity" : "no_valid_erpnext_items",
       missing: prepared.missing
     };
   }

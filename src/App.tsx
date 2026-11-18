@@ -32,7 +32,7 @@ import {
   fetchRelatedCatalogProducts
 } from "./lib/api";
 import { catalogPath, departmentCategoryPath, findCategoryBySlug, parseStorefrontRoute, productPath, type StorefrontRoute } from "./lib/routes";
-import { offerKey, numericPrice } from "./lib/catalog";
+import { offerKey, nextOrderQuantity, numericPrice, orderStep } from "./lib/catalog";
 import type {
   CatalogDiagnostics,
   CatalogFacets,
@@ -511,9 +511,9 @@ export function App({ initialRoute }: AppProps = {}) {
       const key = offerKey(product);
       const existing = current.find((line) => offerKey(line) === key);
       if (existing) {
-        return current.map((line) => (offerKey(line) === key ? { ...product, unitConfirmed: true, qty: line.qty + 1 } : line));
+        return current.map((line) => (offerKey(line) === key ? { ...product, unitConfirmed: true, qty: nextOrderQuantity(product, line.qty, 1) } : line));
       }
-      return [...current, { ...product, qty: 1, unitConfirmed: true }];
+      return [...current, { ...product, qty: orderStep(product), unitConfirmed: true }];
     });
     setQuoteOpen(true);
   }
@@ -534,6 +534,9 @@ export function App({ initialRoute }: AppProps = {}) {
 
   function validateQuoteForm(requireLines: boolean) {
     if (requireLines && quoteLines.some((line) => !line.unitConfirmed)) return "Select the current selling unit for each saved product.";
+    if (requireLines && quoteLines.some((line) => line.packingUnit && line.qty % line.packingUnit !== 0)) {
+      return "Adjust each quantity to the selling multiple shown in your basket.";
+    }
     if (requireLines && !quoteLines.length) return "Add at least one product.";
     if (!quoteCompany.trim()) return "Company name is required.";
     if (!quoteEmail.trim()) return "Buyer email is required.";
@@ -588,6 +591,9 @@ export function App({ initialRoute }: AppProps = {}) {
       } else if (data.error === "not_authenticated") {
         setQuoteStatus("Your session has expired. Sign in again; your basket is saved.");
         void account.refresh();
+      } else if (data.error === "invalid_pack_quantity") {
+        const line = data.missing?.find((item) => item.reason === "invalid_pack_quantity");
+        setQuoteStatus(`${line?.sku || "This item"} must be ordered in multiples of ${line?.packingUnit || "the displayed pack"}. Review its quantity in the basket.`);
       } else if (data.mode === "validation_failed") {
         setQuoteStatus("A selected price, pack or quantity has changed. Remove the affected line and choose a current selling unit from the catalog.");
       } else if (data.mode === "validated_dry_run") {

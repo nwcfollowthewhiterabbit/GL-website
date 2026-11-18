@@ -44,3 +44,13 @@ const single = new Map([[sku, [{ ...offers.get(sku)[0], conversion_factor: 5, av
 assert.equal(resolveSellingLines([{ sku, qty: 2 }], single).validLines[0].fulfillmentStatus, "low_stock");
 assert.equal(resolveSellingLines([{ sku, qty: 1 }, small], single).missing[0].reason, "duplicate_selling_unit");
 console.log("Selling units, pack rates, stock conversion, old baskets and replay identity passed.");
+
+const six = new Map([["LUZ-AK6110034", [{
+  item_name: "Item", uom: "Each", conversion_factor: 1, packing_unit: 6,
+  price: 55.41, sales_uom: "Each", stock_uom: "Each", available_quantity: 49
+}]]]);
+const multiple = { sku: "LUZ-AK6110034", uom: "Each", qty: 6, expectedRate: 55.41 };
+assert.equal(resolveSellingLines([{ ...multiple, qty: 1 }], six).missing[0].reason, "invalid_pack_quantity");
+const soldBySix = resolveSellingLines([multiple], six).validLines[0];
+assert.equal(soldBySix.qty, 6);
+assert.equal(Math.round(soldBySix.qty * soldBySix.rate * 100), 33246);

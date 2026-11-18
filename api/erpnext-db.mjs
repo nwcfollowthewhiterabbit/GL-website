@@ -39,3 +39,23 @@ export async function pingErpDb() {
   const [rows] = await getErpPool().query("SELECT 1 AS ok");
   return rows?.[0]?.ok === 1;
 }
+
+const fieldCache = new Map();
+
+export async function hasCustomField(dt, fieldname) {
+  const key = `${dt}.${fieldname}`;
+  if (fieldCache.has(key)) return fieldCache.get(key);
+
+  const [rows] = await getErpPool().execute(
+    "SELECT name FROM `tabCustom Field` WHERE dt = :dt AND fieldname = :fieldname LIMIT 1",
+    { dt, fieldname }
+  );
+  const exists = Boolean(rows[0]);
+  fieldCache.set(key, exists);
+  return exists;
+}
+
+export async function availableCustomFields(dt, fieldnames) {
+  const entries = await Promise.all(fieldnames.map(async (fieldname) => [fieldname, await hasCustomField(dt, fieldname)]));
+  return Object.fromEntries(entries.filter(([, exists]) => exists).map(([fieldname]) => [fieldname, true]));
+}

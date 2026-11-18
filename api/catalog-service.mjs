@@ -1,24 +1,11 @@
-import { publicSellingUnitsSql, sellingName, storePriceParams } from "./selling-units.mjs";
+import { publicPriceSummarySql, publicSellingUnitsSql, sellingName, storePriceParams } from "./selling-units.mjs";
 import { getErpPool } from "./erpnext-db.mjs";
 import { availableCustomFields, getCategoryRule, getCategoryRules } from "./storefront-rules.mjs";
-import { getCatalogPublicationSql } from "./catalog-publication-rules.mjs";
+import { EXCLUDED_STOREFRONT_GROUPS, getCatalogPublicationSql } from "./catalog-publication-rules.mjs";
 
 const DEFAULT_PRICE_LIST = process.env.DEFAULT_PRICE_LIST || "Standard Selling";
 const EXCLUDED_WAREHOUSES = ["Showroom - GL", "Furniture Showroom (Upstairs) - GL"];
-export const EXCLUDED_STOREFRONT_GROUPS = [
-  "Expences",
-  "Freight",
-  "Fuel",
-  "Labor",
-  "Office Expences",
-  "Raw Material",
-  "Sub Assemblies",
-  "TAXES",
-  "Utility",
-  "All Item Groups",
-  "Products",
-  "Construction project activities"
-];
+export { EXCLUDED_STOREFRONT_GROUPS } from "./catalog-publication-rules.mjs";
 
 function normalizePage(value, fallback, max) {
   const parsed = Number.parseInt(String(value || ""), 10);
@@ -140,18 +127,9 @@ async function itemBaseSql() {
   `;
 }
 
-function catalogQualityBaseSql() {
-  return `
-    FROM \`tabItem\` i
-    LEFT JOIN (
-      SELECT item_code, MAX(price_list_rate) AS price_list_rate
-      FROM \`tabItem Price\`
-      WHERE price_list = :priceList
-        AND docstatus = 0
-        AND (valid_upto IS NULL OR valid_upto >= CURDATE())
-      GROUP BY item_code
-    ) price ON price.item_code = i.name
-  `;
+async function catalogQualityBaseSql() {
+  return `FROM \`tabItem\` i
+    LEFT JOIN (${await publicPriceSummarySql()}) price ON price.item_code = i.name`;
 }
 
 function baseParams() {
@@ -231,7 +209,7 @@ export async function getCatalogProducts(options = {}) {
         i.name AS sku,
         i.item_name AS name,
         i.item_group AS category,
-        price.uom, i.sales_uom,
+        price.uom, i.sales_uom, price.packing_unit,
         i.image,
         ${publication.descriptionValue} AS description,
         IFNULL(price.price_list_rate, 0) AS price,
@@ -242,7 +220,7 @@ export async function getCatalogProducts(options = {}) {
         ${hasItemFields.website_sort_order ? "IFNULL(i.website_sort_order, 0)" : "0"} AS website_sort_order,
         CASE
           WHEN IFNULL(price.price_list_rate, 0) <= 0 THEN 'hidden_no_price'
-          WHEN IFNULL(stock.actual_qty, 0) < price.conversion_factor THEN 'special_order'
+          WHEN IFNULL(stock.actual_qty, 0) < price.conversion_factor * GREATEST(1, price.packing_unit) THEN 'special_order'
           ELSE 'available'
         END AS availability
       ${base}
@@ -277,6 +255,7 @@ export async function getCatalogProducts(options = {}) {
         name: sellingName(row.name || row.sku, row.sales_uom, row.uom),
         category: row.category || "All Item Groups",
         uom: row.uom || "Nos",
+        packingUnit: Number(row.packing_unit || 0),
         image: row.image || null,
         description: row.description || "",
         price: priceMode === "Price List" ? Number(row.price || 0) : priceMode,
@@ -447,8 +426,8 @@ function normalizeQualityRows(rows, key) {
 
 export async function getCatalogQualityReport() {
   const publication = await getCatalogPublicationSql();
-  const base = catalogQualityBaseSql();
-  const params = { priceList: DEFAULT_PRICE_LIST };
+  const base = await catalogQualityBaseSql();
+  const params = storePriceParams();
   const where = `
     IFNULL(i.disabled, 0) = 0
     AND IFNULL(i.is_sales_item, 1) = 1
@@ -508,19 +487,11 @@ export async function getCatalogDiagnostics() {
         SUM(CASE WHEN IFNULL(price.price_list_rate, 0) <= 0 THEN 1 ELSE 0 END) without_selling_price,
         SUM(CASE WHEN IFNULL(i.disabled, 0) = 0 AND ${publication.productReady} THEN 1 ELSE 0 END) publication_ready,
         SUM(CASE WHEN NOT (${publication.descriptionReady}) THEN 1 ELSE 0 END) incomplete_description
-      FROM \`tabItem\` i
-      LEFT JOIN (
-        SELECT item_code, MAX(price_list_rate) AS price_list_rate
-        FROM \`tabItem Price\`
-        WHERE price_list = :priceList
-          AND docstatus = 0
-          AND (valid_upto IS NULL OR valid_upto >= CURDATE())
-        GROUP BY item_code
-      ) price ON price.item_code = i.name
+      ${await catalogQualityBaseSql()}
       WHERE IFNULL(i.is_sales_item, 1) = 1
         AND IFNULL(i.has_variants, 0) = 0
     `,
-    { priceList: DEFAULT_PRICE_LIST }
+    storePriceParams()
   );
 
   const [groups] = await getErpPool().execute(

@@ -1,4 +1,4 @@
-import { hasCustomField } from "./storefront-rules.mjs";
+import { hasCustomField } from "./erpnext-db.mjs";
 
 export function erpLocalDate(now = new Date(), timeZone = process.env.ERP_TIME_ZONE || "Pacific/Fiji") {
   const date = new Intl.DateTimeFormat("en-CA", {
@@ -23,11 +23,12 @@ export async function publicSellingUnitsSql() {
   const priceList = customPriceList ? "COALESCE(NULLIF(g.website_price_list, ''), :priceList)" : ":priceList";
   return `
     SELECT current_price.item_code, current_price.uom, current_price.price_list,
-           current_price.currency, MIN(current_price.price_list_rate) AS price_list_rate,
+           current_price.currency, MIN(current_price.packing_unit) AS packing_unit,
+           MIN(current_price.price_list_rate) AS price_list_rate,
            MIN(current_price.conversion_factor) AS conversion_factor
     FROM (
       SELECT ip.item_code, COALESCE(NULLIF(ip.uom, ''), item.stock_uom) AS uom,
-             ip.price_list, ip.currency, ip.price_list_rate,
+             ip.price_list, ip.currency, ip.price_list_rate, IFNULL(ip.packing_unit, 0) AS packing_unit,
              CASE WHEN COALESCE(NULLIF(ip.uom, ''), item.stock_uom) = item.stock_uom
                   THEN 1 ELSE conv.conversion_factor END AS conversion_factor,
              DENSE_RANK() OVER (
@@ -43,7 +44,7 @@ export async function publicSellingUnitsSql() {
       WHERE ip.price_list = ${priceList} AND ip.currency = :currency
         AND ip.docstatus = 0 AND ip.selling = 1
         AND IFNULL(ip.customer, '') = '' AND IFNULL(ip.supplier, '') = ''
-        AND IFNULL(ip.batch_no, '') = '' AND IFNULL(ip.packing_unit, 0) <= 1
+        AND IFNULL(ip.batch_no, '') = ''
         AND (ip.valid_from IS NULL OR ip.valid_from <= :priceDate)
         AND (ip.valid_upto IS NULL OR ip.valid_upto >= :priceDate)
     ) current_price
@@ -51,9 +52,16 @@ export async function publicSellingUnitsSql() {
     GROUP BY current_price.item_code, current_price.uom, current_price.price_list, current_price.currency
     HAVING MIN(current_price.price_list_rate) = MAX(current_price.price_list_rate)
       AND MIN(current_price.price_list_rate) > 0
+      AND MIN(current_price.packing_unit) = MAX(current_price.packing_unit)
+      AND MAX(current_price.packing_unit) <= 1000
       AND COUNT(current_price.conversion_factor) = COUNT(*)
       AND MIN(current_price.conversion_factor) = MAX(current_price.conversion_factor)
       AND MIN(current_price.conversion_factor) > 0`;
+}
+
+export async function publicPriceSummarySql() {
+  return `SELECT item_code, MAX(price_list_rate) AS price_list_rate, COUNT(*) AS offer_count
+    FROM (${await publicSellingUnitsSql()}) offers GROUP BY item_code`;
 }
 
 export function sellingName(name, defaultUom, sellingUom) {

@@ -15,6 +15,16 @@ export function productImage(product: CatalogProduct) {
   return productPlaceholder;
 }
 
+export function orderStep(product: CatalogProduct) {
+  return Math.max(1, Number(product.packingUnit) || 1);
+}
+
+export function nextOrderQuantity(product: CatalogProduct, qty: number, direction: 1 | -1) {
+  const step = orderStep(product);
+  const next = direction === 1 ? Math.floor(qty / step) + 1 : Math.ceil(qty / step) - 1;
+  return Math.max(1, Math.min(Math.floor(1000 / step), next)) * step;
+}
+
 export function offerKey(product: Pick<CatalogProduct, "sku" | "uom">) {
   return JSON.stringify([product.sku, product.uom || ""]);
 }
@@ -77,6 +87,7 @@ export function requiresAvailabilityConfirmation(product: CatalogProduct, reques
 }
 
 export function purchaseFlowLabel(product: CatalogProduct) {
+  if (orderStep(product) > 1) return `Order in multiples of ${orderStep(product)} · excl. VAT`;
   if (isSpecialOrder(product)) return "Sales will confirm availability and lead time";
   return "Excl. VAT · final price and delivery confirmed by sales";
 }

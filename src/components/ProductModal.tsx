@@ -1,6 +1,6 @@
 import { X } from "lucide-react";
 import { useModalFocus } from "../hooks/useModalFocus";
-import { availabilityLabel, plainTextDescription, priceLabel, productImage } from "../lib/catalog";
+import { availabilityLabel, orderStep, plainTextDescription, priceLabel, productImage } from "../lib/catalog";
 import type { CatalogProduct } from "../types";
 
 type ProductModalProps = {
@@ -38,6 +38,7 @@ export function ProductModal({ product, onClose, onAddToQuote }: ProductModalPro
               <dt>Price</dt>
               <dd>{priceLabel(product)} excl. VAT</dd>
             </div>
+            {orderStep(product) > 1 && <div><dt>Order multiple</dt><dd>{orderStep(product)} {product.uom}</dd></div>}
           </dl>
           <p>{plainTextDescription(product, "No product description available.", 1000)}</p>
           <button className="quote-button" onClick={() => { onClose(); onAddToQuote(product); }}>

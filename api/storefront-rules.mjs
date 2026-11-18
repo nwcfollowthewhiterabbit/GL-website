@@ -1,7 +1,8 @@
-import { getErpPool } from "./erpnext-db.mjs";
-import { getCatalogPublicationSql } from "./catalog-publication-rules.mjs";
+import { getErpPool, availableCustomFields } from "./erpnext-db.mjs";
+import { EXCLUDED_STOREFRONT_GROUPS, getCatalogPublicationSql } from "./catalog-publication-rules.mjs";
 
-const fieldCache = new Map();
+export { hasCustomField, availableCustomFields } from "./erpnext-db.mjs";
+import { publicPriceSummarySql, storePriceParams } from "./selling-units.mjs";
 
 export const CATEGORY_RULE_FIELDS = [
   "website_show_on_storefront",
@@ -21,24 +22,6 @@ export const ITEM_RULE_FIELDS = [
   "website_stock_display_override",
   "website_sort_order"
 ];
-
-export async function hasCustomField(dt, fieldname) {
-  const key = `${dt}.${fieldname}`;
-  if (fieldCache.has(key)) return fieldCache.get(key);
-
-  const [rows] = await getErpPool().execute(
-    "SELECT name FROM `tabCustom Field` WHERE dt = :dt AND fieldname = :fieldname LIMIT 1",
-    { dt, fieldname }
-  );
-  const exists = Boolean(rows[0]);
-  fieldCache.set(key, exists);
-  return exists;
-}
-
-export async function availableCustomFields(dt, fieldnames) {
-  const entries = await Promise.all(fieldnames.map(async (fieldname) => [fieldname, await hasCustomField(dt, fieldname)]));
-  return Object.fromEntries(entries.filter(([, exists]) => exists).map(([fieldname]) => [fieldname, true]));
-}
 
 export async function getCategoryRule(category) {
   const fields = await availableCustomFields("Item Group", CATEGORY_RULE_FIELDS);
@@ -62,32 +45,29 @@ export async function getCategoryRules() {
   const publication = await getCatalogPublicationSql();
   const fields = await availableCustomFields("Item Group", CATEGORY_RULE_FIELDS);
   const selected = Object.keys(fields);
+  const exclusions = Object.fromEntries(EXCLUDED_STOREFRONT_GROUPS.map((name, index) => [`group${index}`, name]));
+  const itemFields = await availableCustomFields("Item", ["website_show_on_storefront"]);
   const selectFields = selected.length ? `, ${selected.map((field) => `ig.\`${field}\``).join(", ")}` : "";
 
   const [rows] = await getErpPool().execute(
     `
-      SELECT ig.name, ig.parent_item_group AS parent, ig.is_group, COUNT(i.name) AS item_count${selectFields}
+      SELECT ig.name, ig.parent_item_group AS parent, ig.is_group, ${fields.website_show_on_storefront ? "IF(IFNULL(ig.website_show_on_storefront, 1) = 1, COALESCE(SUM(i.offer_count), 0), 0)" : "COALESCE(SUM(i.offer_count), 0)"} AS item_count${selectFields}
       FROM \`tabItem Group\` ig
       LEFT JOIN (
-        SELECT i.name, i.item_group
+        SELECT i.name, i.item_group, price.offer_count
         FROM \`tabItem\` i
-        LEFT JOIN (
-          SELECT item_code, MAX(price_list_rate) AS price_list_rate
-          FROM \`tabItem Price\`
-          WHERE price_list = :priceList
-            AND docstatus = 0
-            AND (valid_upto IS NULL OR valid_upto >= CURDATE())
-          GROUP BY item_code
-        ) price ON price.item_code = i.name
+        JOIN (${await publicPriceSummarySql()}) price ON price.item_code = i.name
         WHERE IFNULL(i.disabled, 0) = 0
           AND IFNULL(i.is_sales_item, 1) = 1
           AND IFNULL(i.has_variants, 0) = 0
+          AND IFNULL(i.item_group, '') NOT IN (${Object.keys(exclusions).map(key => ":" + key).join(", ")})
+          ${itemFields.website_show_on_storefront ? "AND IFNULL(i.website_show_on_storefront, 1) = 1" : ""}
           AND ${publication.productReady}
       ) i ON i.item_group = ig.name
       GROUP BY ig.name, ig.parent_item_group, ig.is_group, ig.lft${selected.map((field) => `, ig.\`${field}\``).join("")}
       ORDER BY ${fields.website_sort_order ? "IFNULL(ig.website_sort_order, 0)," : ""} ig.lft
     `
-  , { priceList: process.env.DEFAULT_PRICE_LIST || "Standard Selling" });
+  , { ...storePriceParams(), ...exclusions });
 
   return rows.map(normalizeCategoryRule);
 }

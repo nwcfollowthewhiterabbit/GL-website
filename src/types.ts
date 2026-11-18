@@ -11,6 +11,7 @@ export type CatalogProduct = {
   quantity?: number;
   uom?: string;
   sellingUnitCount?: number;
+  packingUnit?: number;
   image?: string | null;
   description?: string;
 };
@@ -277,7 +278,7 @@ export type QuoteRequestResponse = {
     availableQuantity?: number;
     fulfillmentStatus?: "in_stock" | "low_stock" | "special_order";
   }>;
-  missing?: Array<{ sku: string; qty?: number; reason?: string }>;
+  missing?: Array<{ sku: string; qty?: number; reason?: string; packingUnit?: number }>;
   fulfillment?: {
     mode: "in_stock" | "low_stock" | "special_order";
     requiresSalesConfirmation: boolean;

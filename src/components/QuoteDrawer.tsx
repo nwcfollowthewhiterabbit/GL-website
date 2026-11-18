@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { ArrowRight, Building2, CheckCircle2, ClipboardCheck, Mail, MapPin, Minus, Phone, Plus, RotateCcw, Send, StickyNote, Trash2, UserRound } from "lucide-react";
-import { offerKey, priceLabel, productImage, productPlaceholder, purchaseFlowLabel } from "../lib/catalog";
+import { nextOrderQuantity, offerKey, orderStep, priceLabel, productImage, productPlaceholder, purchaseFlowLabel } from "../lib/catalog";
 import type { QuoteLine, QuoteResult } from "../types";
 
 type QuoteDrawerProps = {
@@ -80,9 +80,9 @@ export function QuoteDrawer(props: QuoteDrawerProps) {
               <img src={productImage(line)} alt="" onError={(event) => { event.currentTarget.src = productPlaceholder; }} />
               <div className="quote-line__body"><h3>{line.name}</h3><p>{line.sku}</p>{line.unitConfirmed ? <strong>{priceLabel(line)}</strong> : <a href={`/catalog?${new URLSearchParams({ q: line.sku })}`}>Choose the current selling unit</a>}<small>{purchaseFlowLabel(line)}</small></div>
               <div className="qty-control">
-                <button type="button" className="icon-button" onClick={() => onSetLineQty(offerKey(line), line.qty - 1)} disabled={line.qty <= 1 || isSubmitting || Boolean(quoteResult)} aria-label={`Decrease quantity of ${line.name}`}><Minus /></button>
+                <button type="button" className="icon-button" onClick={() => onSetLineQty(offerKey(line), nextOrderQuantity(line, line.qty, -1))} disabled={line.qty <= orderStep(line) || isSubmitting || Boolean(quoteResult)} aria-label={`Decrease quantity of ${line.name}`}><Minus /></button>
                 <span aria-label={`Quantity of ${line.name}`}>{line.qty}</span>
-                <button type="button" className="icon-button" onClick={() => onSetLineQty(offerKey(line), line.qty + 1)} disabled={isSubmitting || Boolean(quoteResult)} aria-label={`Increase quantity of ${line.name}`}><Plus /></button>
+                <button type="button" className="icon-button" onClick={() => onSetLineQty(offerKey(line), nextOrderQuantity(line, line.qty, 1))} disabled={line.qty >= nextOrderQuantity(line, line.qty, 1) || isSubmitting || Boolean(quoteResult)} aria-label={`Increase quantity of ${line.name}`}><Plus /></button>
                 <button type="button" className="icon-button" onClick={() => onRemoveLine(offerKey(line))} disabled={isSubmitting || Boolean(quoteResult)} aria-label={`Remove ${line.name}`}><Trash2 /></button>
               </div>
             </article>)}
@@ -108,7 +108,7 @@ export function QuoteDrawer(props: QuoteDrawerProps) {
             <label className="field field--textarea"><StickyNote size={18} /><textarea placeholder="Notes, timing or alternatives" aria-label="Quote notes" maxLength={2000} value={quoteNotes} onChange={(event) => onNotesChange(event.target.value)} /></label>
             <div className="quote-total"><span>Indicative subtotal, excluding VAT</span><strong>{quoteTotalLabel} FJD</strong></div>
             <div className="order-flow-note is-confirmation"><strong>Sales will confirm your quote</strong><span>Prices, availability, VAT and delivery are confirmed in your quotation. Sending a request does not place a confirmed order. No online payment is taken.</span></div>
-            <button type="submit" className="quote-button" disabled={!canSubmit || quoteLines.some((line) => !line.unitConfirmed)}>{isSubmitting ? "Sending request..." : "Request a quote"} <Send size={17} /></button>
+            <button type="submit" className="quote-button" disabled={!canSubmit || quoteLines.some((line) => !line.unitConfirmed || Boolean(line.packingUnit && line.qty % line.packingUnit !== 0))}>{isSubmitting ? "Sending request..." : "Request a quote"} <Send size={17} /></button>
           </form>}
           {quoteStatus ? <p className="quote-panel__status" role="status">{quoteStatus}</p> : null}
         </div>

@@ -33,7 +33,7 @@ ERP password or permissions. Disabled accounts require help from support.
 ## Request a Quotation
 
 1. Sign in and open **Quote basket**.
-2. Review the selling unit printed after each price and enter the number of those packs. Two pack sizes of one SKU appear on separate lines. If a saved basket asks you to choose a current selling unit, open its link and add the desired pack. Its original quantity is retained.
+2. Review the selling unit printed after each price and enter the number of those packs. Two pack sizes of one SKU appear on separate lines. When an item must be ordered in multiples, the catalog shows the multiple and the basket quantity buttons use that step. If a saved basket asks you to choose a current selling unit, open its link and add the desired pack. Its original quantity is retained.
 3. Check your account details and enter the contact, phone and delivery location.
 4. Select **Request a quote**.
 5. Keep the displayed reference for communication with Green Leaf.

@@ -3,7 +3,7 @@ import {
   availabilityLabel,
   availabilityTone,
   plainTextDescription,
-  offerKey, priceLabel,
+  offerKey, orderStep, priceLabel,
   productImage,
   productPlaceholder,
   productSpecs
@@ -98,7 +98,7 @@ export function ProductDetailPage({
             <aside className="product-quote-panel" aria-label="Order this product">
               <span className="product-quote-panel__label">Order preparation</span>
               <strong>{priceLabel(product)}</strong>
-              <p>Indicative price excludes VAT. Add this product to your basket and request a quote. Sales will confirm final pricing, stock and delivery.</p>
+              <p>{orderStep(product) > 1 && `Order in multiples of ${orderStep(product)}. `}Indicative price excludes VAT. Add this product to your basket and request a quote. Sales will confirm final pricing, stock and delivery.</p>
               <button type="button" className="quote-button product-page__quote" onClick={() => onAddToQuote(product)}>
                 <ShoppingCart size={18} /> Add to basket
               </button>

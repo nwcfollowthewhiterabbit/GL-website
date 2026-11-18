@@ -1,5 +1,20 @@
 import { getErpPool } from "./erpnext-db.mjs";
 
+export const EXCLUDED_STOREFRONT_GROUPS = [
+  "Expences",
+  "Freight",
+  "Fuel",
+  "Labor",
+  "Office Expences",
+  "Raw Material",
+  "Sub Assemblies",
+  "TAXES",
+  "Utility",
+  "All Item Groups",
+  "Products",
+  "Construction project activities"
+];
+
 let publicationSql;
 
 export async function getCatalogPublicationSql() {
