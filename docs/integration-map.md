@@ -68,7 +68,7 @@ Recommended production ownership:
 | Data | Master | Storefront Role |
 | --- | --- | --- |
 | Item code, SKU, UOM, item group | ERPNext | Read and cache |
-| Prices and price lists | ERPNext | Read and cache per customer |
+| Item prices and price lists | ERPNext | Resolve eligible units and the current rate when writing a quotation to ERP. The website displays amounts on issued account documents. |
 | Stock and warehouse availability | ERPNext | Read and cache |
 | Product images and merchandising copy | ERPNext or storefront CMS | Render and optimize |
 | Cart and quote request | Storefront | Create draft, send to ERPNext |
@@ -161,7 +161,7 @@ Confirmed commerce rules:
 - Low-stock quantities require sales confirmation before a payment link is issued.
 - Special-order and non-stock items require ETA acceptance and a 70% deposit.
 - Payment links remain valid for 30 days.
-- Catalog prices are in FJD and exclude VAT; VAT and any delivery charge are added before payment.
+- Sales issues quotations in FJD and confirms VAT and any delivery charge. The catalog and draft requests display units and quantities.
 - Orders over FJD 200 receive free delivery within Viti Levu or to the applicable outer-island shipper's yard.
 
 Westpac-confirmed gateway rules:
