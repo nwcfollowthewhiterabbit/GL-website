@@ -11,8 +11,10 @@ on the existing OpenCart website. Payment activation remains disabled.
 `https://testing.greenleafpacific.com` and disabled indexing.
 
 The Docker web build passes both settings to the same validated profile. It
-generates nginx's `X-Robots-Tag`, robots.txt, sitemap.xml and page robots metadata;
-editorial canonical URLs and structured data use the same origin. Indexing cannot
+generates nginx's `X-Robots-Tag`, robots.txt, static metadata and the origin used
+by the live sitemap route. That route obtains eligible SKU and department URLs
+from ERP. The catalog, product and editorial canonical URLs, structured data
+and sitemap use the selected origin. Indexing cannot
 be enabled for a non-HTTPS or testing/staging origin. Rebuild the web image when
 changing these settings: they are build inputs, not runtime substitutes.
 

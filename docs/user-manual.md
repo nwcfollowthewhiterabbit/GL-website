@@ -17,6 +17,8 @@ In the **Details** preview, use Tab to move between actions. Press Escape to clo
 Prices are shown in FJD and exclude VAT unless the interface explicitly states
 otherwise.
 
+If you follow an older product link, the website opens its current listing when a match exists. For an archived item, send the displayed SKU to the sales team to check availability. For an order placed on the previous website, use the **Orders from the previous website** link on the account page and provide your order number.
+
 ## Create Your Account
 
 1. Open `/account` and select **Create an account**.
