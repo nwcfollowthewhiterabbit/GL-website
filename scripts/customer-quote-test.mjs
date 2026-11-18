@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { bindQuoteToAccount, validQuoteLines, createQuoteRequest, quoteRequestFingerprint, resolveSellingLines } from "../api/quote-service.mjs";
+import { bindQuoteToAccount, validQuoteLines, createQuoteRequest, quoteRequestFingerprint, publicQuoteReceipt, resolveSellingLines } from "../api/quote-service.mjs";
 import { accountHistoryPage, accountHistoryResult } from "../api/account-history.mjs";
 
 const account = { email: "buyer@example.com", customer: "Customer-verified" };
@@ -31,6 +31,12 @@ for (const lines of [[small, large], [large, small]]) {
   assert(validQuoteLines(lines));
   const result = resolveSellingLines(lines, offers);
   assert.deepEqual(result.missing, []);
+  const receipt = publicQuoteReceipt({ id: "receipt", ...result });
+  assert.deepEqual(receipt.validLines.map((line) => Object.keys(line).sort()), lines.map(() => [
+    "availableQuantity", "conversion_factor", "fulfillmentStatus", "item_code", "item_name", "qty", "stock_uom", "uom"
+  ]));
+  assert.deepEqual(receipt.validLines.map(({ item_code, uom, qty }) => ({ sku: item_code, uom, qty })),
+    lines.map(({ sku, uom, qty }) => ({ sku, uom, qty })));
   assert.deepEqual(result.validLines.map(({ uom, rate }) => [uom, rate]), lines.map((line) => [line.uom, line.expectedRate]));
   assert.equal(result.validLines.reduce((total, line) => total + Math.round(line.rate * line.qty * 100), 0), 24541);
   assert.equal(result.validLines.find((line) => line.uom === large.uom).item_name, "Sauce Cup-1000/Case");
@@ -39,7 +45,11 @@ assert(!validQuoteLines([small, small]));
 assert.notEqual(quoteRequestFingerprint({ ...payload, id: "stable", lines: [small] }), quoteRequestFingerprint({ ...payload, id: "stable", lines: [large] }));
 assert.equal(resolveSellingLines([{ sku, qty: 1 }], offers).missing[0].reason, "selling_unit_unavailable");
 assert.equal(resolveSellingLines([{ ...large, uom: "unlisted" }], offers).missing[0].reason, "selling_unit_unavailable");
-assert.equal(resolveSellingLines([{ ...large, expectedRate: 9.25 }], offers).missing[0].reason, "price_changed");
+const stalePrice = { ...large, expectedRate: 9.25, rate: 0.01, price: 0.01 };
+assert.equal(resolveSellingLines([stalePrice], offers).validLines[0].rate, 236.16);
+assert.equal(quoteRequestFingerprint({ ...payload, id: "same", lines: [stalePrice] }),
+  quoteRequestFingerprint({ ...payload, id: "same", lines: [{ sku, uom: large.uom, qty: large.qty }] }));
+assert(validQuoteLines([{ sku, qty: 1, expectedRate: "obsolete display value" }]));
 const single = new Map([[sku, [{ ...offers.get(sku)[0], conversion_factor: 5, available_quantity: 6 }]]]);
 assert.equal(resolveSellingLines([{ sku, qty: 2 }], single).validLines[0].fulfillmentStatus, "low_stock");
 assert.equal(resolveSellingLines([{ sku, qty: 1 }, small], single).missing[0].reason, "duplicate_selling_unit");

@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import mysql from "mysql2/promise";
 import { getErpPool, getErpDbConfig } from "./erpnext-db.mjs";
-import { createDoc, hasErpnextRestCredentials, listDoc } from "./erpnext-rest.mjs";
+import { createDoc, hasErpnextRestCredentials } from "./erpnext-rest.mjs";
 import { EXCLUDED_STOREFRONT_GROUPS } from "./catalog-service.mjs";
 import { getCatalogPublicationSql } from "./catalog-publication-rules.mjs";
 import { erpLocalDate as quoteTransactionDate, publicSellingUnitsSql, sellingName, storePriceParams } from "./selling-units.mjs";
@@ -62,7 +62,6 @@ function normalizeLines(lines) {
     .map((line) => ({
       sku: clean(line.sku || line.item_code || line.itemCode),
       uom: clean(line.uom),
-      expectedRate: line.expectedRate == null ? null : Number(line.expectedRate),
       qty: Number(line.qty ?? line.quantity ?? 1),
       note: clean(line.note).slice(0, 500)
     }))
@@ -71,7 +70,6 @@ function normalizeLines(lines) {
         line.sku &&
         line.sku.length <= 140 &&
         line.uom.length <= 140 &&
-        (line.expectedRate == null || (Number.isFinite(line.expectedRate) && line.expectedRate >= 0)) &&
         Number.isFinite(line.qty) &&
         line.qty > 0 &&
         line.qty <= MAX_QUOTE_QUANTITY
@@ -311,10 +309,6 @@ export function resolveSellingLines(lines, erpItems) {
       missing.push({ sku: line.sku, uom: item.uom, reason: "invalid_pack_quantity", packingUnit });
       continue;
     }
-    if (line.expectedRate != null && line.expectedRate !== trustedQuoteRate(item)) {
-      missing.push({ sku: line.sku, uom: item.uom, reason: "price_changed" });
-      continue;
-    }
     const key = JSON.stringify([line.sku, item.uom]);
     if (selected.has(key)) {
       missing.push({ sku: line.sku, uom: item.uom, reason: "duplicate_selling_unit" });
@@ -388,7 +382,7 @@ export async function prepareQuoteRequest(payload = {}, account = null) {
     normalizedCustomer.location ? `Delivery location: ${normalizedCustomer.location}` : "",
     `Website quotation request: ${fulfillment.mode}`,
     "Sales review required. No online payment or confirmed Sales Order is created by this request.",
-    "Catalog prices exclude VAT; confirm availability, VAT, delivery and final quotation with the customer.",
+    "Sales will confirm availability, VAT, delivery and the final quotation with the customer.",
     clean(payload.notes) ? `Notes: ${clean(payload.notes)}` : "",
     missing.length ? `Missing SKU lines: ${missing.map((line) => line.sku).join(", ")}` : ""
   ].filter(Boolean);
@@ -453,6 +447,15 @@ export async function prepareQuoteRequest(payload = {}, account = null) {
   };
 }
 
+export function publicQuoteReceipt({ id, missing, validLines, fulfillment }) {
+  return {
+    id, missing, fulfillment,
+    validLines: validLines.map(({ item_code, item_name, qty, uom, stock_uom, conversion_factor, availableQuantity, fulfillmentStatus }) => ({
+      item_code, item_name, qty, uom, stock_uom, conversion_factor, availableQuantity, fulfillmentStatus
+    }))
+  };
+}
+
 async function createQuoteRequestOnce(payload = {}, account = null) {
   const customer = payload.customer || {};
   const requiredCustomerFields = ["company", "contact", "email", "phone", "location"].filter((field) => !clean(customer[field]));
@@ -481,15 +484,9 @@ async function createQuoteRequestOnce(payload = {}, account = null) {
     return { mode: "validation_failed", error: "request_id_conflict", id: prepared.id };
   }
 
+  const receipt = publicQuoteReceipt(prepared);
   if (prepared.duplicateQuotation) {
-    return {
-      mode: "idempotent",
-      id: prepared.id,
-      quotation: prepared.duplicateQuotation,
-      missing: prepared.missing,
-      validLines: prepared.validLines,
-      fulfillment: prepared.fulfillment
-    };
+    return { ...receipt, mode: "idempotent", quotation: prepared.duplicateQuotation };
   }
 
   if (!prepared.validLines.length || prepared.missing.length) {
@@ -503,32 +500,20 @@ async function createQuoteRequestOnce(payload = {}, account = null) {
 
   if (!hasErpnextRestCredentials()) {
     return {
+      ...receipt,
       mode: "validated_dry_run",
-      id: prepared.id,
       marker: prepared.marker,
       customer: prepared.customer,
       erpCustomer: prepared.erpCustomer,
-      validLines: prepared.validLines,
-      missing: prepared.missing,
-      fulfillment: prepared.fulfillment,
       nextAction: "configure_erpnext_rest_credentials"
     };
   }
 
   const quotation = await createDoc("Quotation", prepared.quotationDoc);
-  const existing = await listDoc("Quotation", {
-    filters: [["name", "=", quotation.name]],
-    fields: ["name", "transaction_date", "grand_total", "status"],
-    limit: 1
-  });
-
   return {
+    ...receipt,
     mode: "created",
-    id: prepared.id,
-    quotation: existing[0] || quotation,
-    missing: prepared.missing,
-    validLines: prepared.validLines,
-    fulfillment: prepared.fulfillment
+    quotation: { name: quotation.name, transaction_date: quotation.transaction_date, status: quotation.status }
   };
 }
 
