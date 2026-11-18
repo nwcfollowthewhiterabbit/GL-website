@@ -100,16 +100,22 @@ export function App({ initialRoute }: AppProps = {}) {
   const [quoteCompany, setQuoteCompany] = useState("");
   const [quoteEmail, setQuoteEmail] = useState("");
   const [quoteStatus, setQuoteStatus] = useState("");
-  const [quoteLines, setQuoteLines] = useState<QuoteLine[]>(() => {
-    if (typeof window === "undefined") return [];
+  const [quoteLines, setQuoteLines] = useState<QuoteLine[]>([]);
+  const [basketRestored, setBasketRestored] = useState(false);
+  // The first client render must match the server-rendered editorial pages.
+  useLayoutEffect(() => {
     try {
       const saved = JSON.parse(window.localStorage.getItem("greenleaf.quoteLines") || "[]");
-      return Array.isArray(saved) ? saved.filter((line) => typeof line?.sku === "string" && Number.isFinite(line.qty) && line.qty > 0).slice(0, 100) : [];
-    } catch { return []; }
-  });
+      if (Array.isArray(saved)) {
+        setQuoteLines(saved.filter((line) => typeof line?.sku === "string" && Number.isFinite(line.qty) && line.qty > 0).slice(0, 100));
+      }
+    } catch { /* The basket still works when browser storage is unavailable. */ }
+    setBasketRestored(true);
+  }, []);
   // Saved baskets from the SKU-only release used stock UOM for every pack.
   // Retain quantities, and upgrade only when ERP returns exactly one selling unit.
   useEffect(() => {
+    if (!basketRestored) return;
     let active = true;
     async function refreshLegacyBasket() {
       for (const saved of quoteLines.filter((line) => !line.unitConfirmed)) {
@@ -122,7 +128,7 @@ export function App({ initialRoute }: AppProps = {}) {
     }
     void refreshLegacyBasket();
     return () => { active = false; };
-  }, []);
+  }, [basketRestored]);
   const [quoteOpen, setQuoteOpen] = useState(false);
   const [buyerContact, setBuyerContact] = useState("");
   const [buyerPhone, setBuyerPhone] = useState("");
@@ -357,8 +363,9 @@ export function App({ initialRoute }: AppProps = {}) {
   }, []);
 
   useEffect(() => {
+    if (!basketRestored) return;
     try { window.localStorage.setItem("greenleaf.quoteLines", JSON.stringify(quoteLines)); } catch { /* The basket still works when browser storage is unavailable. */ }
-  }, [quoteLines]);
+  }, [basketRestored, quoteLines]);
 
   useEffect(() => {
     void purgeLegacyQuoteDetails();

@@ -7,6 +7,7 @@
 ## 2026-11-18 — Storefront presentation and quotation terms
 
 - Preserved complete campaign artwork on small screens and added readable linked captions, compact images and the site icon.
+- Restored saved baskets after server-rendered pages load, preserving quantities without hydration errors.
 - Corrected tablet filters, keyboard access to the product preview and the account-loading state.
 - Updated customer-facing terms, payment information and privacy copy for the current sales-reviewed quotation process.
 
