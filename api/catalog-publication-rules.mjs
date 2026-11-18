@@ -1,3 +1,4 @@
+import { reviewedSpecSql } from "./reviewed-product-specs.mjs";
 import { imageReadySql, reviewedDescriptionMatchSql, reviewedDescriptionSql, reviewedImageSql } from "./catalog-verified-content.mjs";
 import { getErpPool } from "./erpnext-db.mjs";
 
@@ -27,7 +28,7 @@ export async function getCatalogPublicationSql() {
       FROM INFORMATION_SCHEMA.COLUMNS
       WHERE TABLE_SCHEMA = DATABASE()
         AND TABLE_NAME = 'tabItem'
-        AND COLUMN_NAME IN ('description', 'web_long_description', 'thumbnail', 'woocommerce_description')
+        AND COLUMN_NAME IN ('description', 'web_long_description', 'thumbnail', 'woocommerce_description', 'manufacturer', 'manufacturer_part_no', 'stock_uom', 'image')
     `
   );
   const columns = new Set(rows.map((row) => row.COLUMN_NAME));
@@ -51,11 +52,17 @@ export async function getCatalogPublicationSql() {
     CHAR_LENGTH(${cleanDescription}) >= 24
     AND LOWER(${cleanDescription}) <> LOWER(TRIM(COALESCE(NULLIF(i.item_name, ''), i.name)))
   `;
-  const descriptionReady = columns.has("woocommerce_description")
+  const primaryReady = columns.has("woocommerce_description")
     ? `((${cleanPrimaryReady}) OR (${reviewedDescriptionMatchSql(primaryDescription)}))`
     : cleanPrimaryReady;
 
+  const specMatch = reviewedSpecSql(columns);
+  const descriptionReady = `((${primaryReady}) OR ${specMatch})`;
+
   publicationSql = {
+    hasSpecFields: columns.has("manufacturer") && columns.has("manufacturer_part_no"),
+    specMatch,
+    primaryReady,
     imageValue,
     priceImageReady,
     descriptionValue,

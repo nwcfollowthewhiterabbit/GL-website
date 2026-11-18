@@ -35,6 +35,7 @@ import { offerKey, nextOrderQuantity, numericPrice, orderStep } from "./lib/cata
 import type {
   CatalogFacets,
   CatalogProduct,
+  CatalogReference,
   CatalogSuggestion,
   ItemGroup,
   QuoteLine,
@@ -93,6 +94,7 @@ type AppProps = {
 
 export function App({ initialRoute }: AppProps = {}) {
   const [erpProducts, setErpProducts] = useState<CatalogProduct[]>([]);
+  const [catalogReference, setCatalogReference] = useState<CatalogReference | null>(null);
   const [catalogTotal, setCatalogTotal] = useState<number | null>(null);
   const [catalogState, setCatalogState] = useState<"loading" | "ready" | "fallback">("loading");
   const [quoteCompany, setQuoteCompany] = useState("");
@@ -217,6 +219,7 @@ export function App({ initialRoute }: AppProps = {}) {
     setCatalogState("loading");
     setErpProducts([]);
     setCatalogTotal(null);
+    setCatalogReference(null);
 
     fetchCatalogProducts({
       page,
@@ -232,6 +235,7 @@ export function App({ initialRoute }: AppProps = {}) {
         if (ignore) return;
         setErpProducts(data.products || []);
         setCatalogTotal(data.total);
+        setCatalogReference(data.reference || null);
         setCatalogPriceList(data.priceList);
         setCatalogState("ready");
       })
@@ -677,6 +681,7 @@ export function App({ initialRoute }: AppProps = {}) {
       ) : (
         <>
           <CatalogSection
+            reference={catalogReference}
             catalogState={catalogState}
             products={products}
             itemGroups={itemGroups}

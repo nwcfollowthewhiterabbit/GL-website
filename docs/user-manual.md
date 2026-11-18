@@ -5,6 +5,10 @@ Verified environment: `https://testing.greenleafpacific.com`
 This website is not indexed, but requests are saved in Green Leaf's production
 ERP. It currently supports quotations without online payment.
 
+## Find a product from the previous catalog
+
+Search the catalog by its full item code. Some products open a sales enquiry page where you can ask for availability and packaging. If a price is shown there, it applies to the unit printed beside the price. For a previous listing without an item code, include the catalog reference from the page in your message to sales.
+
 ## Browse Products
 
 1. Open `/catalog`.

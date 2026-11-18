@@ -237,7 +237,10 @@ export type AccountLoginResponse = {
   error?: string;
 };
 
+export type CatalogReference = { sku: string; name: string };
+
 export type CatalogProductsResponse = {
+  reference?: CatalogReference;
   page: number;
   pageSize: number;
   total: number;

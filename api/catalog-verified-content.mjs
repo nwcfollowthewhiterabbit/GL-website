@@ -43,7 +43,12 @@ export function reviewedDescriptionSql(primary) {
   return `CASE WHEN ${match} THEN i.woocommerce_description ELSE ${primary} END`;
 }
 
+const reviewedUnitSymbols = new Set(["WIN-TMT-P1", "WIN-TMT-P2", "WIN-TMT-P3"]);
+const reviewedBladeSpacing = new Set(["WIN-TKP-41", "WIN-TN43"]);
+
 export function displayItemName(sku, name) {
-  // The archived English title confirms this exact damaged UTF-8 dash.
+  // The previous public English titles confirm the original symbols and spacing.
+  if (reviewedUnitSymbols.has(sku)) return name.replaceAll("Â°C", "°C");
+  if (reviewedBladeSpacing.has(sku)) return name.replaceAll("Â\u00a0", " ");
   return sku === "BIO-R-200Y" ? name.replaceAll("\u00e2\u20ac\u201c", "–") : name;
 }

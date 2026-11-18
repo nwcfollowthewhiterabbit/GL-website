@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronRight, Clock3, DollarSign, Layers3, Search, ShoppingCart, X } from "lucide-react";
 import { availabilityLabel, availabilityTone, plainTextDescription, offerKey, priceLabel, productImage, productPlaceholder, purchaseFlowLabel } from "../lib/catalog";
-import type { CatalogFacets, CatalogProduct, CatalogSuggestion, ItemGroup, WebsiteCategory } from "../types";
+import type { CatalogFacets, CatalogProduct, CatalogReference, CatalogSuggestion, ItemGroup, WebsiteCategory } from "../types";
 
 type WebsiteCategoryView = WebsiteCategory & {
   itemCount: number;
@@ -9,6 +9,7 @@ type WebsiteCategoryView = WebsiteCategory & {
 };
 
 type CatalogSectionProps = {
+  reference: CatalogReference | null;
   catalogState: "loading" | "ready" | "fallback";
   products: CatalogProduct[];
   itemGroups: ItemGroup[];
@@ -43,6 +44,7 @@ type CatalogSectionProps = {
 };
 
 export function CatalogSection({
+  reference,
   catalogState,
   products,
   itemGroups,
@@ -309,6 +311,12 @@ export function CatalogSection({
             </div>
           ) : null}
 
+          {reference && products.length > 0 && (
+            <div className="catalog-empty">
+              <strong>{reference.name}</strong>
+              <a className="secondary-button" href={`/products/${encodeURIComponent(reference.sku)}`}>View {reference.sku}</a>
+            </div>
+          )}
           {catalogState === "loading" ? (
             <div className="catalog-empty" role="status" aria-live="polite">
               <strong>Loading products...</strong>
@@ -358,6 +366,12 @@ export function CatalogSection({
                   </div>
                 </article>
               ))}
+            </div>
+          ) : reference ? (
+            <div className="catalog-empty">
+              <strong>{reference.name}</strong>
+              <p>SKU {reference.sku}</p>
+              <a className="secondary-button" href={`/products/${encodeURIComponent(reference.sku)}`}>View product details</a>
             </div>
           ) : (
             <div className="catalog-empty">

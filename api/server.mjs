@@ -5,6 +5,7 @@ import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import {
   getPublishedCatalogSkus,
+  getVisibleItemReference,
   getCatalogDiagnostics,
   getCatalogItemGroups,
   getCatalogQualityReport,
@@ -13,7 +14,7 @@ import {
   getCatalogSuggestions,
   getFeaturedCatalogProducts
 } from "./catalog-service.mjs";
-import { installPublicNavigation } from "./public-navigation.mjs";
+import { findCatalogReference, installPublicNavigation } from "./public-navigation.mjs";
 import { pingErpDb } from "./erpnext-db.mjs";
 import { legacySyncRules } from "./legacy-sync-rules.mjs";
 import { assertWebsiteMigrationsApplied, websiteMigrationIds } from "./migrations/runner.mjs";
@@ -226,6 +227,13 @@ app.get("/api/catalog/search", (req, res) => {
 app.get("/api/catalog/products", async (req, res) => {
   try {
     const result = await getCatalogProducts(req.query);
+    const { q, category, categories, minPrice, maxPrice, featured } = req.query;
+    const searchedCode = typeof q === "string" && q.trim().toLowerCase();
+    if (searchedCode && result.page === 1 && !category && !categories && !minPrice && !maxPrice && !featured
+      && !result.products.some(product => product.sku.toLowerCase() === searchedCode)) {
+      const reference = await findCatalogReference(q, getVisibleItemReference);
+      if (reference && !result.products.some(product => product.sku === reference.sku)) result.reference = reference;
+    }
     res.json(result);
   } catch (error) {
     serviceFailure(res, "erpnext_catalog_unavailable", error);
@@ -704,7 +712,7 @@ app.post("/api/admin/customer-access/enable", async (req, res) => {
   }
 });
 
-installPublicNavigation(app, getPublishedCatalogSkus, undefined, getCatalogProductBySku);
+installPublicNavigation(app, getPublishedCatalogSkus, undefined, getCatalogProductBySku, getVisibleItemReference);
 
 await assertWebsiteMigrationsApplied();
 app.listen(port, () => {

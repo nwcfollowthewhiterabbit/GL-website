@@ -5,6 +5,7 @@ const productPlaceholder = "/product-placeholder.svg";
 export { productPlaceholder };
 
 export function productImage(product: CatalogProduct) {
+  if (product.image?.startsWith("/catalog-reviewed/")) return product.image;
   if (product.image?.startsWith("http")) {
     return product.image;
   }
