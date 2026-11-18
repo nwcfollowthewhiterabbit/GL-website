@@ -227,12 +227,21 @@ async function main() {
     const filtersFit = await page.send("Runtime.evaluate", {
       returnByValue: true,
       expression: `(() => {
-        const price = document.querySelector('input[placeholder="Any"]').getBoundingClientRect();
-        const categories = document.querySelector(".catalog-filter-button").getBoundingClientRect();
-        return price.right <= categories.left || price.bottom <= categories.top;
+        const controls = document.querySelector(".catalog-tools");
+        const select = controls.querySelector("select");
+        const sort = select.getBoundingClientRect();
+        const categories = controls.querySelector(".catalog-filter-button").getBoundingClientRect();
+        return {
+          aligned: sort.width > 0 && categories.width > 0 && (sort.right <= categories.left || sort.bottom <= categories.top),
+          sortOptions: Array.from(select.options, option => option.value),
+          inputCount: controls.querySelectorAll("input").length
+        };
       })()`
     });
-    assert(filtersFit.result.result.value, "Tablet categories overlap the maximum price field");
+    const tabletFilters = filtersFit.result.result.value;
+    assert(tabletFilters.aligned, "Tablet sorting and category controls overlap");
+    assert(tabletFilters.sortOptions.join(",") === "featured,name_asc,name_desc" && tabletFilters.inputCount === 1,
+      "Catalog controls must only offer product search, categories and name/featured sorting");
     const desktop = await captureViewport(page.send, "catalog-desktop", {
       width: 1440,
       height: 1200,
