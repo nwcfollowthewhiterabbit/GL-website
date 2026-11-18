@@ -828,6 +828,35 @@ async function main() {
     assert(page.runtimeErrors.length === 0, `Browser runtime errors: ${page.runtimeErrors.join(" | ")}`);
 
     page.close();
+    await page.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+    await page.send("Page.navigate", { url: `${baseUrl}/catalog#contact` });
+    await waitForSelector(page.send, ".product-card");
+    await waitForSelector(page.send, "#contact:focus");
+    const contactPosition = await page.send("Runtime.evaluate", {
+      returnByValue: true,
+      expression: `(() => {
+        const section = document.getElementById("contact").getBoundingClientRect();
+        return section.top >= document.querySelector(".nav").getBoundingClientRect().bottom && section.top < innerHeight;
+      })()`
+    });
+    assert(contactPosition.result.result.value, "The catalog contact fragment must land below the mobile header");
+    const mobileDepartments = await page.send("Runtime.evaluate", {
+      returnByValue: true,
+      expression: `(async () => {
+        const trigger = document.querySelector(".nav__catalog-trigger");
+        if (!trigger?.getBoundingClientRect().width) return false;
+        trigger.click();
+        await new Promise(requestAnimationFrame);
+        const menu = document.getElementById(trigger.getAttribute("aria-controls"));
+        const links = [...menu.querySelectorAll(".nav-menu__departments a")];
+        const sidebarCount = document.querySelectorAll(".catalog-sidebar .catalog-nav-group").length;
+        return trigger.getAttribute("aria-expanded") === "true" && links.length > 0 &&
+          links.length === sidebarCount && links.every(link => link.getBoundingClientRect().width > 0);
+      })()`,
+      awaitPromise: true
+    });
+    assert(mobileDepartments.result.result.value, "All storefront departments must be reachable in the mobile menu");
+
     console.log("Visual smoke checks passed");
     console.log(`- Mobile width: ${mobile.innerWidth}, scroll width: ${mobile.scrollWidth}`);
     console.log(`- Desktop width: ${desktop.innerWidth}, scroll width: ${desktop.scrollWidth}`);

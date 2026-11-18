@@ -17,8 +17,8 @@ export function SiteFooter({ departments }: SiteFooterProps) {
         </div>
         <div>
           <span>Departments</span>
-          {departments.slice(0, 5).map((category) => (
-            <a href={`/catalog/${category.id}`} key={category.id}>
+          {departments.map((category) => (
+            <a href={`/catalog/${category.id}#catalog`} key={category.id}>
               {category.label}
             </a>
           ))}

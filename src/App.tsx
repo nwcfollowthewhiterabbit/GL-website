@@ -18,6 +18,7 @@ import { SiteHeader } from "./components/SiteHeader";
 import { matchedItemGroups, websiteCategoryCount } from "./data/websiteCategories";
 import { useCustomerAccount } from "./hooks/useCustomerAccount";
 import { useStorefrontContent } from "./hooks/useStorefrontContent";
+import { useRouteScroll } from "./hooks/useRouteScroll";
 import { useTheme } from "./hooks/useTheme";
 import {
   ResourceNotFound,
@@ -71,21 +72,6 @@ function quoteResultFromResponse(data: QuoteRequestResponse, email: string, opti
     requiresSalesConfirmation: data.fulfillment?.requiresSalesConfirmation,
     ...options
   };
-}
-
-function scrollToPageTopInstantly() {
-  const root = document.documentElement;
-  const body = document.body;
-  const rootScrollBehavior = root.style.scrollBehavior;
-  const bodyScrollBehavior = body.style.scrollBehavior;
-
-  root.style.scrollBehavior = "auto";
-  body.style.scrollBehavior = "auto";
-  root.scrollTop = 0;
-  body.scrollTop = 0;
-  window.scrollTo(0, 0);
-  root.style.scrollBehavior = rootScrollBehavior;
-  body.style.scrollBehavior = bodyScrollBehavior;
 }
 
 type AppProps = {
@@ -170,9 +156,7 @@ export function App({ initialRoute }: AppProps = {}) {
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
-  useLayoutEffect(() => {
-    scrollToPageTopInstantly();
-  }, [route]);
+  useRouteScroll(route);
 
   useEffect(() => {
     const pageTitle =
@@ -306,7 +290,13 @@ export function App({ initialRoute }: AppProps = {}) {
   }, [catalogVisible, searchFocused, searchTerm, websiteNavigationCategories]);
 
   useEffect(() => {
-    if (route.view !== "catalog" || !route.categorySlug || !itemGroups.length) return;
+    if (route.view !== "catalog") return;
+    if (!route.categorySlug) {
+      setActiveWebsiteCategory("");
+      setActiveCategory("");
+      return;
+    }
+    if (!itemGroups.length) return;
     const department = websiteNavigationCategories.find((category) => category.id === route.categorySlug);
     if (department) {
       setActiveWebsiteCategory(department.id);
@@ -401,13 +391,12 @@ export function App({ initialRoute }: AppProps = {}) {
 
   const totalPages = Math.max(1, Math.ceil((catalogTotal || products.length) / PAGE_SIZE));
 
-  function navigate(path: string, nextRoute = parseStorefrontRoute(path)) {
+  function navigate(path: string, nextRoute = parseStorefrontRoute(path, "")) {
     window.history.pushState({}, "", path);
     if (nextRoute.view === "product") {
       flushSync(() => {
         setRoute(nextRoute);
       });
-      scrollToPageTopInstantly();
       return;
     }
     setRoute(nextRoute);
@@ -425,9 +414,9 @@ export function App({ initialRoute }: AppProps = {}) {
     setActiveCategory(category);
     setPage(1);
     if (categoryBelongsToActiveDepartment && activeDepartment) {
-      navigate(departmentCategoryPath(activeDepartment.id, category));
+      navigate(departmentCategoryPath(activeDepartment.id, category) + "#catalog");
     } else {
-      navigate(catalogPath(category), { view: "catalog", categorySlug: undefined });
+      navigate(catalogPath(category) + "#catalog");
     }
   }
 
@@ -435,7 +424,7 @@ export function App({ initialRoute }: AppProps = {}) {
     setActiveWebsiteCategory(categoryId);
     setActiveCategory("");
     setPage(1);
-    navigate(categoryId ? `/catalog/${categoryId}` : "/catalog", { view: "catalog", categorySlug: categoryId || undefined });
+    navigate((categoryId ? `/catalog/${categoryId}` : "/catalog") + "#catalog", { view: "catalog", categorySlug: categoryId || undefined });
   }
 
   function setSearch(value: string) {

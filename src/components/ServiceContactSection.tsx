@@ -8,7 +8,7 @@ type ServiceContactSectionProps = {
 export function ServiceContactSection({ onOpenQuote }: ServiceContactSectionProps) {
   return (
     <>
-      <section className="shell section service-section" id="service">
+      <section className="shell section service-section" id="service" tabIndex={-1}>
         <div className="section-heading">
           <div>
             <h2>Service after the order.</h2>
@@ -36,7 +36,7 @@ export function ServiceContactSection({ onOpenQuote }: ServiceContactSectionProp
               <CheckCircle2 size={18} /> Quotation support from Green Leaf sales
             </div>
           </article>
-          <article className="contact-card" id="contact">
+          <article className="contact-card" id="contact" tabIndex={-1}>
             <span className="service-icon">
               <MapPin size={20} />
             </span>

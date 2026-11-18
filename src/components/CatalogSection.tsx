@@ -116,7 +116,7 @@ export function CatalogSection({
   }
 
   return (
-    <section className="shell section" id="catalog">
+    <section className="shell section" id="catalog" tabIndex={-1}>
       <div className="section-heading">
         <div>
           <h1>Commercial catalog</h1>
@@ -126,7 +126,7 @@ export function CatalogSection({
 
       <div className="catalog-layout">
         <aside
-          className={`catalog-sidebar `}
+          className="catalog-sidebar"
           aria-label="Catalog navigation"
         >
           <div className="catalog-sidebar__head">
@@ -233,7 +233,7 @@ export function CatalogSection({
               </label>
             </div>
             <div className="catalog-tools__actions">
-              <button type="button" className="secondary-button catalog-filter-button" onClick={onToggleFilters}>
+              <button type="button" className="secondary-button catalog-filter-button" aria-controls="catalog-filters" aria-expanded={filtersOpen} onClick={onToggleFilters}>
                 <Layers3 size={18} /> Categories
               </button>
               {hasActiveFilters ? (
@@ -249,8 +249,15 @@ export function CatalogSection({
           </div>
 
           {filtersOpen ? (
-            <div className="filter-panel">
+            <div className="filter-panel" id="catalog-filters">
               <div className="filter-panel__section">
+                <label className="filter-panel__label" htmlFor="filter-department">Department</label>
+                <select id="filter-department" value={activeWebsiteCategory} onChange={(event) => onDepartmentChange(event.target.value)}>
+                  <option value="">All departments</option>
+                  {visibleCategories.map((department) => (
+                    <option key={department.id} value={department.id}>{department.label}</option>
+                  ))}
+                </select>
                 <span className="filter-panel__label">Product categories</span>
                 <div className="facet-chip-row">
                   {(activeDepartment ? sidebarGroups : topFacetGroups.slice(0, 24)).map((group) => (

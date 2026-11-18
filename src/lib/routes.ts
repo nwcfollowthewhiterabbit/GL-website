@@ -48,9 +48,10 @@ export function productPath(sku: string, uom?: string) {
 }
 
 export function parseStorefrontRoute(pathname = window.location.pathname, search = window.location.search): StorefrontRoute {
-  const queryIndex = pathname.indexOf("?");
-  const routePath = queryIndex >= 0 ? pathname.slice(0, queryIndex) : pathname;
-  const query = queryIndex >= 0 ? pathname.slice(queryIndex) : search;
+  const [pathAndQuery] = pathname.split("#");
+  const queryIndex = pathAndQuery.indexOf("?");
+  const routePath = queryIndex >= 0 ? pathAndQuery.slice(0, queryIndex) : pathAndQuery;
+  const query = queryIndex >= 0 ? pathAndQuery.slice(queryIndex) : search;
   const searchTerm = new URLSearchParams(query).get("q") || undefined;
   const path = routePath.replace(/\/+$/, "") || "/";
 

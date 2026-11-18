@@ -13,7 +13,7 @@ export function LegacyContentSection({ manufacturers }: LegacyContentSectionProp
 
   return (
     <section className="shell section legacy-section">
-      <div className="brands-section" id="brands">
+      <div className="brands-section" id="brands" tabIndex={-1}>
         <div>
           <span className="legacy-panel__label">
             <Sparkles size={18} /> Brands

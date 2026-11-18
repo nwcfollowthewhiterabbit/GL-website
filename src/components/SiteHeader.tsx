@@ -14,6 +14,7 @@ type SiteHeaderProps = {
 
 export function SiteHeader({ departments, quoteCount, theme, onToggleTheme, onOpenQuote }: SiteHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const navRef = useRef<HTMLElement | null>(null);
 
   function closeMenu() {
@@ -22,6 +23,7 @@ export function SiteHeader({ departments, quoteCount, theme, onToggleTheme, onOp
 
   useEffect(() => {
     if (!menuOpen) return;
+    navRef.current?.querySelector<HTMLAnchorElement>(".nav-menu a")?.focus({ preventScroll: true });
 
     function handlePointerDown(event: PointerEvent) {
       if (!navRef.current?.contains(event.target as Node)) {
@@ -30,7 +32,10 @@ export function SiteHeader({ departments, quoteCount, theme, onToggleTheme, onOp
     }
 
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") closeMenu();
+      if (event.key === "Escape") {
+        closeMenu();
+        triggerRef.current?.focus();
+      }
     }
 
     document.addEventListener("pointerdown", handlePointerDown);
@@ -76,6 +81,8 @@ export function SiteHeader({ departments, quoteCount, theme, onToggleTheme, onOp
               type="button"
               className="nav__catalog-trigger"
               onClick={() => setMenuOpen((value) => !value)}
+              ref={triggerRef}
+              aria-controls="catalog-department-menu"
               aria-expanded={menuOpen}
             >
               Catalog
@@ -114,7 +121,7 @@ export function SiteHeader({ departments, quoteCount, theme, onToggleTheme, onOp
             </button>
           </div>
         </div>
-        <div className={`shell nav-menu ${menuOpen ? "is-open" : ""}`}>
+        <div id="catalog-department-menu" className={`shell nav-menu ${menuOpen ? "is-open" : ""}`}>
           <div className="nav-menu__main">
             <div>
               <span>Catalog departments</span>
@@ -126,7 +133,7 @@ export function SiteHeader({ departments, quoteCount, theme, onToggleTheme, onOp
           </div>
           <div className="nav-menu__departments">
             {departments.map((category) => (
-              <a href={`/catalog/${category.id}`} key={category.id} onClick={closeMenu}>
+              <a href={`/catalog/${category.id}#catalog`} key={category.id} onClick={closeMenu}>
                 <span>{category.label}</span>
                 <small>{category.description}</small>
               </a>
