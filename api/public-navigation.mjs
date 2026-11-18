@@ -1,3 +1,4 @@
+import { withoutEmbeddedPrices } from "./catalog-verified-content.mjs";
 import { cachePublicRead } from "./public-read-cache.mjs";
 import { readFileSync } from "node:fs";
 import { getCatalogItemGroups } from "./catalog-service.mjs";
@@ -121,18 +122,19 @@ function escapeHtml(text) {
 }
 
 function informationPage(res, status, title, description, { sku, account, uom, reference, choices = [], specifications } = {}) {
+  const heading = withoutEmbeddedPrices(title) || sku || "Product information";
   const subject = [sku, reference].filter(Boolean).join(" / ");
   const mail = "mailto:buy@greenleafpacific.com" + (subject ? "?subject=" + encodeURIComponent("Availability of " + subject) : "");
   res.status(status).set("X-Robots-Tag", "noindex, follow").type("html").send(
     '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
     + '<meta name="robots" content="noindex, follow"><link rel="stylesheet" href="/store-information.css">'
-    + '<title>' + escapeHtml(title) + ' | Green Leaf Pacific</title></head><body><header><a href="/"><img src="/legacy/greenleaf-logo.png" alt="">Green Leaf Pacific</a></header>'
-    + '<main><h1>' + escapeHtml(title) + '</h1>' + (sku ? '<p>SKU ' + escapeHtml(sku) + '</p>' : '')
-    + (choices.length ? '<ul>' + choices.map(choice => '<li><a href="' + escapeHtml(destination(choice)) + '">' + escapeHtml(choice.title) + '</a></li>').join('') + '</ul>' : '')
+    + '<title>' + escapeHtml(heading) + ' | Green Leaf Pacific</title></head><body><header><a href="/"><img src="/legacy/greenleaf-logo.png" alt="">Green Leaf Pacific</a></header>'
+    + '<main><h1>' + escapeHtml(heading) + '</h1>' + (sku ? '<p>SKU ' + escapeHtml(sku) + '</p>' : '')
+    + (choices.length ? '<ul>' + choices.map(choice => '<li><a href="' + escapeHtml(destination(choice)) + '">' + escapeHtml(withoutEmbeddedPrices(choice.title) || choice.value) + '</a></li>').join('') + '</ul>' : '')
     + (reference ? '<p>Previous catalog reference ' + escapeHtml(reference) + '</p>' : '')
-    + (specifications ? '<p>' + escapeHtml(specifications) + '</p>' : '')
+    + (specifications ? '<p>' + escapeHtml(withoutEmbeddedPrices(specifications)) + '</p>' : '')
     + (uom ? '<p>Packaging: ' + escapeHtml(uom) + '</p>' : '')
-    + '<p>' + escapeHtml(description) + '</p><p><a href="' + escapeHtml(mail) + '">Email Green Leaf sales</a> · <a href="tel:+6796702222">+679 670 2222</a></p>'
+    + '<p>' + escapeHtml(withoutEmbeddedPrices(description)) + '</p><p><a href="' + escapeHtml(mail) + '">Email Green Leaf sales</a> · <a href="tel:+6796702222">+679 670 2222</a></p>'
     + '<p>4, Nippon Complex, Nadi Backroad, Nadi, Fiji</p><nav><a href="/catalog">Browse the current catalog</a>'
     + (account ? '<a href="/account">Open customer account</a>' : '') + '</nav></main></body></html>'
   );

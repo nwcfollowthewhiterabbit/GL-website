@@ -52,3 +52,8 @@ export function displayItemName(sku, name) {
   if (reviewedBladeSpacing.has(sku)) return name.replaceAll("Â\u00a0", " ");
   return sku === "BIO-R-200Y" ? name.replaceAll("\u00e2\u20ac\u201c", "–") : name;
 }
+
+// Some supplier descriptions include component prices alongside dimensions and materials.
+export function withoutEmbeddedPrices(text) {
+  return text.replace(/[ \t]*(?:[-–—][ \t]*)?(?:(?:US|FJ|AU?|NZ|CA)?(?:\$|&#0*36;|&#x0*24;|&dollar;)|[£€]|\b(?:FJD|USD|AUD|NZD|CAD|EUR|GBP))(?:\s|&nbsp;|&#160;)*\d+(?:,\d{3})*(?:\.\d+)?/gi, "");
+}

@@ -1,3 +1,4 @@
+import { withoutEmbeddedPrices } from "./catalog-verified-content.mjs";
 import { cachePublicRead } from "./public-read-cache.mjs";
 import { getErpPool, availableCustomFields } from "./erpnext-db.mjs";
 import { EXCLUDED_STOREFRONT_GROUPS, getCatalogPublicationSql } from "./catalog-publication-rules.mjs";
@@ -101,6 +102,6 @@ export function normalizeCategoryRule(row = {}) {
     sortOrder: Number(row.website_sort_order || 0),
     stockDisplay: row.website_stock_display || "Availability",
     showProductsWithoutImages: categoryBoolean(row.website_show_products_without_images, true),
-    categoryNote: row.website_category_note || ""
+    categoryNote: withoutEmbeddedPrices(row.website_category_note || "")
   };
 }

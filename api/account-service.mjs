@@ -1,4 +1,4 @@
-import { displayItemName } from "./catalog-verified-content.mjs";
+import { displayItemName, withoutEmbeddedPrices } from "./catalog-verified-content.mjs";
 import crypto from "node:crypto";
 import { getErpPool } from "./erpnext-db.mjs";
 import { assertWebsiteMigrationsApplied } from "./migrations/runner.mjs";
@@ -128,13 +128,17 @@ function namedList(values, prefix = "value") {
 }
 
 function accountLine(row) {
+  // Draft quotation queries omit rates. Submitted business documents keep the original ERP copy.
+  const issued = row.rate !== undefined;
+  const name = displayItemName(row.item_code, row.item_name || row.item_code);
+  const description = row.description || "";
   return {
     itemCode: row.item_code,
-    itemName: displayItemName(row.item_code, row.item_name || row.item_code),
-    description: row.description || "",
+    itemName: issued ? name : (withoutEmbeddedPrices(name) || row.item_code),
+    description: issued ? description : withoutEmbeddedPrices(description),
     qty: Number(row.qty || 0),
     uom: row.uom || row.stock_uom || "",
-    ...(row.rate === undefined ? {} : { rate: Number(row.rate || 0), amount: Number(row.amount || 0) }),
+    ...(issued ? { rate: Number(row.rate || 0), amount: Number(row.amount || 0) } : {}),
     image: row.image || null,
     deliveryDate: row.delivery_date,
     deliveredQty: row.delivered_qty === undefined ? undefined : Number(row.delivered_qty || 0),
