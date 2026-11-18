@@ -50,6 +50,18 @@ const server = app.listen(0, "127.0.0.1");
 try {
   await new Promise(resolve => server.once("listening", resolve));
   const base = "http://127.0.0.1:" + server.address().port;
+  // The archived keywords contain a line feed. Browsers strip it in a literal URL,
+  // while a percent-encoded link preserves it until the router decodes the path.
+  for (const [keyword, destination] of [
+    ["set-of-3-two-tone-colored-glass-bowls--wood-tray---silver-with-purple--blue--and-yellow-interior--and\nwood--titanium-plated-glass---wood---1-case", "/products/GET-WB-012-SET"],
+    ["shampoo-soap-dispenser---teak-grid-horizontal---walnut-color\nstainless-pump", "/products/SD-TG-004"]
+  ]) {
+    for (const spelling of [keyword, encodeURIComponent(keyword), keyword.replace("\n", "n")]) {
+      const response = await fetch(new URL("/" + spelling, base), { redirect: "manual" });
+      assert.equal(response.status, 301);
+      assert.equal(response.headers.get("location"), destination);
+    }
+  }
   const contact = await fetch(base + "/products/REW-3445745");
   const contactText = await contact.text();
   assert.equal(contact.status, 200);
