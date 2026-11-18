@@ -104,10 +104,10 @@ Useful API endpoints:
 
 ## Current Storefront State
 
-- Catalog grid reads live ERPNext items, `Standard Selling` prices, stock-derived availability, and proxied ERP images.
+- The catalog reads live ERPNext items, selling units, stock-derived availability and product images. The storefront, quote basket and draft quotation receipts show quantities and packaging. Sales issues pricing in ERP.
 - Quote basket persists in `localStorage` and creates draft ERPNext `Quotation` documents through the integration user.
 - ERPNext custom fields are defined under `erpnext/fixtures` and can store website quote id, source, customer email, and payload.
-- ERPNext Item Group and Item fields now control storefront category visibility, price mode, price list, stock display, image requirements, and product overrides.
+- ERPNext Item Group and Item fields now control storefront category visibility, stock display, image requirements, and product overrides. ERP selling conditions determine which units customers can request.
 - Advanced catalog filters read ERPNext item groups and display storefront rules such as excluded showroom warehouses.
 - Diagnostics show ERPNext catalog quality counters and recent website-created quotations.
 - The customer account reads linked ERPNext quotations, sales orders, and sales invoices after email/password authentication.

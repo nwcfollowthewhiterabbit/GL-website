@@ -76,7 +76,7 @@ import {
   requireAdminToken
 } from "./security.mjs";
 import { accountSelfServiceConfig, requestAccountEmail, completeAccountEmail } from "./account-self-service.mjs";
-import { catalogStats, categories, featuredProducts, manufacturers } from "../src/data/catalog.mjs";
+import { cachePublicRead } from "./public-read-cache.mjs";
 
 const app = express();
 const port = Number(process.env.API_PORT || 3000);
@@ -198,38 +198,31 @@ app.get("/api/admin/metrics", (_req, res) => {
   res.type("text/plain; version=0.0.4").send(metricsText());
 });
 
-app.get("/api/catalog/summary", (_req, res) => {
-  res.json({
-    stats: catalogStats,
-    categories,
-    manufacturers,
-    featuredProducts
-  });
+const publishedCatalogSkus = cachePublicRead(getPublishedCatalogSkus, 60_000);
+
+app.get("/api/catalog/summary", async (_req, res) => {
+  try {
+    const [skus, groups, brands, featured] = await Promise.all([
+      publishedCatalogSkus(), getCatalogItemGroups(), getWebsiteManufacturers(), getFeaturedCatalogProducts()
+    ]);
+    const categories = groups.filter(group => group.showOnStorefront && group.itemCount > 0).map(group => group.name);
+    res.json({
+      stats: { erpnext: { items: skus.length, itemGroups: categories.length } },
+      categories,
+      manufacturers: brands.manufacturers.map(brand => brand.name),
+      featuredProducts: featured.products
+    });
+  } catch (error) {
+    serviceFailure(res, "erpnext_catalog_unavailable", error);
+  }
 });
 
-app.get("/api/catalog/search", (req, res) => {
-  const query = String(req.query.q || "").trim().toLowerCase();
-  const category = String(req.query.category || "").trim().toLowerCase();
-
-  const products = featuredProducts.filter((product) => {
-    const matchesQuery =
-      !query ||
-      [product.name, product.sku, product.category, product.brand]
-        .filter(Boolean)
-        .some((value) => value.toLowerCase().includes(query));
-    const matchesCategory = !category || product.category.toLowerCase() === category;
-    return matchesQuery && matchesCategory;
-  });
-
-  res.json({ products });
-});
-
-app.get("/api/catalog/products", async (req, res) => {
+app.get(["/api/catalog/products", "/api/catalog/search"], async (req, res) => {
   try {
     const result = await getCatalogProducts(req.query);
-    const { q, category, categories, minPrice, maxPrice, featured } = req.query;
+    const { q, category, categories, featured } = req.query;
     const searchedCode = typeof q === "string" && q.trim().toLowerCase();
-    if (searchedCode && result.page === 1 && !category && !categories && !minPrice && !maxPrice && !featured
+    if (searchedCode && result.page === 1 && !category && !categories && !featured
       && !result.products.some(product => product.sku.toLowerCase() === searchedCode)) {
       const reference = await findCatalogReference(q, getVisibleItemReference);
       if (reference && !result.products.some(product => product.sku === reference.sku)) result.reference = reference;
@@ -712,7 +705,7 @@ app.post("/api/admin/customer-access/enable", async (req, res) => {
   }
 });
 
-installPublicNavigation(app, getPublishedCatalogSkus, undefined, getCatalogProductBySku, getVisibleItemReference);
+installPublicNavigation(app, publishedCatalogSkus, undefined, getCatalogProductBySku, getVisibleItemReference);
 
 await assertWebsiteMigrationsApplied();
 app.listen(port, () => {

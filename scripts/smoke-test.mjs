@@ -70,7 +70,18 @@ async function main() {
   const catalog = await readJson(`/api/catalog/products?page=1&pageSize=2&q=${encodeURIComponent(catalogQuery)}`);
   assert(Array.isArray(catalog.products), "Catalog products response is invalid");
   assert(catalog.products.length > 0, "Catalog search returned no products");
-  assert(catalog.priceList === "Standard Selling", "Unexpected catalog price list");
+  const forbidden = new Set(["price", "rate", "amount", "priceList", "priceMode", "currency", "price_list_rate"]);
+  function checkPublicCatalog(value) {
+    if (!value || typeof value !== "object") return;
+    for (const [key, child] of Object.entries(value)) {
+      assert(!forbidden.has(key), `Public catalog exposed ${key}`);
+      checkPublicCatalog(child);
+    }
+  }
+  checkPublicCatalog(catalog);
+  const compatibilitySearch = await readJson(`/api/catalog/search?q=${encodeURIComponent(catalog.products[0].sku)}`);
+  assert(compatibilitySearch.products.some(product => product.sku === catalog.products[0].sku), "Legacy catalog search missed ERP SKU");
+  checkPublicCatalog(compatibilitySearch);
 
 
   const departments = await readJson("/api/storefront/departments");
@@ -107,6 +118,7 @@ async function main() {
   const featured = await readJson("/api/catalog/featured?limit=4");
   assert(Array.isArray(featured.products), "Featured products response is invalid");
   assert(featured.products.length > 0, "Featured products returned no products");
+  [product, related, featured].forEach(checkPublicCatalog);
 
   const productPage = await readText(`/products/${encodeURIComponent(catalog.products[0].sku)}`);
   assert(productPage.includes('<div id="root"></div>'), "Product route did not return the SPA shell");
@@ -128,7 +140,8 @@ async function main() {
   assert(aboutPage.includes('href="/how-we-operate"'), "About Us does not link to How We Operate");
 
   const diagnostics = await readJson("/api/catalog/diagnostics");
-  assert(diagnostics.storefrontRules?.defaultCurrency === "FJD", "Public catalog diagnostics are invalid");
+  assert(Array.isArray(diagnostics.storefrontRules?.excludedGroups), "Public catalog diagnostics are invalid");
+  checkPublicCatalog(diagnostics);
 
   for (const policyPath of ["/privacy", "/terms", "/shipping", "/returns", "/payment-security"]) {
     const policyPage = await readText(policyPath);

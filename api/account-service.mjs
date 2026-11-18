@@ -134,8 +134,7 @@ function accountLine(row) {
     description: row.description || "",
     qty: Number(row.qty || 0),
     uom: row.uom || row.stock_uom || "",
-    rate: Number(row.rate || 0),
-    amount: Number(row.amount || 0),
+    ...(row.rate === undefined ? {} : { rate: Number(row.rate || 0), amount: Number(row.amount || 0) }),
     image: row.image || null,
     deliveryDate: row.delivery_date,
     deliveredQty: row.delivered_qty === undefined ? undefined : Number(row.delivered_qty || 0),
@@ -514,7 +513,7 @@ export async function getCustomerQuotesForAccount(emailValue, limit = 20, offset
 
   const [rows] = await getErpPool().execute(
     `
-      SELECT q.name, q.owner, q.party_name, q.transaction_date, q.valid_till, q.grand_total, q.status, q.order_type, q.creation, q.enq_det
+      SELECT q.name, q.owner, q.party_name, q.transaction_date, q.valid_till, CASE WHEN q.docstatus IN (1, 2) THEN q.grand_total END AS issued_total, q.status, q.order_type, q.creation, q.enq_det
       FROM \`tabQuotation\` q
       WHERE BINARY LOWER(IFNULL(q.website_customer_email, '')) = BINARY :email
          ${customerClause}
@@ -530,7 +529,7 @@ export async function getCustomerQuotesForAccount(emailValue, limit = 20, offset
     customer: row.party_name,
     transactionDate: row.transaction_date,
     validTill: row.valid_till,
-    grandTotal: Number(row.grand_total || 0),
+    ...(row.issued_total == null ? {} : { grandTotal: Number(row.issued_total) }),
     status: row.status,
     orderType: row.order_type || "",
     creation: row.creation,
@@ -619,7 +618,7 @@ export async function getAccountQuotationDetailByEmail(emailValue, quotationName
 
   const [rows] = await getErpPool().execute(
     `
-      SELECT q.name, q.owner, q.party_name, q.transaction_date, q.valid_till, q.grand_total, q.status, q.order_type,
+      SELECT q.name, q.owner, q.party_name, q.transaction_date, q.valid_till, CASE WHEN q.docstatus IN (1, 2) THEN q.grand_total END AS issued_total, q.status, q.order_type,
              q.creation, q.enq_det, q.contact_email, q.contact_mobile, q.terms, q.website_customer_email
       FROM \`tabQuotation\` q
       WHERE q.name = :name
@@ -644,7 +643,8 @@ export async function getAccountQuotationDetailByEmail(emailValue, quotationName
 
   const [lineRows] = await getErpPool().execute(
     `
-      SELECT item_code, item_name, description, qty, uom, stock_uom, rate, amount, image
+      SELECT item_code, item_name, description, qty, uom, stock_uom, image
+             ${row.issued_total == null ? "" : ", rate, amount"}
       FROM \`tabQuotation Item\`
       WHERE parent = :name
       ORDER BY idx
@@ -659,7 +659,7 @@ export async function getAccountQuotationDetailByEmail(emailValue, quotationName
     customer: row.party_name,
     transactionDate: row.transaction_date,
     validTill: row.valid_till,
-    grandTotal: Number(row.grand_total || 0),
+    ...(row.issued_total == null ? {} : { grandTotal: Number(row.issued_total) }),
     status: row.status,
     orderType: row.order_type || "",
     creation: row.creation,

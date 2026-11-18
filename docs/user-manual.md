@@ -7,19 +7,18 @@ ERP. It currently supports quotations without online payment.
 
 ## Find a product from the previous catalog
 
-Search the catalog by its full item code. Some products open a sales enquiry page where you can ask for availability and packaging. If a price is shown there, it applies to the unit printed beside the price. For a previous listing without an item code, include the catalog reference from the page in your message to sales.
+Search the catalog by its full item code. Some products open a sales enquiry page where you can ask for availability and packaging. For a previous listing without an item code, include the catalog reference from the page in your message to sales.
 
 ## Browse Products
 
 1. Open `/catalog`.
 2. Select a department or use search and filters.
-3. Open a product to view its SKU, availability and price mode.
+3. Open a product to view its SKU, availability and selling unit.
 4. Add products to your **Quote basket**. You can browse and build a basket before signing in.
 
 In the **Details** preview, use Tab to move between actions. Press Escape to close it and return to the product.
 
-Prices are shown in FJD and exclude VAT unless the interface explicitly states
-otherwise.
+The catalog, basket and quotation requests under review show units and quantities. Sales confirms pricing when issuing a quotation.
 
 If you follow an older product link, the website opens its current listing when a match exists. For an archived item, send the displayed SKU to the sales team to check availability. For an order placed on the previous website, use the **Orders from the previous website** link on the account page and provide your order number.
 
@@ -39,7 +38,7 @@ ERP password or permissions. Disabled accounts require help from support.
 ## Request a Quotation
 
 1. Sign in and open **Quote basket**.
-2. Review the selling unit printed after each price and enter the number of those packs. Two pack sizes of one SKU appear on separate lines. When an item must be ordered in multiples, the catalog shows the multiple and the basket quantity buttons use that step. If a saved basket asks you to choose a current selling unit, open its link and add the desired pack. Its original quantity is retained.
+2. Review the selling unit next to each item and enter the number of those packs. Two pack sizes of one SKU appear on separate lines. When an item must be ordered in multiples, the catalog shows the multiple and the basket quantity buttons use that step. If a saved basket asks you to choose a current selling unit, open its link and add the desired pack. Its original quantity is retained.
 3. Check your account details and enter the contact, phone and delivery location.
 4. Select **Request a quote**.
 5. Keep the displayed reference for communication with Green Leaf.
