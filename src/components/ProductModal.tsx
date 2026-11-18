@@ -1,4 +1,5 @@
 import { X } from "lucide-react";
+import { useModalFocus } from "../hooks/useModalFocus";
 import { availabilityLabel, plainTextDescription, priceLabel, productImage } from "../lib/catalog";
 import type { CatalogProduct } from "../types";
 
@@ -9,12 +10,13 @@ type ProductModalProps = {
 };
 
 export function ProductModal({ product, onClose, onAddToQuote }: ProductModalProps) {
+  const { dialogRef, closeButtonRef } = useModalFocus(Boolean(product), onClose);
   if (!product) return null;
 
   return (
     <div className="modal-backdrop" role="presentation" onClick={onClose}>
-      <article className="product-modal" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
-        <button className="icon-button product-modal__close" onClick={onClose} aria-label="Close product details">
+      <article ref={dialogRef} className="product-modal" role="dialog" aria-modal="true" aria-labelledby="product-preview-title" onClick={(event) => event.stopPropagation()}>
+        <button ref={closeButtonRef} className="icon-button product-modal__close" onClick={onClose} aria-label="Close product details">
           <X />
         </button>
         <div className="product-modal__media">
@@ -22,7 +24,7 @@ export function ProductModal({ product, onClose, onAddToQuote }: ProductModalPro
         </div>
         <div className="product-modal__body">
           <span className="tag">{product.category}</span>
-          <h2>{product.name}</h2>
+          <h2 id="product-preview-title">{product.name}</h2>
           <dl>
             <div>
               <dt>SKU</dt>

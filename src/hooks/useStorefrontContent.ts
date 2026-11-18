@@ -57,14 +57,21 @@ export function useStorefrontContent() {
   useEffect(() => {
     let ignore = false;
 
+    fetchCustomerCornerSettingsResource().then(({ settings, source }) => {
+      if (ignore) return;
+      if (settings) setCustomerCorner(settings);
+      setSources((current) => ({ ...current, customerCorner: settings ? source : "local_static_customer_corner" }));
+    }).catch(() => {
+      if (!ignore) setSources((current) => ({ ...current, customerCorner: "local_static_customer_corner" }));
+    });
+
     Promise.allSettled([
       fetchWebsiteDepartmentsResource(),
       fetchWebsiteBannersResource(),
       fetchWebsiteCatalogsResource(),
       fetchWebsiteManufacturersResource(),
-      fetchCustomerCornerSettingsResource(),
       fetchFeaturedCatalogProducts(8)
-    ]).then(([departmentResult, bannerResult, catalogResult, manufacturerResult, customerCornerResult, productsResult]) => {
+    ]).then(([departmentResult, bannerResult, catalogResult, manufacturerResult, productsResult]) => {
       if (ignore) return;
 
       const nextSources = { ...initialSources };
@@ -100,15 +107,8 @@ export function useStorefrontContent() {
         nextSources.manufacturers = "local_static_manufacturers";
       }
 
-      if (customerCornerResult.status === "fulfilled" && customerCornerResult.value.settings) {
-        setCustomerCorner(customerCornerResult.value.settings);
-        nextSources.customerCorner = customerCornerResult.value.source;
-      } else {
-        nextSources.customerCorner = "local_static_customer_corner";
-      }
-
       if (productsResult.status === "fulfilled") setRecommendedProducts(productsResult.value);
-      setSources(nextSources);
+      setSources((current) => ({ ...nextSources, customerCorner: current.customerCorner }));
     });
 
     return () => {

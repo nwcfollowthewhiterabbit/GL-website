@@ -51,7 +51,7 @@ export function useCustomerAccount(isAccountRoute: boolean) {
   const [contact, setContact] = useState("");
   const [phone, setPhone] = useState("");
   const [session, setSession] = useState<AccountSession | null>(null);
-  const [config, setConfig] = useState<AccountConfig>({ loginEnabled: true, registrationEnabled: false, passwordResetEnabled: false });
+  const [config, setConfig] = useState<AccountConfig | null>(null);
   const [status, setStatus] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [sessionReady, setSessionReady] = useState(false);
@@ -73,7 +73,9 @@ export function useCustomerAccount(isAccountRoute: boolean) {
   }
 
   useEffect(() => {
-    fetchAccountConfig().then(setConfig).catch(() => undefined);
+    fetchAccountConfig().then(setConfig).catch(() => {
+      setConfig({ loginEnabled: false, registrationEnabled: false, passwordResetEnabled: false });
+    });
   }, []);
 
   useEffect(() => {

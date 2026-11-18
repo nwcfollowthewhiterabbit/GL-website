@@ -12,6 +12,8 @@ ERP. It currently supports quotations without online payment.
 3. Open a product to view its SKU, availability and price mode.
 4. Add products to your **Quote basket**. You can browse and build a basket before signing in.
 
+In the **Details** preview, use Tab to move between actions. Press Escape to close it and return to the product.
+
 Prices are shown in FJD and exclude VAT unless the interface explicitly states
 otherwise.
 
@@ -50,6 +52,8 @@ submission. Retrying the same request opens its existing quotation.
 5. Select **View** to open document lines and the current customer-facing
    status.
 6. Select **Sign out** when finished on a shared device. This closes the current browser session. Your other devices stay signed in. Contact and delivery fields are cleared when you sign out or reload. Your product basket stays in this browser.
+
+For purchases made on the former storefront, select **Orders from the previous website** to contact sales.
 
 Use **Load older records** to view older records. A new request appears under quotations
 as **Under review**. When sales issues a quotation or creates an order in ERP,

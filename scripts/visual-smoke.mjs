@@ -212,6 +212,27 @@ async function main() {
       height: 1200,
       mobile: true
     }, ".product-card");
+    const campaign = await page.send("Runtime.evaluate", {
+      returnByValue: true,
+      expression: `(() => {
+        const link = document.querySelector(".hero-slide");
+        const caption = link?.querySelector(".hero-slide__caption");
+        if (!link || !caption) return null;
+        return { name: link.getAttribute("aria-label"), caption: caption.innerText.trim(), visible: caption.getBoundingClientRect().height > 0 };
+      })()`
+    });
+    assert(campaign.result.result.value?.name && campaign.result.result.value.caption && campaign.result.result.value.visible,
+      "The mobile campaign must have readable text and a named link");
+    await page.send("Emulation.setDeviceMetricsOverride", { width: 768, height: 1024, deviceScaleFactor: 1, mobile: false });
+    const filtersFit = await page.send("Runtime.evaluate", {
+      returnByValue: true,
+      expression: `(() => {
+        const price = document.querySelector('input[placeholder="Any"]').getBoundingClientRect();
+        const categories = document.querySelector(".catalog-filter-button").getBoundingClientRect();
+        return price.right <= categories.left || price.bottom <= categories.top;
+      })()`
+    });
+    assert(filtersFit.result.result.value, "Tablet categories overlap the maximum price field");
     const desktop = await captureViewport(page.send, "catalog-desktop", {
       width: 1440,
       height: 1200,
@@ -320,6 +341,26 @@ async function main() {
       expression: `document.querySelector(".nav__theme-button")?.click()`
     });
     await wait(250);
+
+    await page.send("Runtime.evaluate", {
+      expression: `(() => {
+        const trigger = document.querySelector(".product-card .secondary-button");
+        trigger.focus();
+        trigger.click();
+      })()`
+    });
+    await waitForSelector(page.send, ".product-modal");
+    const previewFocus = await page.send("Runtime.evaluate", {
+      returnByValue: true, expression: `document.activeElement?.matches(".product-modal__close")`
+    });
+    assert(previewFocus.result.result.value, "Product preview must move keyboard focus inside");
+    await page.send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+    await page.send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+    await waitForMissingSelector(page.send, ".product-modal");
+    const restoredFocus = await page.send("Runtime.evaluate", {
+      returnByValue: true, expression: `document.activeElement?.matches(".product-card .secondary-button")`
+    });
+    assert(restoredFocus.result.result.value, "Closing product preview must restore focus to Details");
 
     await page.send("Runtime.evaluate", {
       expression: `document.querySelector(".product-card .primary-button")?.click()`
@@ -711,6 +752,10 @@ async function main() {
     });
     assert(paymentMobile.heading === "Payment and security information", "Payment page heading is missing");
     assert(paymentDesktop.heading === "Payment and security information", "Payment page heading is missing");
+
+    const paymentText = await page.send("Runtime.evaluate", { returnByValue: true, expression: 'document.querySelector(".policy-page").innerText' });
+    assert(paymentText.result.result.value.includes("No online payment is taken"), "The payment policy must explain the quotation-only flow");
+    assert(!/UAT credentials|70% deposit|Visa, Mastercard/i.test(paymentText.result.result.value), "The payment policy advertises inactive checkout");
 
     await page.send("Page.navigate", { url: `${baseUrl}/how-we-operate?visual-smoke=1` });
     await waitForSelector(page.send, ".operations-page");

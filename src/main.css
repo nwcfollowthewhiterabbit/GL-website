@@ -220,7 +220,6 @@ textarea:focus-visible {
   color: var(--soft);
 }
 
-:root[data-theme="dark"] .hero-slide h1,
 :root[data-theme="dark"] .hero__copy {
   color: #f3f7f2;
 }
@@ -617,60 +616,26 @@ textarea:focus-visible {
 }
 
 .hero-slide {
-  position: relative;
   display: block;
-  aspect-ratio: 1920 / 500;
-  min-height: 300px;
   color: var(--ink);
+  text-decoration: none;
+}
+
+.hero-slide picture,
+.hero-slide img {
+  display: block;
+  width: 100%;
 }
 
 .hero-slide img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  display: block;
-  object-fit: cover;
-  object-position: center;
+  aspect-ratio: 1920 / 500;
+  height: auto;
+  object-fit: contain;
   background: var(--panel-soft);
 }
 
-.hero-slide::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(90deg, rgba(12, 27, 18, 0.72), rgba(21, 59, 40, 0.28) 42%, rgba(21, 59, 40, 0.03) 72%),
-    linear-gradient(180deg, rgba(16, 40, 26, 0.2), rgba(16, 40, 26, 0.18));
-}
-
-.hero-slide__overlay {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  align-content: center;
-  gap: 12px;
-  min-height: 300px;
-  height: 100%;
-  max-width: 360px;
-  padding: 36px;
-}
-
-.hero-slide h1 {
-  margin: 0;
-  max-width: 100%;
-  color: var(--ink);
-  font-size: 30px;
-  line-height: 1.08;
-  letter-spacing: 0;
-}
-
-.hero__copy {
-  margin: 0;
-  max-width: 100%;
-  color: var(--muted);
-  font-size: 15px;
-  line-height: 1.55;
+.hero-slide__caption {
+  display: none;
 }
 
 .hero-slider__controls {
@@ -1226,7 +1191,7 @@ textarea:focus-visible {
 
 .catalog-tools {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.72fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(338px, 0.72fr) auto;
   align-items: end;
   gap: 10px;
   margin-bottom: 14px;
@@ -3990,6 +3955,14 @@ textarea:focus-visible {
     display: grid;
   }
 
+  .catalog-tools {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .catalog-tools .search-shell {
+    grid-column: 1 / -1;
+  }
+
   .catalog-filter-button {
     display: inline-flex;
   }
@@ -4087,8 +4060,9 @@ textarea:focus-visible {
     min-height: 340px;
   }
 
-  .hero-slide h1 {
-    font-size: 30px;
+  .hero-slider__controls {
+    position: static;
+    padding: 10px 14px;
   }
 
   .section-heading :is(h1, h2),
@@ -4290,31 +4264,25 @@ textarea:focus-visible {
     flex-wrap: wrap;
   }
 
-  .hero-slide,
-  .hero-slide__overlay {
-    min-height: 320px;
+  .hero-slide__caption {
+    display: grid;
+    gap: 6px;
+    padding: 14px 16px 4px;
   }
 
-  .hero-slide__overlay {
-    max-width: 100%;
-    padding: 22px;
+  .hero-slide__caption strong {
+    font-size: 20px;
+    line-height: 1.2;
   }
 
-  .hero-slide::after {
-    background:
-      linear-gradient(180deg, rgba(246, 247, 243, 0.95), rgba(246, 247, 243, 0.62) 58%, rgba(246, 247, 243, 0.08)),
-      linear-gradient(180deg, rgba(21, 59, 40, 0.08), rgba(21, 59, 40, 0.1));
+  .hero-slide__caption > span {
+    color: var(--muted);
+    line-height: 1.4;
   }
 
-  .hero-slide h1 {
-    max-width: calc(100vw - 68px);
-    font-size: 28px;
-    line-height: 1.08;
-  }
-
-  .hero__copy {
-    max-width: calc(100vw - 68px);
-    font-size: 16px;
+  .hero-slide__caption svg {
+    vertical-align: middle;
+    color: var(--leaf);
   }
 
   .section-heading :is(h1, h2),

@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
+import { useModalFocus } from "../hooks/useModalFocus";
 import {
   ArrowRight,
   Building2,
@@ -29,6 +30,7 @@ type AccountPageProps = {
   isLoading: boolean;
   isAuthenticated: boolean;
   settings: CustomerCornerSettings;
+  settingsLoading: boolean;
   detail: AccountDocumentDetail | null;
   isDetailLoading: boolean;
   onEmailChange: (value: string) => void;
@@ -120,50 +122,7 @@ type AccountDocumentModalProps = {
 };
 
 function AccountDocumentModal({ detail, salesEmail, onClose }: AccountDocumentModalProps) {
-  const dialogRef = useRef<HTMLElement>(null);
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
-
-  useEffect(() => {
-    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    closeButtonRef.current?.focus();
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onCloseRef.current();
-        return;
-      }
-
-      if (event.key !== "Tab" || !dialogRef.current) return;
-      const focusable = Array.from(
-        dialogRef.current.querySelectorAll<HTMLElement>(
-          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-        )
-      );
-      if (!focusable.length) return;
-
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    }
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = previousOverflow;
-      previousFocus?.focus();
-    };
-  }, []);
+  const { dialogRef, closeButtonRef } = useModalFocus(true, onClose);
 
   const title = detail.type === "quote"
     ? "Quotation details"
@@ -277,6 +236,7 @@ export function AccountPage({
   isLoading,
   isAuthenticated,
   settings,
+  settingsLoading,
   detail,
   isDetailLoading,
   onEmailChange,
@@ -350,6 +310,7 @@ export function AccountPage({
               <div>
                 <span>Need account help?</span>
                 <a href={`mailto:${settings.salesEmail}`}>{settings.salesEmail}</a>
+                <a href="/previous-orders">Orders from the previous website</a>
               </div>
             </div>
           </div>
@@ -359,7 +320,9 @@ export function AccountPage({
               <UserRound size={20} />
               <div><strong>{authTitles[auth.authMode]}</strong><span>{authCopy[auth.authMode]}</span></div>
             </div>
-            {!settings.loginEnabled || !auth.config.loginEnabled ? (
+            {settingsLoading || !auth.sessionReady || auth.config === null ? (
+              <div className="account-auth__state" role="status"><span>Loading account access…</span></div>
+            ) : !settings.loginEnabled || !auth.config.loginEnabled ? (
               <div className="account-auth__state"><Mail size={18} /><div><strong>Account access is temporarily unavailable</strong><span>Contact {settings.salesEmail} for help.</span></div></div>
             ) : (
               <>
@@ -424,7 +387,7 @@ export function AccountPage({
             <span>Account activity</span>
             <h2>Your requests and orders</h2>
           </div>
-          <p>Quote requests appear here first. Confirmed orders and invoices are added as Green Leaf processes your request.</p>
+          <p>Quote requests appear here first. Confirmed orders and invoices are added as Green Leaf processes your request. <a href="/previous-orders">Orders from the previous website</a></p>
         </div>
 
         <div className="account-next-actions account-panel--wide">

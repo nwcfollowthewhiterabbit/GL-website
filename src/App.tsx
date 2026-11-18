@@ -614,6 +614,7 @@ export function App({ initialRoute }: AppProps = {}) {
           isLoading={account.isLoading}
           isAuthenticated={Boolean(account.session)}
           settings={storefront.customerCorner}
+          settingsLoading={storefront.sources.customerCorner === "loading"}
           onEmailChange={account.setEmail}
           onPasswordChange={account.setPassword}
           onLogin={account.login}
