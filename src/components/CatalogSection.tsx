@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronRight, Clock3, DollarSign, Layers3, Search, ShoppingCart, X } from "lucide-react";
 import { availabilityLabel, availabilityTone, plainTextDescription, offerKey, priceLabel, productImage, productPlaceholder, purchaseFlowLabel } from "../lib/catalog";
-import type { CatalogDiagnostics, CatalogFacets, CatalogProduct, CatalogSuggestion, ItemGroup, WebsiteCategory } from "../types";
+import type { CatalogFacets, CatalogProduct, CatalogSuggestion, ItemGroup, WebsiteCategory } from "../types";
 
 type WebsiteCategoryView = WebsiteCategory & {
   itemCount: number;
@@ -25,13 +25,14 @@ type CatalogSectionProps = {
   productCount: number;
   totalPages: number;
   filtersOpen: boolean;
-  diagnostics: CatalogDiagnostics | null;
+  priceList: string;
   catalogFacets: CatalogFacets | null;
   searchSuggestions: CatalogSuggestion[];
   suggestionsLoading: boolean;
   onToggleFilters: () => void;
   onDepartmentChange: (categoryId: string) => void;
   onCategoryChange: (category: string) => void;
+  onSearchFocus: () => void;
   onSearchChange: (value: string) => void;
   onSortChange: (value: string) => void;
   onPriceFilterChange: (kind: "min" | "max", value: string) => void;
@@ -58,13 +59,14 @@ export function CatalogSection({
   productCount,
   totalPages,
   filtersOpen,
-  diagnostics,
+  priceList,
   catalogFacets,
   searchSuggestions,
   suggestionsLoading,
   onToggleFilters,
   onDepartmentChange,
   onCategoryChange,
+  onSearchFocus,
   onSearchChange,
   onSortChange,
   onPriceFilterChange,
@@ -187,6 +189,7 @@ export function CatalogSection({
                   placeholder="Search product name, SKU, dimensions"
                   value={searchTerm}
                   onFocus={() => {
+                    onSearchFocus();
                     if (searchTerm.trim()) setSuggestionsOpen(true);
                   }}
                   onChange={(event) => {
@@ -294,7 +297,7 @@ export function CatalogSection({
                 <div>
                   <span className="filter-panel__label">Storefront rules</span>
                   <p>
-                    Price list: <strong>{diagnostics?.priceList || "Standard Selling"}</strong>. Currency:{" "}
+                    Price list: <strong>{priceList}</strong>. Currency:{" "}
                     <strong>{catalogFacets?.rules.defaultCurrency || "FJD"}</strong>.
                   </p>
                 </div>

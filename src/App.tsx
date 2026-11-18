@@ -23,7 +23,6 @@ import { useTheme } from "./hooks/useTheme";
 import {
   createQuoteRequest,
   purgeLegacyQuoteDetails,
-  fetchCatalogDiagnostics,
   fetchCatalogProduct,
   fetchCatalogFacets,
   fetchCatalogProducts,
@@ -34,7 +33,6 @@ import {
 import { catalogPath, departmentCategoryPath, findCategoryBySlug, parseStorefrontRoute, productPath, type StorefrontRoute } from "./lib/routes";
 import { offerKey, nextOrderQuantity, numericPrice, orderStep } from "./lib/catalog";
 import type {
-  CatalogDiagnostics,
   CatalogFacets,
   CatalogProduct,
   CatalogSuggestion,
@@ -135,15 +133,17 @@ export function App({ initialRoute }: AppProps = {}) {
   const [deliveryLocation, setDeliveryLocation] = useState("");
   const [quoteNotes, setQuoteNotes] = useState("");
   const [itemGroups, setItemGroups] = useState<ItemGroup[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [route, setRoute] = useState<StorefrontRoute>(() => initialRoute || parseStorefrontRoute());
+  const catalogVisible = route.view === "catalog";
+  const [searchTerm, setSearchTerm] = useState(route.view === "catalog" ? route.search || "" : "");
+  const [searchFocused, setSearchFocused] = useState(false);
   const [catalogSort, setCatalogSort] = useState("featured");
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [activeCategory, setActiveCategory] = useState("");
   const [activeWebsiteCategory, setActiveWebsiteCategory] = useState("");
   const [page, setPage] = useState(1);
-  const [diagnostics, setDiagnostics] = useState<CatalogDiagnostics | null>(null);
-  const [route, setRoute] = useState<StorefrontRoute>(() => initialRoute || parseStorefrontRoute());
+  const [catalogPriceList, setCatalogPriceList] = useState("Standard Selling");
   const [activeProduct, setActiveProduct] = useState<CatalogProduct | null>(null);
   const [previewProduct, setPreviewProduct] = useState<CatalogProduct | null>(null);
   const [productLoading, setProductLoading] = useState(false);
@@ -154,7 +154,7 @@ export function App({ initialRoute }: AppProps = {}) {
   const [catalogSuggestionsLoading, setCatalogSuggestionsLoading] = useState(false);
   const [quoteSubmitting, setQuoteSubmitting] = useState(false);
   const [quoteResult, setQuoteResult] = useState<QuoteResult | null>(null);
-  const storefront = useStorefrontContent();
+  const storefront = useStorefrontContent(catalogVisible);
   const account = useCustomerAccount(route.view === "account");
   const { theme, toggleTheme } = useTheme();
   const websiteNavigationCategories = storefront.departments;
@@ -209,9 +209,11 @@ export function App({ initialRoute }: AppProps = {}) {
     setPage(1);
   }, [route]);
 
+  const department = websiteNavigationCategories.find((entry) => entry.id === activeWebsiteCategory);
+  const departmentGroups = !activeCategory && department ? matchedItemGroups(department, itemGroups).join(",") : "";
   useEffect(() => {
+    if (!catalogVisible) return;
     let ignore = false;
-    const activeWebsiteDepartment = websiteNavigationCategories.find((category) => category.id === activeWebsiteCategory);
     setCatalogState("loading");
     setErpProducts([]);
     setCatalogTotal(null);
@@ -224,13 +226,13 @@ export function App({ initialRoute }: AppProps = {}) {
       sort: catalogSort,
       minPrice,
       maxPrice,
-      categories:
-        !activeCategory && activeWebsiteDepartment ? matchedItemGroups(activeWebsiteDepartment, itemGroups) : undefined
+      categories: departmentGroups
     })
       .then((data) => {
         if (ignore) return;
         setErpProducts(data.products || []);
-        setCatalogTotal(data.total || null);
+        setCatalogTotal(data.total);
+        setCatalogPriceList(data.priceList);
         setCatalogState("ready");
       })
       .catch(() => {
@@ -242,9 +244,10 @@ export function App({ initialRoute }: AppProps = {}) {
     return () => {
       ignore = true;
     };
-  }, [activeCategory, activeWebsiteCategory, catalogSort, itemGroups, maxPrice, minPrice, page, searchTerm, websiteNavigationCategories]);
+  }, [activeCategory, catalogVisible, catalogSort, departmentGroups, maxPrice, minPrice, page, searchTerm]);
 
   useEffect(() => {
+    if (!catalogVisible) return;
     fetchCatalogFacets()
       .then((facets) => {
         setCatalogFacets(facets);
@@ -256,11 +259,11 @@ export function App({ initialRoute }: AppProps = {}) {
           .then((groups) => setItemGroups(groups.filter((group: ItemGroup) => group.itemCount > 0)))
           .catch(() => setItemGroups([]));
       });
-  }, []);
+  }, [catalogVisible]);
 
   useEffect(() => {
     const q = searchTerm.trim();
-    if (!q) {
+    if (!catalogVisible || !searchFocused || !q) {
       setCatalogSuggestions([]);
       setCatalogSuggestionsLoading(false);
       return;
@@ -297,7 +300,7 @@ export function App({ initialRoute }: AppProps = {}) {
       ignore = true;
       window.clearTimeout(timer);
     };
-  }, [searchTerm, websiteNavigationCategories]);
+  }, [catalogVisible, searchFocused, searchTerm, websiteNavigationCategories]);
 
   useEffect(() => {
     if (route.view !== "catalog" || !route.categorySlug || !itemGroups.length) return;
@@ -355,12 +358,6 @@ export function App({ initialRoute }: AppProps = {}) {
       ignore = true;
     };
   }, [erpProducts, route]);
-
-  useEffect(() => {
-    fetchCatalogDiagnostics()
-      .then(setDiagnostics)
-      .catch(() => setDiagnostics(null));
-  }, []);
 
   useEffect(() => {
     if (!basketRestored) return;
@@ -696,7 +693,7 @@ export function App({ initialRoute }: AppProps = {}) {
             productCount={catalogTotal || products.length}
             totalPages={totalPages}
             filtersOpen={filtersOpen}
-            diagnostics={diagnostics}
+            priceList={catalogPriceList}
             catalogFacets={catalogFacets}
             searchSuggestions={catalogSuggestions}
             suggestionsLoading={catalogSuggestionsLoading}
@@ -704,6 +701,7 @@ export function App({ initialRoute }: AppProps = {}) {
             onDepartmentChange={setDepartment}
             onCategoryChange={setCategory}
             onSearchChange={setSearch}
+            onSearchFocus={() => setSearchFocused(true)}
             onSortChange={setSort}
             onPriceFilterChange={setPriceFilter}
             onSelectSuggestion={selectCatalogSuggestion}

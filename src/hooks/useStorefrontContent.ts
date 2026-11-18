@@ -41,7 +41,7 @@ const initialSources: StorefrontContentSources = {
   customerCorner: "loading"
 };
 
-export function useStorefrontContent() {
+export function useStorefrontContent(catalogVisible: boolean) {
   const [departments, setDepartments] = useState<WebsiteCategory[]>(websiteCategories);
   const [banners, setBanners] = useState<WebsiteBanner[]>(heroBanners as WebsiteBanner[]);
   const [catalogs, setCatalogs] = useState<WebsiteCatalogDownload[]>(
@@ -69,9 +69,8 @@ export function useStorefrontContent() {
       fetchWebsiteDepartmentsResource(),
       fetchWebsiteBannersResource(),
       fetchWebsiteCatalogsResource(),
-      fetchWebsiteManufacturersResource(),
-      fetchFeaturedCatalogProducts(8)
-    ]).then(([departmentResult, bannerResult, catalogResult, manufacturerResult, productsResult]) => {
+      fetchWebsiteManufacturersResource()
+    ]).then(([departmentResult, bannerResult, catalogResult, manufacturerResult]) => {
       if (ignore) return;
 
       const nextSources = { ...initialSources };
@@ -107,7 +106,6 @@ export function useStorefrontContent() {
         nextSources.manufacturers = "local_static_manufacturers";
       }
 
-      if (productsResult.status === "fulfilled") setRecommendedProducts(productsResult.value);
       setSources((current) => ({ ...nextSources, customerCorner: current.customerCorner }));
     });
 
@@ -115,6 +113,15 @@ export function useStorefrontContent() {
       ignore = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!catalogVisible) return;
+    let active = true;
+    fetchFeaturedCatalogProducts(8).then((products) => {
+      if (active) setRecommendedProducts(products);
+    }).catch(() => {});
+    return () => { active = false; };
+  }, [catalogVisible]);
 
   useEffect(() => {
     const fallbackSources = Object.entries(sources).filter(([, source]) => source.includes("fallback") || source.includes("local_static"));

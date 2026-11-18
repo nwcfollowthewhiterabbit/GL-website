@@ -36,7 +36,7 @@ export function fetchCatalogProducts(params: {
   pageSize: number;
   q?: string;
   category?: string;
-  categories?: string[];
+  categories?: string;
   sort?: string;
   minPrice?: string;
   maxPrice?: string;
@@ -47,7 +47,7 @@ export function fetchCatalogProducts(params: {
   });
   if (params.q) search.set("q", params.q);
   if (params.category) search.set("category", params.category);
-  if (params.categories?.length) search.set("categories", params.categories.join(","));
+  if (params.categories?.length) search.set("categories", params.categories);
   if (params.sort) search.set("sort", params.sort);
   if (params.minPrice) search.set("minPrice", params.minPrice);
   if (params.maxPrice) search.set("maxPrice", params.maxPrice);
