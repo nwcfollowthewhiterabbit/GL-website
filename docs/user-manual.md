@@ -12,9 +12,11 @@ Search the catalog by its full item code. Some products open a sales enquiry pag
 ## Browse Products
 
 1. Open `/catalog`.
-2. Select a department or use search and filters.
+2. Select **Catalog** to open the department menu on a phone or computer. Choose a department, or select **View all products** to browse and filter the full catalog.
 3. Open a product to view its SKU, availability and selling unit.
 4. Add products to your **Quote basket**. You can browse and build a basket before signing in.
+
+The **Brands**, **Service** and **Contact** links open their sections of the catalog from any page.
 
 In the **Details** preview, use Tab to move between actions. Press Escape to close it and return to the product.
 

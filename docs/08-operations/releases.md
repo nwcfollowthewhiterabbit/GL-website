@@ -6,6 +6,8 @@ cleanup и границу rollback. Для следующих релизов и�
 
 ## Релизы
 
+- [2026-11-18 — публичные фотографии и навигация](releases/2026-11-18-public-photos-and-navigation.md).
+
 - [2026-11-18 — каталог без цен и оформление заявок через корзину](releases/2026-11-18-catalog-without-prices.md).
 
 - [2026-11-18 — сверка 40 артикулов и прежнего каталога с ERP](releases/2026-11-18-catalog-reconciliation.md).
