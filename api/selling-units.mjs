@@ -16,11 +16,31 @@ export function storePriceParams() {
   };
 }
 
+// These two exact Item records say one piece per case and have a matching
+// submitted Stock Entry and Stock Ledger movement. A later Item UOM row
+// takes precedence. A renamed product or a new template disables the fallback.
+export const publicStockConversionSql = `CASE
+  WHEN COALESCE(NULLIF(ip.uom, ''), item.stock_uom) = item.stock_uom THEN 1
+  WHEN conv.parent IS NOT NULL THEN conv.conversion_factor
+  WHEN ip.uom = 'Each' AND item.stock_uom = 'Case' AND item.sales_uom = 'Case'
+    AND COALESCE(item.variant_of, '') = ''
+    AND (
+      (item.name = 'REW-LPC' AND HEX(TRIM(item.item_name)) = HEX('2Ltr Magimix Gelato Expert, Stainless Steel - 1/Case'))
+      OR (item.name = 'WIN-WB-29S' AND HEX(TRIM(item.item_name)) = HEX('Pipe Style Wine Bucket Stand For Wb-4 & Wb-4hv - 1/Case'))
+    ) THEN 1
+  ELSE NULL END`;
+
 // Public rates must identify a selling unit and a trusted ERP conversion to stock.
 // Rank effective dates before edit times; equally current conflicting rates need ERP review.
-export async function publicSellingUnitsSql({ exactSku = false, search = false, featured = false, requireImage = false } = {}) {
+export async function publicSellingUnitsSql({ exactSku = false, search = false, featured = false, requireImage = false, requireConversion = true } = {}) {
   const customPriceList = await hasCustomField("Item Group", "website_price_list");
   const priceList = customPriceList ? "COALESCE(NULLIF(g.website_price_list, ''), :priceList)" : ":priceList";
+  const completeConversion = `COUNT(current_price.conversion_factor) = COUNT(*)
+      AND MIN(current_price.conversion_factor) = MAX(current_price.conversion_factor)
+      AND MIN(current_price.conversion_factor) > 0`;
+  const conversionCheck = exactSku === true && requireConversion === false
+    ? `(COUNT(current_price.conversion_factor) = 0 OR (${completeConversion}))`
+    : completeConversion;
   return `
     SELECT current_price.item_code, current_price.uom, current_price.price_list,
            current_price.currency, MIN(current_price.packing_unit) AS packing_unit,
@@ -29,8 +49,7 @@ export async function publicSellingUnitsSql({ exactSku = false, search = false, 
     FROM (
       SELECT ip.item_code, COALESCE(NULLIF(ip.uom, ''), item.stock_uom) AS uom,
              ip.price_list, ip.currency, ip.price_list_rate, IFNULL(ip.packing_unit, 0) AS packing_unit,
-             CASE WHEN COALESCE(NULLIF(ip.uom, ''), item.stock_uom) = item.stock_uom
-                  THEN 1 ELSE conv.conversion_factor END AS conversion_factor,
+             ${publicStockConversionSql} AS conversion_factor,
              DENSE_RANK() OVER (
                PARTITION BY ip.item_code, COALESCE(NULLIF(ip.uom, ''), item.stock_uom)
                ORDER BY ip.valid_from DESC, ip.modified DESC
@@ -58,9 +77,7 @@ export async function publicSellingUnitsSql({ exactSku = false, search = false, 
       AND MIN(current_price.price_list_rate) > 0
       AND MIN(current_price.packing_unit) = MAX(current_price.packing_unit)
       AND MAX(current_price.packing_unit) <= 1000
-      AND COUNT(current_price.conversion_factor) = COUNT(*)
-      AND MIN(current_price.conversion_factor) = MAX(current_price.conversion_factor)
-      AND MIN(current_price.conversion_factor) > 0`;
+      AND ${conversionCheck}`;
 }
 
 export async function publicPriceSummarySql() {

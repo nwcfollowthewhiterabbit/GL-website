@@ -47,7 +47,7 @@
     "erpnext:ensure-website-sidebar:docker": "docker compose exec api npm run erpnext:ensure-website-sidebar",
     "test:site-profile": "node scripts/site-profile-test.mjs",
     "test:self-service": "node scripts/account-self-service-test.mjs",
-    "test:customer-quotes": "node scripts/customer-quote-test.mjs"
+    "test:customer-quotes": "node scripts/customer-quote-test.mjs && node scripts/verified-case-test.mjs"
   },
   "dependencies": {
     "cors": "^2.8.6",
