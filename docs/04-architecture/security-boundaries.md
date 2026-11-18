@@ -55,7 +55,7 @@ retaining the existing browser and ERP proxy request format.
 
 The API image installs `npm ci --omit=dev`; Vite, the React build plugin and
 TypeScript are build-only. The 2026-11-18 lockfile audit reported zero advisories
-for API dependencies. The full build tree still reports the picomatch advisory
-and its dependants in the reviewed Vite pipeline. Only repository-controlled
-patterns are used during the build. Track a patched upstream version.
+for API dependencies. At 15:50 UTC the npm registry still flagged picomatch and
+three dependent build packages under one advisory. GitHub withdrew that advisory
+at 15:38:56 UTC on the same day. The build uses repository-controlled patterns.
 [Advisory GHSA-fc5q-39xc-vjpf](https://github.com/advisories/GHSA-fc5q-39xc-vjpf).
