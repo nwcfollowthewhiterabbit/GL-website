@@ -18,6 +18,13 @@ assert.equal(catalogProductImage(archiveSku, archiveTitle, "/files/new-public.jp
 assert.equal(catalogProductImage("UNKNOWN", "Product", "/private/files/fixture.jpg"), null);
 assert.equal(catalogProductImage(archiveSku, archiveTitle, null), null);
 
+const frameSku = "ART‐MPF1";
+const frameTitle = "1360*760*25 mm Picture mahogany frame";
+const wrongFrameUrl = "https://everwhiteboards.com/wp-content/uploads/2016/06/Narrow_Mahogany.png";
+assert.equal(catalogProductImage(frameSku, frameTitle, wrongFrameUrl), null);
+assert.equal(catalogProductImage(frameSku, frameTitle, "/files/correct-frame.jpg"), "/files/correct-frame.jpg");
+assert.equal(catalogProductImage("ANOTHER", frameTitle, wrongFrameUrl), wrongFrameUrl);
+
 const pool = getErpPool();
 const row = {
   sku: "SAMPLE", name: "Sample cups - $137.25", offer_count: 1, category: "Cups", uom: "50/Case",
