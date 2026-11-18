@@ -84,8 +84,9 @@ try {
   const payments = await call("/api/payments/config");
   check("Online payments disabled", payments.data.enabled === false);
   const catalog = await call("/api/catalog/products?page=1&pageSize=1");
-  const sku = catalog.data.products?.[0]?.sku;
-  check("Real ERP catalog SKU available", Boolean(sku));
+  const { sku, uom, packingUnit } = catalog.data.products?.[0] || {};
+  const qty = Math.max(1, Number(packingUnit || 1));
+  check("Real ERP catalog SKU available", Boolean(sku && uom));
   receipt.sku = sku;
   await call("/api/quote-requests", { body: { lines: [{ sku, qty: 1 }] }, expected: 401 });
   const first = await register("a");
@@ -93,7 +94,7 @@ try {
   const payload = (account, suffix) => ({
     id: `${runId}-${suffix}`,
     customer: { company: account.company, contact: "Synthetic E2E Buyer", email: account.email, phone: "+6790000000", location: "Isolated E2E test only" },
-    lines: [{ sku, qty: 1, rate: 0.01 }],
+    lines: [{ sku, uom, qty }],
     notes: `${runId}: synthetic quotation, do not fulfill or send`
   });
   const created = await call("/api/quote-requests", { cookie: first.cookie, body: payload(first, "q1"), expected: 201 });
@@ -108,7 +109,11 @@ try {
   check("Invalid basket has no quotation", !invalid.data.quotation);
   const detail = await call(`/api/account/quotes/${encodeURIComponent(name)}`, { cookie: first.cookie });
   check("Own quotation status and lines visible", detail.data.quote?.status === "Draft" && detail.data.quote?.lines?.[0]?.itemCode === sku);
-  check("Client price cannot override ERP", Number(detail.data.quote?.lines?.[0]?.rate) !== 0.01);
+  const line = detail.data.quote.lines[0];
+  check("Stored selling unit and quantity match the basket", line.uom === uom && Number(line.qty) === qty);
+  check("Draft status and quote receipts keep ERP amounts private",
+    !("grandTotal" in detail.data.quote) && !("rate" in line) && !("amount" in line) &&
+    [created, replay].every(({ data }) => !("rate" in data.validLines[0]) && !("grand_total" in data.quotation)));
   await call(`/api/account/quotes/${encodeURIComponent(name)}`, { cookie: second.cookie, expected: 404 });
   const foreign = await call("/api/quote-requests", { cookie: second.cookie, body: payload(second, "q3"), expected: 201 });
   const foreignName = quoteName(foreign.data);
