@@ -163,6 +163,21 @@ export function App({ initialRoute }: AppProps = {}) {
               ? "Page not found | Green Leaf Pacific"
               : "Green Leaf Pacific";
     document.title = pageTitle;
+    const origin = document.querySelector<HTMLMetaElement>('meta[name="storefront-origin"]')?.content;
+    if (origin) {
+      let canonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+      if (route.view === "not-found" || route.view === "account") {
+        canonical?.remove();
+      } else {
+        if (!canonical) {
+          canonical = document.createElement("link");
+          canonical.rel = "canonical";
+          document.head.append(canonical);
+        }
+        const path = route.view === "about" ? "/about-us" : route.view === "policy" ? "/" + route.policy : location.pathname.replace(/\/+$/, "") || "/catalog";
+        canonical.href = new URL(path, origin).href;
+      }
+    }
   }, [activeProduct, route]);
 
   useEffect(() => {

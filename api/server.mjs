@@ -4,6 +4,7 @@ import express from "express";
 import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import {
+  getPublishedCatalogSkus,
   getCatalogDiagnostics,
   getCatalogItemGroups,
   getCatalogQualityReport,
@@ -12,6 +13,7 @@ import {
   getCatalogSuggestions,
   getFeaturedCatalogProducts
 } from "./catalog-service.mjs";
+import { installPublicNavigation } from "./public-navigation.mjs";
 import { pingErpDb } from "./erpnext-db.mjs";
 import { legacySyncRules } from "./legacy-sync-rules.mjs";
 import { assertWebsiteMigrationsApplied, websiteMigrationIds } from "./migrations/runner.mjs";
@@ -697,6 +699,8 @@ app.post("/api/admin/customer-access/enable", async (req, res) => {
     serviceFailure(res, "erpnext_customer_access_enable_unavailable", error);
   }
 });
+
+installPublicNavigation(app, getPublishedCatalogSkus);
 
 await assertWebsiteMigrationsApplied();
 app.listen(port, () => {

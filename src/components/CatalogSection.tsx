@@ -125,7 +125,7 @@ export function CatalogSection({
     <section className="shell section" id="catalog">
       <div className="section-heading">
         <div>
-          <h2>Commercial catalog</h2>
+          <h1>Commercial catalog</h1>
           <p>
             {catalogState === "ready"
               ? "Browse current catalog prices and availability. Prices exclude VAT; sales confirms every quotation."

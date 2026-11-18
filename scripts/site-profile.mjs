@@ -30,10 +30,10 @@ export function robotsText(profile) {
     : "User-agent: *\nDisallow: /\n";
 }
 
-export function sitemapXml(profile) {
+export function sitemapXml(profile, productPaths = []) {
   return '<?xml version="1.0" encoding="UTF-8"?>\n' +
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
-    SITEMAP_PATHS.map((path) => `  <url><loc>${profile.publicSiteUrl}${path}</loc></url>`).join("\n") +
+    [...SITEMAP_PATHS, ...productPaths].map((path) => `  <url><loc>${profile.publicSiteUrl}${path}</loc></url>`).join("\n") +
     "\n</urlset>\n";
 }
 
@@ -42,5 +42,5 @@ export function nginxForProfile(template, profile) {
   if ((template.match(pattern) || []).length !== 1) {
     throw new Error("Expected exactly one nginx indexing header");
   }
-  return template.replace(pattern, `  add_header X-Robots-Tag "${profile.robots}" always;`);
+  return template.replaceAll("__PUBLIC_SITE_URL__", profile.publicSiteUrl).replace(pattern, `  add_header X-Robots-Tag "${profile.robots}" always;`);
 }

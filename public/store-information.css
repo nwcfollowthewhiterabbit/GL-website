@@ -1,0 +1,10 @@
+:root { color: #20362a; background: #f6f7f1; font: 1rem/1.6 system-ui, sans-serif; }
+body { margin: 0; }
+header { background: #173d2e; padding: 1rem max(5vw, 1rem); }
+header a { display: flex; align-items: center; gap: .7rem; color: white; font-weight: 700; text-decoration: none; }
+header img { width: 2.4rem; border-radius: .5rem; }
+main { margin: clamp(2rem, 9vw, 6rem) auto; width: min(38rem, 88vw); }
+h1 { font: 600 clamp(2rem, 6vw, 3.5rem)/1.08 Georgia, serif; overflow-wrap: anywhere; }
+a { color: #19553e; }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 2rem; }
+nav a { border: 1px solid currentColor; padding: .6rem 1rem; border-radius: .4rem; text-decoration: none; }

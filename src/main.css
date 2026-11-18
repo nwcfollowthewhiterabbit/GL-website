@@ -148,7 +148,7 @@ h3 {
 
 h1,
 h2,
-.section-heading h2,
+.section-heading :is(h1, h2),
 .catalog-service-band__inner h2,
 .product-page__body h1,
 .erp-band h2 {
@@ -829,7 +829,7 @@ textarea:focus-visible {
 }
 
 .quote-panel h2,
-.section-heading h2,
+.section-heading :is(h1, h2),
 .erp-card h3,
 .contact-card h3 {
   margin: 0;
@@ -975,7 +975,7 @@ textarea:focus-visible {
   margin-bottom: 22px;
 }
 
-.section-heading h2 {
+.section-heading :is(h1, h2) {
   font-size: 42px;
   line-height: 1.06;
 }
@@ -4091,7 +4091,7 @@ textarea:focus-visible {
     font-size: 30px;
   }
 
-  .section-heading h2,
+  .section-heading :is(h1, h2),
   .product-page__body h1,
   .erp-band h2 {
     font-size: 38px;
@@ -4317,7 +4317,7 @@ textarea:focus-visible {
     font-size: 16px;
   }
 
-  .section-heading h2,
+  .section-heading :is(h1, h2),
   .catalog-service-band__inner h2,
   .product-page__body h1,
   .erp-band h2 {
