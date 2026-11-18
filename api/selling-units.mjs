@@ -18,7 +18,7 @@ export function storePriceParams() {
 
 // Public rates must identify a selling unit and a trusted ERP conversion to stock.
 // Rank effective dates before edit times; equally current conflicting rates need ERP review.
-export async function publicSellingUnitsSql() {
+export async function publicSellingUnitsSql({ exactSku = false, search = false, featured = false, requireImage = false } = {}) {
   const customPriceList = await hasCustomField("Item Group", "website_price_list");
   const priceList = customPriceList ? "COALESCE(NULLIF(g.website_price_list, ''), :priceList)" : ":priceList";
   return `
@@ -42,6 +42,10 @@ export async function publicSellingUnitsSql() {
         ON conv.parent = ip.item_code AND conv.parenttype = 'Item' AND conv.parentfield = 'uoms'
         AND conv.uom = ip.uom
       WHERE ip.price_list = ${priceList} AND ip.currency = :currency
+        ${exactSku ? "AND ip.item_code = :exactSku" : ""}
+        ${search ? "AND (item.name LIKE :q OR item.item_name LIKE :q OR item.item_group LIKE :q OR item.description LIKE :q)" : ""}
+        ${featured ? "AND IFNULL(item.website_featured, 0) = 1" : ""}
+        ${requireImage ? "AND IFNULL(item.image, '') <> ''" : ""}
         AND ip.docstatus = 0 AND ip.selling = 1
         AND IFNULL(ip.customer, '') = '' AND IFNULL(ip.supplier, '') = ''
         AND IFNULL(ip.batch_no, '') = ''

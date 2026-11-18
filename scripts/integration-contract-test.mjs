@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import express from "express";
+import { cachePublicRead } from "../api/public-read-cache.mjs";
 import { gzipSync } from "node:zlib";
 import { JSON_BODY_OPTIONS } from "../api/security.mjs";
 
@@ -30,6 +31,20 @@ const {
   applyStorefrontFallbackPolicy,
   createStorefrontDiagnostics
 } = await import("../api/storefront-fallback-policy.mjs");
+
+// Concurrent consumers share a single read. Rejected and expired reads remain retryable.
+let publicReads = 0;
+const cachedRead = cachePublicRead(async () => {
+  publicReads += 1;
+  if (publicReads === 1) throw new Error("temporary catalog outage");
+  return publicReads;
+}, 60_000);
+await assert.rejects(Promise.all([cachedRead(), cachedRead()]), /temporary catalog outage/);
+assert.deepEqual(await Promise.all([cachedRead(), cachedRead(), cachedRead()]), [2, 2, 2]);
+assert.equal(await cachedRead(), 2);
+const expiredRead = cachePublicRead(async () => ++publicReads, 0);
+assert.deepEqual(await Promise.all([expiredRead(), expiredRead()]), [3, 3]);
+assert.equal(await expiredRead(), 4);
 
 const buyerAccess = {
   email: "buyer@example.com",

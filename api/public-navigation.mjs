@@ -1,3 +1,4 @@
+import { cachePublicRead } from "./public-read-cache.mjs";
 import { readFileSync } from "node:fs";
 import { getCatalogItemGroups } from "./catalog-service.mjs";
 import { getWebsiteDepartments } from "./storefront-control-service.mjs";
@@ -88,23 +89,15 @@ export async function categoryPaths() {
 }
 
 function cachedSet(load) {
-  let cache;
-  let expires = 0;
-  let loading;
-  return async () => {
-    if (cache && Date.now() < expires) return cache;
-    loading ??= load().then(items => {
-      cache = new Set(items);
-      expires = Date.now() + 300_000;
-      return cache;
-    }).finally(() => { loading = undefined; });
-    return loading;
-  };
+  return cachePublicRead(async () => new Set(await load()), 300_000);
 }
 
-export function installPublicNavigation(app, loadPublishedSkus, loadCategoryPaths = categoryPaths) {
+export function installPublicNavigation(app, loadPublishedSkus, loadCategoryPaths = categoryPaths, loadProduct) {
   const published = cachedSet(loadPublishedSkus);
   const categories = cachedSet(loadCategoryPaths);
+  const isPublished = loadProduct
+    ? async sku => (await loadProduct(sku))?.sku === sku
+    : async sku => (await published()).has(sku);
   app.get(/^\/catalog\/.+/, async (req, res) => {
     try {
       if ((await categories()).has(req.path.replace(/\/+$/, ""))) return res.set("X-Accel-Redirect", "/__storefront_shell").end();
@@ -130,7 +123,7 @@ export function installPublicNavigation(app, loadPublishedSkus, loadCategoryPath
   app.get("/products/:sku", async (req, res) => {
     const sku = req.params.sku;
     try {
-      if ((await published()).has(sku)) return res.set("X-Accel-Redirect", "/__storefront_shell").end();
+      if (await isPublished(sku)) return res.set("X-Accel-Redirect", "/__storefront_shell").end();
       const record = previousProducts.get(sku);
       if (record && record.value !== sku) return res.redirect(301, destination(record));
       if (record) return informationPage(res, 200, record.title || sku, "This item appeared in our previous catalog. Contact sales with this item code for availability or a current alternative.", { sku });

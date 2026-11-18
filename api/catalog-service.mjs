@@ -1,3 +1,4 @@
+import { cachePublicRead } from "./public-read-cache.mjs";
 import { publicPriceSummarySql, publicSellingUnitsSql, sellingName, storePriceParams } from "./selling-units.mjs";
 import { getErpPool } from "./erpnext-db.mjs";
 import { availableCustomFields, getCategoryRule, getCategoryRules } from "./storefront-rules.mjs";
@@ -58,7 +59,6 @@ function itemWhere({ q, category, categoryNames, categories, featured, includeHi
 
   if (q) {
     params.q = `%${q}%`;
-    clauses.push("(i.name LIKE :q OR i.item_name LIKE :q OR i.item_group LIKE :q OR i.description LIKE :q)");
   }
 
   if (minPrice !== null) {
@@ -109,16 +109,17 @@ async function getItemGroupBranchNames(category) {
   return names.length ? names : [category];
 }
 
-async function itemBaseSql() {
+async function itemBaseSql({ exactSku = false, search = false, featured = false } = {}) {
   const excluded = EXCLUDED_WAREHOUSES.map((_, index) => `:excludedWarehouse${index}`).join(", ");
   return `
     FROM \`tabItem\` i
-    JOIN (${await publicSellingUnitsSql()}) price ON price.item_code = i.name
+    JOIN (${await publicSellingUnitsSql({ exactSku, search, featured, requireImage: true })}) price ON price.item_code = i.name
     LEFT JOIN (
       SELECT b.item_code, SUM(b.actual_qty) AS actual_qty
       FROM \`tabBin\` b
       JOIN \`tabWarehouse\` w ON w.name = b.warehouse
       WHERE IFNULL(w.disabled, 0) = 0
+        ${exactSku ? "AND b.item_code = :exactSku" : ""}
         AND w.name NOT IN (${excluded})
         AND LOWER(w.name) NOT LIKE '%showroom%'
       GROUP BY b.item_code
@@ -140,7 +141,22 @@ function baseParams() {
   };
 }
 
-export async function getCatalogProducts(options = {}) {
+const firstCatalogPage = cachePublicRead(() => loadCatalogProducts({ pageSize: 24 }), 15_000);
+
+export function getCatalogProducts(options = {}, { includeTotal = true } = {}) {
+  const pageSize = normalizePage(options.pageSize, 24, 100);
+  const firstPage = normalizePage(options.page, 1, 1000) === 1 && pageSize <= 24
+    && (!options.sort || options.sort === "featured")
+    && !options.q && !options.category && !options.categories && !options.featured
+    && !options.exactSku && !options.exactUom
+    && options.minPrice === undefined && options.maxPrice === undefined;
+  if (firstPage) {
+    return firstCatalogPage().then(page => ({ ...page, pageSize, products: page.products.slice(0, pageSize) }));
+  }
+  return loadCatalogProducts(options, includeTotal);
+}
+
+async function loadCatalogProducts(options, includeTotal = true) {
   const page = normalizePage(options.page, 1, 1000);
   const pageSize = normalizePage(options.pageSize, 24, 100);
   const offset = (page - 1) * pageSize;
@@ -181,7 +197,11 @@ export async function getCatalogProducts(options = {}) {
     getCatalogPublicationSql()
   ]);
 
-  const base = await itemBaseSql();
+  const base = await itemBaseSql({
+    exactSku: Boolean(options.exactSku),
+    search: Boolean(q),
+    featured: featured && hasItemFields.website_featured
+  });
   const categoryNames = category ? await getItemGroupBranchNames(category) : [];
   const where = itemWhere({ q, category, categoryNames, categories, featured, includeHidden, includeWeakGroups, categoryRule, hasItemFields, hasGroupFields, minPrice, maxPrice, productReadySql: publication.productReady });
   if (options.exactSku) {
@@ -206,6 +226,7 @@ export async function getCatalogProducts(options = {}) {
   const [rows] = await pool.execute(
     `
       SELECT
+        ${includeTotal ? "COUNT(*) OVER () AS offer_count," : ""}
         i.name AS sku,
         i.item_name AS name,
         i.item_group AS category,
@@ -231,19 +252,24 @@ export async function getCatalogProducts(options = {}) {
     { ...params, defaultCurrency: process.env.DEFAULT_CURRENCY || "FJD" }
   );
 
-  const [countRows] = await pool.execute(
-    `
-      SELECT COUNT(*) AS total
-      ${base}
-      WHERE ${where.sql}
-    `,
-    params
-  );
+  // An out-of-range page has no row to carry the window count.
+  let total = Number(rows[0]?.offer_count || 0);
+  if (includeTotal && !rows.length && page > 1) {
+    const [countRows] = await pool.execute(
+      `
+        SELECT COUNT(*) AS total
+        ${base}
+        WHERE ${where.sql}
+      `,
+      params
+    );
+    total = Number(countRows[0]?.total || 0);
+  }
 
   return {
     page,
     pageSize,
-    total: Number(countRows[0]?.total || 0),
+    ...(includeTotal ? { total } : {}),
     priceList,
     categoryRule,
     products: rows.map((row) => {
@@ -282,7 +308,14 @@ function catalogOrderBy(sort) {
   }
 }
 
-export async function getFeaturedCatalogProducts(limit = 8) {
+const defaultFeatured = cachePublicRead(() => loadFeaturedCatalogProducts(8), 15_000);
+
+export function getFeaturedCatalogProducts(limit = 8) {
+  const size = normalizePage(limit, 8, 24);
+  return size === 8 ? defaultFeatured() : loadFeaturedCatalogProducts(size);
+}
+
+async function loadFeaturedCatalogProducts(limit) {
   const managedProducts = await getManagedFeaturedProducts(limit);
   if (managedProducts.length) {
     return { source: "erp_website_featured_product", products: managedProducts };
@@ -293,7 +326,7 @@ export async function getFeaturedCatalogProducts(limit = 8) {
     const result = await getCatalogProducts({
       featured: "1",
       pageSize: normalizePage(limit, 8, 24)
-    });
+    }, { includeTotal: false });
     if (result.products.length) {
       return { source: "erp_item_website_featured", products: result.products };
     }
@@ -351,7 +384,7 @@ export async function getCatalogSuggestions(query, limit = 8) {
   const max = normalizePage(limit, 8, 12);
   const lower = q.toLowerCase();
   const [catalogResult, categoryRules] = await Promise.all([
-    getCatalogProducts({ q, pageSize: max }),
+    getCatalogProducts({ q, pageSize: max }, { includeTotal: false }),
     getCategoryRules()
   ]);
 
@@ -475,7 +508,9 @@ export async function getCatalogQualityReport() {
   };
 }
 
-export async function getCatalogDiagnostics() {
+export const getCatalogDiagnostics = cachePublicRead(loadCatalogDiagnostics, 60_000);
+
+async function loadCatalogDiagnostics() {
   const publication = await getCatalogPublicationSql();
   const [rows] = await getErpPool().execute(
     `

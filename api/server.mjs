@@ -366,7 +366,7 @@ app.get("/api/catalog/related", async (req, res) => {
     const result = await getCatalogProducts({
       category: product.category,
       pageSize: limit + 1
-    });
+    }, { includeTotal: false });
     res.json({
       products: result.products.filter((item) => item.sku !== sku).slice(0, limit)
     });
@@ -704,7 +704,7 @@ app.post("/api/admin/customer-access/enable", async (req, res) => {
   }
 });
 
-installPublicNavigation(app, getPublishedCatalogSkus);
+installPublicNavigation(app, getPublishedCatalogSkus, undefined, getCatalogProductBySku);
 
 await assertWebsiteMigrationsApplied();
 app.listen(port, () => {

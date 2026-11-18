@@ -1,3 +1,4 @@
+import { cachePublicRead } from "./public-read-cache.mjs";
 import { getErpPool, availableCustomFields } from "./erpnext-db.mjs";
 import { EXCLUDED_STOREFRONT_GROUPS, getCatalogPublicationSql } from "./catalog-publication-rules.mjs";
 
@@ -41,7 +42,9 @@ export async function getCategoryRule(category) {
   return normalizeCategoryRule(rows[0] || { name: category });
 }
 
-export async function getCategoryRules() {
+export const getCategoryRules = cachePublicRead(loadCategoryRules, 60_000);
+
+async function loadCategoryRules() {
   const publication = await getCatalogPublicationSql();
   const fields = await availableCustomFields("Item Group", CATEGORY_RULE_FIELDS);
   const selected = Object.keys(fields);

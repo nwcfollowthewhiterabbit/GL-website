@@ -1,5 +1,9 @@
 # Журнал изменений
 
+## 2026-11-18 — Загрузка каталога
+
+- Для карточки и поиска ERP ограничивает исходную выборку товаров перед расчётом цен и упаковок. Общие данные страницы повторно используются в пределах 15 секунд для товаров и 60 секунд для групп и статистики. При создании котировки ERP проверяет актуальные условия заново.
+
 ## 2026-11-18 — customer browser privacy
 
 - Revoke the signed-out browser session on the server. Purge legacy contact drafts, keep new contact details in page memory, and preserve quote retries using a digest. Update patched API dependencies and isolate build tooling.
