@@ -343,6 +343,10 @@ def secret_text_findings(
         ("netrc password", NETRC_PASSWORD),
         *REAL_TOKEN_PATTERNS,
     ):
+        if label == "secret key token" and relative.as_posix() == "api/legacy-public-catalog.json":
+            # Archived product URLs contain desk-, disk- and whisk-. Keep checking
+            # the entire text for standalone credentials, including later in the same URL.
+            pattern = re.compile(r"(?<!\bde)(?<!\bdi)(?<!\bwhi)" + pattern.pattern)
         for match in pattern.finditer(text):
             line = text.count("\n", 0, match.start()) + 1
             failures.append(f"{relative}:{line}: {label}")

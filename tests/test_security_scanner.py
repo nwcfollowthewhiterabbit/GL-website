@@ -69,6 +69,13 @@ class SecurityScannerTests(unittest.TestCase):
                     secret_text_findings(Path("temporary.txt"), sample)
                 )
 
+    def test_catalog_product_words_and_credentials(self) -> None:
+        catalog = Path("api/legacy-public-catalog.json")
+        for word in ("desk", "disk", "whisk"):
+            slug = word + "-" + "a" * 28
+            self.assertFalse(secret_text_findings(catalog, slug))
+            self.assertTrue(secret_text_findings(catalog, slug + "-sk-" + "a" * 30))
+
     def test_documented_placeholders_are_allowed(self) -> None:
         samples = (
             "password" + "=",

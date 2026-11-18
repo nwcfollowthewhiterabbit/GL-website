@@ -3,6 +3,8 @@ import { readFile } from "node:fs/promises";
 import { siteProfile, robotsText, sitemapXml, nginxForProfile } from "./site-profile.mjs";
 import { quoteTransactionDate } from "../api/quote-service.mjs";
 
+await import("./legacy-route-test.mjs");
+
 const testing = siteProfile({});
 assert.equal(testing.publicSiteUrl, "https://testing.greenleafpacific.com");
 assert.equal(testing.indexingEnabled, false);

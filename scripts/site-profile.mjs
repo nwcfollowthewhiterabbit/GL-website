@@ -42,5 +42,5 @@ export function nginxForProfile(template, profile) {
   if ((template.match(pattern) || []).length !== 1) {
     throw new Error("Expected exactly one nginx indexing header");
   }
-  return template.replaceAll("__PUBLIC_SITE_URL__", profile.publicSiteUrl).replace(pattern, `  add_header X-Robots-Tag "${profile.robots}" always;`);
+  return template.replaceAll("https://storefront-origin.invalid", profile.publicSiteUrl).replace(pattern, `  add_header X-Robots-Tag "${profile.robots}" always;`);
 }
