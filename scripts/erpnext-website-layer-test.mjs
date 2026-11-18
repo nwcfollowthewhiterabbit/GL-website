@@ -11,7 +11,8 @@ assert.equal(manifest.schemaVersion, 1);
 assert.deepEqual(websiteMigrationIds(), [
   "001-website-customer-credentials",
   "002-website-payment-event",
-  "003-website-account-challenge"
+  "003-website-account-challenge",
+  "004-website-session-revocation"
 ]);
 
 const fixtureDocTypes = new Set();

@@ -100,7 +100,9 @@ function cookieValue(req) {
   const cookies = String(req.headers.cookie || "").split(";");
   for (const cookie of cookies) {
     const [name, ...value] = cookie.trim().split("=");
-    if (name === ACCOUNT_SESSION_COOKIE) return decodeURIComponent(value.join("="));
+    if (name === ACCOUNT_SESSION_COOKIE) {
+      try { return decodeURIComponent(value.join("=")); } catch { return ""; }
+    }
   }
   return "";
 }
@@ -448,6 +450,10 @@ export function isAccountSessionCurrent(session, credential) {
   );
 }
 
+function sessionDigest(session) {
+  return crypto.createHash("sha256").update(session.token).digest();
+}
+
 export async function getVerifiedAccountSession(req) {
   const session = getAccountSession(req);
   if (!session) return null;
@@ -465,9 +471,10 @@ export async function getVerifiedAccountSession(req) {
       LEFT JOIN \`tabUser\` user
         ON BINARY LOWER(user.name) = BINARY LOWER(credential.email) OR BINARY LOWER(user.email) = BINARY LOWER(credential.email)
       WHERE BINARY LOWER(credential.email) = BINARY :email
+        AND NOT EXISTS (SELECT 1 FROM \`tabWebsite Session Revocation\` WHERE token_digest = :tokenDigest)
       LIMIT 1
     `,
-    { email: session.email }
+    { email: session.email, tokenDigest: sessionDigest(session) }
   );
   const credential = rows[0];
   if (!isAccountSessionCurrent(session, credential) || !sameAccountEmail(credential.email, session.email)) return null;
@@ -476,8 +483,19 @@ export async function getVerifiedAccountSession(req) {
   return isProvisionedWebsiteCustomerAccess(access, credential.customer) ? { ...session, customer: credential.customer } : null;
 }
 
-export function endAccountSession() {
-  return undefined;
+export async function endAccountSession(req) {
+  const session = getAccountSession(req);
+  if (!session) return;
+
+  const pool = getErpPool();
+  await pool.execute(
+    "DELETE FROM `tabWebsite Session Revocation` WHERE expires_at_ms <= :now ORDER BY expires_at_ms LIMIT 128",
+    { now: nowMs() }
+  );
+  await pool.execute(
+    "INSERT IGNORE INTO `tabWebsite Session Revocation` (token_digest, expires_at_ms) VALUES (:tokenDigest, :expiresAt)",
+    { tokenDigest: sessionDigest(session), expiresAt: session.expiresAt }
+  );
 }
 
 export async function getCustomerProfileByEmail(emailValue) {

@@ -22,6 +22,7 @@ import { useStorefrontContent } from "./hooks/useStorefrontContent";
 import { useTheme } from "./hooks/useTheme";
 import {
   createQuoteRequest,
+  purgeLegacyQuoteDetails,
   fetchCatalogDiagnostics,
   fetchCatalogProduct,
   fetchCatalogFacets,
@@ -344,37 +345,20 @@ export function App({ initialRoute }: AppProps = {}) {
   }, [quoteLines]);
 
   useEffect(() => {
-    if (!account.session) {
-      setQuoteEmail("");
-      setQuoteCompany("");
-      setBuyerContact("");
-      setBuyerPhone("");
-      setDeliveryLocation("");
-      setQuoteNotes("");
-      return;
-    }
-    setQuoteEmail(account.session.email);
-    setQuoteCompany(account.session.profile?.customerName || "");
-    setBuyerPhone(account.session.profile?.phone || "");
-    setBuyerContact(account.contact || "");
-    try {
-      const draft = JSON.parse(window.localStorage.getItem(`greenleaf.quoteDetails.${account.session.email}`) || "null");
-      if (draft) {
-        setBuyerContact(String(draft.contact || ""));
-        setBuyerPhone(String(draft.phone || account.session.profile?.phone || ""));
-        setDeliveryLocation(String(draft.location || ""));
-        setQuoteNotes(String(draft.notes || ""));
-      }
-    } catch { /* Ignore an invalid local draft. */ }
-    if (new URLSearchParams(window.location.search).get("basket") === "1") setQuoteOpen(true);
-  }, [account.session?.email]);
+    void purgeLegacyQuoteDetails();
+  }, []);
 
   useEffect(() => {
-    if (!account.session || quoteEmail !== account.session.email) return;
-    try {
-      window.localStorage.setItem(`greenleaf.quoteDetails.${account.session.email}`, JSON.stringify({ contact: buyerContact, phone: buyerPhone, location: deliveryLocation, notes: quoteNotes }));
-    } catch { /* The form remains usable without browser storage. */ }
-  }, [account.session?.email, quoteEmail, buyerContact, buyerPhone, deliveryLocation, quoteNotes]);
+    setQuoteEmail(account.session?.email || "");
+    setQuoteCompany(account.session?.profile?.customerName || "");
+    setBuyerPhone(account.session?.profile?.phone || "");
+    setBuyerContact(account.session ? account.contact || "" : "");
+    setDeliveryLocation("");
+    setQuoteNotes("");
+    setQuoteResult(null);
+    setQuoteStatus("");
+    if (account.session && new URLSearchParams(window.location.search).get("basket") === "1") setQuoteOpen(true);
+  }, [account.session?.email]);
 
   const products = useMemo<CatalogProduct[]>(() => {
     if (catalogState === "fallback") return fallbackProducts;

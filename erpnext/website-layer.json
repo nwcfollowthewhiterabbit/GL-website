@@ -39,7 +39,8 @@
     "tabGL Website Schema Migration",
     "tabWebsite Customer Credential",
     "tabWebsite Payment Event",
-    "tabWebsite Account Challenge"
+    "tabWebsite Account Challenge",
+    "tabWebsite Session Revocation"
   ],
   "erpnextReadModels": [
     "Bin",

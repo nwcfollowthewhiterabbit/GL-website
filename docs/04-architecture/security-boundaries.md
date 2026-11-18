@@ -49,3 +49,13 @@ The public API accepts plain JSON up to 1 MiB and configures `inflate: false`.
 Compressed JSON is rejected with HTTP 415 before decompression or business
 handlers. This removes the reachable body-parser decompression crash path while
 retaining the existing browser and ERP proxy request format.
+
+
+## Build dependencies
+
+The API image installs `npm ci --omit=dev`; Vite, the React build plugin and
+TypeScript are build-only. The 2026-11-18 lockfile audit reported zero advisories
+for API dependencies. The full build tree still reports the picomatch advisory
+and its dependants in the reviewed Vite pipeline. Only repository-controlled
+patterns are used during the build. Track a patched upstream version.
+[Advisory GHSA-fc5q-39xc-vjpf](https://github.com/advisories/GHSA-fc5q-39xc-vjpf).

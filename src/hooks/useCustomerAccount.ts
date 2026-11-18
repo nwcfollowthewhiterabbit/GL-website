@@ -241,11 +241,27 @@ export function useCustomerAccount(isAccountRoute: boolean) {
     finally { setIsDetailLoading(false); }
   }
 
+  useEffect(() => {
+    function syncLogout(event: StorageEvent) {
+      if (event.key === "greenleaf.signedOut") window.location.reload();
+    }
+    window.addEventListener("storage", syncLogout);
+    return () => window.removeEventListener("storage", syncLogout);
+  }, []);
+
   async function logout() {
     requestGeneration.current += 1;
     try { await logoutAccount(); }
     catch { setStatus("Sign-out failed. Please try again."); return; }
     accountIdentity.current = "";
+    try { window.localStorage.setItem("greenleaf.signedOut", String(Date.now())); } catch { /* Optional cross-tab notification. */ }
+    tokenRef.current = "";
+    setEmail("");
+    setConfirmPassword("");
+    setContact("");
+    setCompany("");
+    setPhone("");
+    setAuthMode("login");
     setSession(null);
     setDetail(null);
     setIsLoading(false);

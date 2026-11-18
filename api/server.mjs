@@ -590,8 +590,12 @@ app.get("/api/account/orders/:name", async (req, res) => {
   }
 });
 
-app.post("/api/account/logout", (req, res) => {
-  endAccountSession();
+app.post("/api/account/logout", async (req, res) => {
+  try {
+    await endAccountSession(req);
+  } catch (error) {
+    return serviceFailure(res, "account_logout_unavailable", error);
+  }
   res.clearCookie(ACCOUNT_SESSION_COOKIE, {
     ...accountSessionCookieOptions(req),
     maxAge: undefined

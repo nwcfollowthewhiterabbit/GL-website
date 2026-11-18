@@ -2,10 +2,10 @@ import crypto from "node:crypto";
 import { getErpPool } from "../erpnext-db.mjs";
 import { migration as credentialsMigration } from "./001-website-customer-credentials.mjs";
 import { migration as paymentEventMigration } from "./002-website-payment-event.mjs";
-
 import { migration as accountChallengeMigration } from "./003-website-account-challenge.mjs";
+import { migration as sessionRevocationMigration } from "./004-website-session-revocation.mjs";
 
-const migrations = [credentialsMigration, paymentEventMigration, accountChallengeMigration];
+const migrations = [credentialsMigration, paymentEventMigration, accountChallengeMigration, sessionRevocationMigration];
 let migrationRun;
 let migrationCheck;
 

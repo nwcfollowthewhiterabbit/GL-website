@@ -49,7 +49,7 @@ submission. Retrying the same request opens its existing quotation.
 4. Use **Orders**, **Quotations**, and **Invoices** to switch document types.
 5. Select **View** to open document lines and the current customer-facing
    status.
-6. Select **Sign out** when finished on a shared device.
+6. Select **Sign out** when finished on a shared device. This closes the current browser session. Your other devices stay signed in. Contact and delivery fields are cleared when you sign out or reload. Your product basket stays in this browser.
 
 Use **Load older records** to view older records. A new request appears under quotations
 as **Under review**. When sales issues a quotation or creates an order in ERP,

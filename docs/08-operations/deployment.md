@@ -26,6 +26,17 @@ operator workflow; [release record](releases/2026-11-17-testing-site-production-
 физическим DB guard, native install/migrate и website-only CAS import. Обычное
 обновление website не перезапускает ERP containers и не восстанавливает ERP DB.
 
+## Website session revocation
+
+Apply additive migration `004-website-session-revocation` with the migration
+account before starting this API. Limit new runtime grants to SELECT, INSERT and
+DELETE on `tabWebsite Session Revocation`. Keep the table and rows across API
+restarts. Records contain a token digest and expiry in epoch milliseconds. A
+logout records revocation before clearing the cookie. In isolated acceptance
+check that the signed-out session ends and a second browser keeps its session.
+Rolling back to an older API also removes its revocation check; before serving
+that API rotate the website session secret to invalidate outstanding sessions.
+
 ## Legacy runtime adapters
 
 `infra/runtime.testing.json` и `scripts/_runtime_adapter.py` пока привязаны к

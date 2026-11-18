@@ -33,4 +33,9 @@ const foreignDetail = await fetch(`${baseUrl}/api/account/orders/GL-WEB-E2E-NOT-
 });
 assert.equal(foreignDetail.status, 404);
 
+const logout = await fetch(`${baseUrl}/api/account/logout`, { method: "POST", headers: { Cookie: cookie } });
+assert.equal(logout.status, 200);
+const signedOut = await fetch(`${baseUrl}/api/account/session`, { headers: { Cookie: cookie } });
+assert.equal(signedOut.status, 401, "The server must end the signed-out session");
+
 console.log("ERPNext customer account runtime contract passed.");

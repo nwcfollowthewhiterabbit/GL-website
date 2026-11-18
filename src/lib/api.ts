@@ -153,14 +153,55 @@ export async function logoutAccount() {
   if (!response.ok) throw new Error("account_logout_failed");
 }
 
+const quoteRequestStorageKey = "greenleaf.lastQuoteRequest";
+const quoteRetryWindowMs = 24 * 60 * 60 * 1000;
+
+async function requestDigest(serialized: string) {
+  const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(serialized));
+  return Array.from(new Uint8Array(bytes), byte => byte.toString(16).padStart(2, "0")).join("");
+}
+
+export async function purgeLegacyQuoteDetails() {
+  try {
+    const storage = window.localStorage;
+    for (let i = storage.length - 1; i >= 0; i--) {
+      const key = storage.key(i);
+      if (key?.startsWith("greenleaf.quoteDetails.")) storage.removeItem(key);
+    }
+
+    // Preserve the retry ID for a pre-upgrade request with an uncertain outcome.
+    const previous = storage.getItem(quoteRequestStorageKey);
+    if (!previous) return;
+    let cached;
+    try { cached = JSON.parse(previous); } catch { /* Discard obsolete or corrupt entries. */ }
+    if (!cached?.id || !cached.createdAt || Date.now() - cached.createdAt >= quoteRetryWindowMs) {
+      storage.removeItem(quoteRequestStorageKey);
+    } else if (typeof cached.fingerprint === "string" && cached.fingerprint.startsWith("{")) {
+      let sanitized: string | null = null;
+      try {
+        const fingerprint = await requestDigest(cached.fingerprint);
+        sanitized = JSON.stringify({ id: cached.id, createdAt: cached.createdAt, fingerprint });
+      } finally {
+        // Another tab may have confirmed this request or started a different one.
+        if (storage.getItem(quoteRequestStorageKey) === previous) {
+          if (sanitized) storage.setItem(quoteRequestStorageKey, sanitized);
+          else storage.removeItem(quoteRequestStorageKey);
+        }
+      }
+    }
+  } catch { /* Private browsing may disable persistent storage. */ }
+}
+
 export async function createQuoteRequest(payload: QuoteRequestPayload): Promise<QuoteRequestResponse> {
-  const fingerprint = JSON.stringify(payload);
-  const storageKey = "greenleaf.lastQuoteRequest";
+  const storageKey = quoteRequestStorageKey;
   let id = payload.id;
   if (!id && typeof window !== "undefined") {
     try {
+      const serialized = JSON.stringify(payload);
+      const fingerprint = await requestDigest(serialized);
       const previous = JSON.parse(window.localStorage.getItem(storageKey) || "null");
-      const stillReusable = previous?.fingerprint === fingerprint && Date.now() - Number(previous.createdAt || 0) < 86400000;
+      const sameRequest = previous?.fingerprint === fingerprint || previous?.fingerprint === serialized;
+      const stillReusable = sameRequest && Date.now() - Number(previous?.createdAt || 0) < quoteRetryWindowMs;
       id = stillReusable ? previous.id : `GLQ-${crypto.randomUUID()}`;
       window.localStorage.setItem(storageKey, JSON.stringify({ fingerprint, id, createdAt: Date.now() }));
     } catch {

@@ -1,5 +1,9 @@
 # Журнал изменений
 
+## 2026-11-18 — customer browser privacy
+
+- Revoke the signed-out browser session on the server. Purge legacy contact drafts, keep new contact details in page memory, and preserve quote retries using a digest. Update patched API dependencies and isolate build tooling.
+
 ## 2026-11-17 — Customer quotation release
 
 - Added email-first registration and single-use password recovery with throttling.
