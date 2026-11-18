@@ -9,10 +9,13 @@ const aliases = new Map();
 const previousProducts = new Map();
 const categoryAliases = new Set();
 for (const [kind, rows] of Object.entries(legacy)) {
-  for (const [id, value, keywords, title] of rows) {
-    const record = { kind, value, title };
+  for (const [id, value, keywords, title, currentSku] of rows) {
+    const record = { kind, value: currentSku || value, title };
     ids.set(kind + ":" + id, record);
-    if (kind === "products") previousProducts.set(value, record);
+    if (kind === "products") {
+      previousProducts.set(value, record);
+      if (currentSku) previousProducts.set(currentSku, record);
+    }
     for (const keyword of keywords) {
       aliases.set(keyword.toLowerCase(), record);
       if (kind === "categories") categoryAliases.add(keyword.toLowerCase());
@@ -129,6 +132,7 @@ export function installPublicNavigation(app, loadPublishedSkus, loadCategoryPath
     try {
       if ((await published()).has(sku)) return res.set("X-Accel-Redirect", "/__storefront_shell").end();
       const record = previousProducts.get(sku);
+      if (record && record.value !== sku) return res.redirect(301, destination(record));
       if (record) return informationPage(res, 200, record.title || sku, "This item appeared in our previous catalog. Contact sales with this item code for availability or a current alternative.", { sku });
       return informationPage(res, 404, "Product not found", "Search the catalog or contact our team for help identifying this item.");
     } catch {
