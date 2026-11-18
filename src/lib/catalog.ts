@@ -5,7 +5,16 @@ const productPlaceholder = "/product-placeholder.svg";
 export { productPlaceholder };
 
 export function productImage(product: CatalogProduct) {
-  if (product.image?.startsWith("/catalog-reviewed/")) return product.image;
+  if (product.image?.startsWith("/catalog-reviewed/") || product.image?.startsWith("/image/")) return product.image;
+  // Old baskets may contain a URL serialized before the public images moved.
+  if (product.image && /^(?:https?:)?\/\/(?:www\.)?greenleafpacific\.com(?:[/:?#]|$)/i.test(product.image)) {
+    try {
+      const path = new URL(product.image, "https://greenleafpacific.com").pathname;
+      return path.startsWith("/image/") ? path : productPlaceholder;
+    } catch {
+      return productPlaceholder;
+    }
+  }
   if (product.image?.startsWith("http")) {
     return product.image;
   }

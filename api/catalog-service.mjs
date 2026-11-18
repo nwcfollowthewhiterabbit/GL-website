@@ -1,3 +1,4 @@
+import { catalogProductImage } from "./catalog-product-media.mjs";
 import { reviewedEnquiryDescription, reviewedProductDescription, reviewedProductImage } from "./reviewed-product-specs.mjs";
 import { readFileSync } from "node:fs";
 import { cachePublicRead } from "./public-read-cache.mjs";
@@ -296,7 +297,7 @@ async function loadCatalogProducts(options, includeTotal = true) {
         category: row.category || "All Item Groups",
         uom: row.uom || "Nos",
         packingUnit: Number(row.packing_unit || 0),
-        image: row.reviewed_asset ? reviewedProductImage(row.sku) : (row.image || null),
+        image: row.reviewed_asset ? reviewedProductImage(row.sku) : catalogProductImage(row.sku, row.name, row.image),
         description: withoutEmbeddedPrices(row.reviewed_asset && !row.primary_description_ready ? reviewedProductDescription(row.sku) : (row.description || ""), row.sku),
         quantity: Number(row.quantity || 0),
         availability: row.availability

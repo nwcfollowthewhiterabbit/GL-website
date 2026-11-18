@@ -1,9 +1,22 @@
+import { catalogProductImage } from "../api/catalog-product-media.mjs";
 import { withoutEmbeddedPrices } from "../api/catalog-verified-content.mjs";
 import { getAccountQuotationDetailByEmail } from "../api/account-service.mjs";
 import assert from "node:assert/strict";
 import { getCatalogProducts, getVisibleItemReference } from "../api/catalog-service.mjs";
 import { getErpPool } from "../api/erpnext-db.mjs";
 import { normalizeCategoryRule } from "../api/storefront-rules.mjs";
+
+const archiveSku = "WIN-WB-29S";
+const archiveTitle = "Pipe Style Wine Bucket Stand For Wb-4 & Wb-4hv - 1/Case";
+const archivePath = "/image/sites/default/files/products_images/556929102ce0ad8838f7d57b9a99e9c9.jpg";
+const archiveUrl = "https://greenleafpacific.com" + archivePath;
+assert.equal(catalogProductImage(archiveSku, archiveTitle, archiveUrl), archivePath);
+assert.equal(catalogProductImage("OTHER", archiveTitle, archiveUrl), null);
+assert.equal(catalogProductImage(archiveSku, "Replaced product", archiveUrl), null);
+assert.equal(catalogProductImage(archiveSku, archiveTitle, archiveUrl + "?changed"), null);
+assert.equal(catalogProductImage(archiveSku, archiveTitle, "/files/new-public.jpg"), "/files/new-public.jpg");
+assert.equal(catalogProductImage("UNKNOWN", "Product", "/private/files/fixture.jpg"), null);
+assert.equal(catalogProductImage(archiveSku, archiveTitle, null), null);
 
 const pool = getErpPool();
 const row = {
