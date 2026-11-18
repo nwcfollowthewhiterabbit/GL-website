@@ -62,6 +62,11 @@ const prefix = String.raw`(?:\b${currencyCode}${gap}${dollar}?|(?:US|FJ|AU?|NZ|C
 const hasCurrency = new RegExp(String.raw`${currencyCode}|${dollar}|[£€]`, "i");
 const embeddedPrice = new RegExp(String.raw`[ \t]*(?:[-–—][ \t]*)?(?:${prefix}${gap}${amount}|${amount}${gap}${currencyCode}\b)`, "gi");
 
-export function withoutEmbeddedPrices(text) {
-  return hasCurrency.test(text) ? text.replace(embeddedPrice, "") : text;
+export function withoutEmbeddedPrices(text, sku) {
+  if (!hasCurrency.test(text)) return text;
+  const clean = text.replace(embeddedPrice, "");
+  if (sku === "ART-SB2050RT" && clean !== text) {
+    return clean.replace("Additional/board for logo engraving", "Logo engraving is available at an additional charge per board.");
+  }
+  return clean;
 }

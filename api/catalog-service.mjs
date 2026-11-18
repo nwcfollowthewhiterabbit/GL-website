@@ -99,7 +99,7 @@ export async function getVisibleItemReference(sku, { withDetails = false } = {})
   const row = rows[0];
   if (!row || row.sku !== sku) return null;
   const reference = { sku: row.sku, name: withoutEmbeddedPrices(displayItemName(row.sku, row.name)) || row.sku };
-  if (withDetails) reference.description = withoutEmbeddedPrices(reviewedEnquiryDescription(row));
+  if (withDetails) reference.description = withoutEmbeddedPrices(reviewedEnquiryDescription(row), row.sku);
   const reviewed = withDetails && enquiryUnits.get(sku);
   if (!reviewed || reviewed.name.trim() !== row.name.trim() || reviewed.stockUom !== row.stock_uom) return reference;
   if (row.price_mode !== "Price List") return reference;
@@ -297,7 +297,7 @@ async function loadCatalogProducts(options, includeTotal = true) {
         uom: row.uom || "Nos",
         packingUnit: Number(row.packing_unit || 0),
         image: row.reviewed_asset ? reviewedProductImage(row.sku) : (row.image || null),
-        description: withoutEmbeddedPrices(row.reviewed_asset && !row.primary_description_ready ? reviewedProductDescription(row.sku) : (row.description || "")),
+        description: withoutEmbeddedPrices(row.reviewed_asset && !row.primary_description_ready ? reviewedProductDescription(row.sku) : (row.description || ""), row.sku),
         quantity: Number(row.quantity || 0),
         availability: row.availability
       };

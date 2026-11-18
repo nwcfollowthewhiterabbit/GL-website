@@ -1,3 +1,4 @@
+import { withoutEmbeddedPrices } from "../api/catalog-verified-content.mjs";
 import { getAccountQuotationDetailByEmail } from "../api/account-service.mjs";
 import assert from "node:assert/strict";
 import { getCatalogProducts, getVisibleItemReference } from "../api/catalog-service.mjs";
@@ -39,6 +40,10 @@ try {
   assert.deepEqual(lookups[0], lookups[1]);
   assert.deepEqual(standard, obsolete);
   assert.equal(standard.total, 1);
+  const engraving = "<p>Local Fijian timber</p><p>Additional 20 FJD/board for logo engraving</p>";
+  assert.equal(withoutEmbeddedPrices(engraving, "ART-SB2050RT"),
+    "<p>Local Fijian timber</p><p>Logo engraving is available at an additional charge per board.</p>");
+  assert.equal(withoutEmbeddedPrices("Additional/board for logo engraving", "ART-SB2050RT"), "Additional/board for logo engraving");
   assert.equal(standard.products[0].description, "<p>Foam</p><p>10cm cushion, 180*94*83</p><p>5mm glass</p><p>Metal, frame</p>");
   assert.deepEqual(
     [standard.products[0].uom, standard.products[0].packingUnit, standard.products[0].quantity],

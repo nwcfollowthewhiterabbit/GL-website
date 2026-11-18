@@ -135,7 +135,7 @@ function accountLine(row) {
   return {
     itemCode: row.item_code,
     itemName: issued ? name : (withoutEmbeddedPrices(name) || row.item_code),
-    description: issued ? description : withoutEmbeddedPrices(description),
+    description: issued ? description : withoutEmbeddedPrices(description, row.item_code),
     qty: Number(row.qty || 0),
     uom: row.uom || row.stock_uom || "",
     ...(issued ? { rate: Number(row.rate || 0), amount: Number(row.amount || 0) } : {}),
