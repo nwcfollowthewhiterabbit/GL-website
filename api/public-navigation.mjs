@@ -1,4 +1,6 @@
 import { readFileSync } from "node:fs";
+import { getCatalogItemGroups } from "./catalog-service.mjs";
+import { getWebsiteDepartments } from "./storefront-control-service.mjs";
 import { sitemapXml } from "../scripts/site-profile.mjs";
 
 const legacy = JSON.parse(readFileSync(new URL("./legacy-public-catalog.json", import.meta.url), "utf8"));
@@ -70,25 +72,50 @@ function informationPage(res, status, title, description, { sku, account } = {})
   );
 }
 
-export function installPublicNavigation(app, loadPublishedSkus) {
-  let skus;
+export async function categoryPaths() {
+  const [groups, { departments }] = await Promise.all([getCatalogItemGroups(), getWebsiteDepartments()]);
+  const slug = name => name.toLowerCase().trim().replaceAll("&", "and").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  const names = new Set(groups.filter(group => group.showOnStorefront && group.itemCount > 0).map(group => group.name));
+  const paths = [...names].map(name => "/catalog/" + slug(name));
+  for (const department of departments) {
+    const path = "/catalog/" + department.id;
+    paths.push(path, ...department.itemGroups.filter(name => names.has(name)).map(name => path + "/" + slug(name)));
+  }
+  return paths;
+}
+
+function cachedSet(load) {
+  let cache;
   let expires = 0;
   let loading;
-  async function published() {
-    if (skus && Date.now() < expires) return skus;
-    loading ??= loadPublishedSkus().then(items => {
-      skus = new Set(items);
+  return async () => {
+    if (cache && Date.now() < expires) return cache;
+    loading ??= load().then(items => {
+      cache = new Set(items);
       expires = Date.now() + 300_000;
-      return skus;
+      return cache;
     }).finally(() => { loading = undefined; });
     return loading;
-  }
+  };
+}
 
+export function installPublicNavigation(app, loadPublishedSkus, loadCategoryPaths = categoryPaths) {
+  const published = cachedSet(loadPublishedSkus);
+  const categories = cachedSet(loadCategoryPaths);
+  app.get(/^\/catalog\/.+/, async (req, res) => {
+    try {
+      if ((await categories()).has(req.path.replace(/\/+$/, ""))) return res.set("X-Accel-Redirect", "/__storefront_shell").end();
+      return informationPage(res, 404, "Category not found", "Browse the catalog to see the current departments and product groups.");
+    } catch {
+      return res.status(503).set("Retry-After", "30").end();
+    }
+  });
   app.get("/sitemap.xml", async (req, res) => {
     // Nginx replaces this header with the validated build origin for the site it serves.
     const origin = req.get("X-Storefront-Origin") || process.env.STORE_PUBLIC_URL;
     try {
-      const urls = [...await published()].map(sku => "/products/" + encodeURIComponent(sku));
+      const [items, groups] = await Promise.all([published(), categories()]);
+      const urls = [...groups, ...[...items].map(sku => "/products/" + encodeURIComponent(sku))];
       res.set("Cache-Control", "public, max-age=300").type("application/xml")
         .send(sitemapXml({ publicSiteUrl: new URL(origin).origin }, urls));
     } catch {
