@@ -54,7 +54,7 @@ export const howWeOperateContent = {
   outcomes: [
     {
       title: "Clearer product and pricing information",
-      copy: "Published product details and prices come from controlled business records."
+      copy: "Catalog details come from Green Leaf’s product records. Sales prepares pricing for your quotation."
     },
     {
       title: "Faster, more consistent quotations",

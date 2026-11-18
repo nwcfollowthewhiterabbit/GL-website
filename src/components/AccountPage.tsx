@@ -129,6 +129,7 @@ function AccountDocumentModal({ detail, salesEmail, onClose }: AccountDocumentMo
     : detail.type === "invoice"
       ? "Invoice details"
       : "Sales order details";
+  const showAmounts = detail.type !== "quote" || detail.status?.toLowerCase() !== "draft";
   const displayStatus = customerStatus(detail.type, detail.status, {
     perDelivered: detail.type === "order" ? detail.perDelivered : undefined,
     perBilled: detail.type === "order" ? detail.perBilled : undefined,
@@ -181,10 +182,12 @@ function AccountDocumentModal({ detail, salesEmail, onClose }: AccountDocumentMo
               <span>{detail.type === "quote" ? "Valid until" : detail.type === "invoice" ? "Due date" : "Delivery date"}</span>
               <strong>{detail.type === "quote" ? shortDate(detail.validTill) : detail.type === "invoice" ? shortDate(detail.dueDate) : shortDate(detail.deliveryDate)}</strong>
             </article>
-            <article>
-              <span>Total</span>
-              <strong>{money(detail.grandTotal)} FJD</strong>
-            </article>
+            {showAmounts && typeof detail.grandTotal === "number" && (
+              <article>
+                <span>Total</span>
+                <strong>{money(detail.grandTotal)} FJD</strong>
+              </article>
+            )}
           </div>
           <div className="account-detail__actions">
             <a className="secondary-button" href={`mailto:${salesEmail}?subject=${encodeURIComponent(`Update request for ${detail.name}`)}`}>
@@ -200,8 +203,8 @@ function AccountDocumentModal({ detail, salesEmail, onClose }: AccountDocumentMo
                     <span>{line.itemCode}</span>
                   </div>
                   <span>{line.qty} {line.uom}</span>
-                  <span>{money(line.rate)} FJD</span>
-                  <strong>{money(line.amount)} FJD</strong>
+                  {showAmounts && typeof line.rate === "number" && <span>{money(line.rate)} FJD</span>}
+                  {showAmounts && typeof line.amount === "number" && <strong>{money(line.amount)} FJD</strong>}
                 </article>
               ))
             ) : (
@@ -444,7 +447,7 @@ export function AccountPage({
                   </div>
                   <span className={statusClass(displayStatus.label)} title={`ERP status: ${quote.status}`}>{displayStatus.label}</span>
                   <span className="account-status-copy">{displayStatus.detail}</span>
-                  <strong>{money(quote.grandTotal)} FJD</strong>
+                  {quote.status?.toLowerCase() !== "draft" && typeof quote.grandTotal === "number" && <strong>{money(quote.grandTotal)} FJD</strong>}
                   <button className="secondary-button" type="button" onClick={() => onViewQuote(quote.name)} disabled={!isAuthenticated || isDetailLoading}>
                     <Eye size={16} /> View
                   </button>

@@ -3,7 +3,7 @@ import {
   availabilityLabel,
   availabilityTone,
   plainTextDescription,
-  offerKey, orderStep, priceLabel,
+  offerKey, orderStep, sellingUnitLabel,
   productImage,
   productPlaceholder,
   productSpecs
@@ -13,6 +13,7 @@ import type { CatalogProduct } from "../types";
 type ProductDetailPageProps = {
   product: CatalogProduct | null;
   isLoading: boolean;
+  unavailable: boolean;
   relatedProducts: CatalogProduct[];
   onBackToCatalog: () => void;
   onAddToQuote: (product: CatalogProduct) => void;
@@ -22,14 +23,13 @@ type ProductDetailPageProps = {
 export function ProductDetailPage({
   product,
   isLoading,
+  unavailable,
   relatedProducts,
   onBackToCatalog,
   onAddToQuote,
   onSelectRelated
 }: ProductDetailPageProps) {
   const specs = product ? productSpecs(product) : [];
-  const primarySpecs = specs.slice(0, 4);
-  const secondarySpecs = specs.slice(4);
 
   return (
     <section className="shell section product-page">
@@ -64,7 +64,7 @@ export function ProductDetailPage({
                   <Tag size={15} /> {product.category}
                 </span>
                 <span>
-                  <Ruler size={15} /> {product.uom || "Each"}
+                  <Ruler size={15} /> {product.uom || "Confirm unit with sales"}
                 </span>
               </div>
             </div>
@@ -77,28 +77,19 @@ export function ProductDetailPage({
               <p>{plainTextDescription(product, "No product description available.", 1200)}</p>
 
               <div className="product-page__specs" aria-label="Product specifications">
-                {primarySpecs.map((spec) => (
+                {specs.map((spec) => (
                   <div key={spec.label}>
                     <span>{spec.label}</span>
                     <strong>{spec.value}</strong>
                   </div>
                 ))}
               </div>
-              {secondarySpecs.length ? (
-                <div className="product-page__technical">
-                  {secondarySpecs.map((spec) => (
-                    <span key={spec.label}>
-                      {spec.label}: <strong>{spec.value}</strong>
-                    </span>
-                  ))}
-                </div>
-              ) : null}
             </div>
 
             <aside className="product-quote-panel" aria-label="Order this product">
               <span className="product-quote-panel__label">Order preparation</span>
-              <strong>{priceLabel(product)}</strong>
-              <p>{orderStep(product) > 1 && `Order in multiples of ${orderStep(product)}. `}Indicative price excludes VAT. Add this product to your basket and request a quote. Sales will confirm final pricing, stock and delivery.</p>
+              <strong>{sellingUnitLabel(product)}</strong>
+              <p>{orderStep(product) > 1 && `Order in multiples of ${orderStep(product)}. `}Add this product to your basket and request a quote. Sales will confirm final pricing, stock and delivery.</p>
               <button type="button" className="quote-button product-page__quote" onClick={() => onAddToQuote(product)}>
                 <ShoppingCart size={18} /> Add to basket
               </button>
@@ -135,7 +126,7 @@ export function ProductDetailPage({
                       }}
                     />
                     <span>{item.name}</span>
-                    <strong>{priceLabel(item)}</strong>
+                    <strong>{sellingUnitLabel(item)}</strong>
                   </button>
                 ))}
               </div>
@@ -147,7 +138,7 @@ export function ProductDetailPage({
           </div>
         </>
       ) : (
-        <div className="product-page__empty">This product could not be found in the catalog.</div>
+        <div className="product-page__empty">{unavailable ? "Product details are temporarily unavailable. Please reload this page to try again." : "This product could not be found in the catalog."}</div>
       )}
     </section>
   );

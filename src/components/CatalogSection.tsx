@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronRight, Clock3, DollarSign, Layers3, Search, ShoppingCart, X } from "lucide-react";
-import { availabilityLabel, availabilityTone, plainTextDescription, offerKey, priceLabel, productImage, productPlaceholder, purchaseFlowLabel } from "../lib/catalog";
+import { ChevronRight, Clock3, Layers3, Search, ShoppingCart, X } from "lucide-react";
+import { availabilityLabel, availabilityTone, plainTextDescription, offerKey, sellingUnitLabel, productImage, productPlaceholder, purchaseFlowLabel } from "../lib/catalog";
 import type { CatalogFacets, CatalogProduct, CatalogReference, CatalogSuggestion, ItemGroup, WebsiteCategory } from "../types";
 
 type WebsiteCategoryView = WebsiteCategory & {
@@ -10,7 +10,7 @@ type WebsiteCategoryView = WebsiteCategory & {
 
 type CatalogSectionProps = {
   reference: CatalogReference | null;
-  catalogState: "loading" | "ready" | "fallback";
+  catalogState: "loading" | "ready" | "unavailable";
   products: CatalogProduct[];
   itemGroups: ItemGroup[];
   visibleCategories: WebsiteCategoryView[];
@@ -19,14 +19,11 @@ type CatalogSectionProps = {
   activeWebsiteCategory: string;
   searchTerm: string;
   sort: string;
-  minPrice: string;
-  maxPrice: string;
   page: number;
   pageSize: number;
   productCount: number;
   totalPages: number;
   filtersOpen: boolean;
-  priceList: string;
   catalogFacets: CatalogFacets | null;
   searchSuggestions: CatalogSuggestion[];
   suggestionsLoading: boolean;
@@ -36,7 +33,6 @@ type CatalogSectionProps = {
   onSearchFocus: () => void;
   onSearchChange: (value: string) => void;
   onSortChange: (value: string) => void;
-  onPriceFilterChange: (kind: "min" | "max", value: string) => void;
   onSelectSuggestion: (suggestion: CatalogSuggestion) => void;
   onPageChange: (page: number) => void;
   onSelectProduct: (product: CatalogProduct) => void;
@@ -54,14 +50,11 @@ export function CatalogSection({
   activeWebsiteCategory,
   searchTerm,
   sort,
-  minPrice,
-  maxPrice,
   page,
   pageSize,
   productCount,
   totalPages,
   filtersOpen,
-  priceList,
   catalogFacets,
   searchSuggestions,
   suggestionsLoading,
@@ -71,7 +64,6 @@ export function CatalogSection({
   onSearchFocus,
   onSearchChange,
   onSortChange,
-  onPriceFilterChange,
   onSelectSuggestion,
   onPageChange,
   onSelectProduct,
@@ -81,7 +73,7 @@ export function CatalogSection({
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const activeDepartment = visibleCategories.find((category) => category.id === activeWebsiteCategory);
   const activeLabel = activeCategory || activeDepartment?.label || "All products";
-  const hasActiveFilters = Boolean(activeCategory || activeWebsiteCategory || searchTerm || sort !== "featured" || minPrice || maxPrice);
+  const hasActiveFilters = Boolean(activeCategory || activeWebsiteCategory || searchTerm || sort !== "featured");
   const activeItemGroupNames = new Set(activeDepartment?.availableItemGroups || []);
   const itemGroupByName = new Map(itemGroups.map((group) => [group.name, group]));
   const sidebarGroups = activeDepartment
@@ -120,8 +112,6 @@ export function CatalogSection({
   function clearFilters() {
     onSearchChange("");
     onSortChange("featured");
-    onPriceFilterChange("min", "");
-    onPriceFilterChange("max", "");
     onDepartmentChange("");
   }
 
@@ -130,11 +120,7 @@ export function CatalogSection({
       <div className="section-heading">
         <div>
           <h1>Commercial catalog</h1>
-          <p>
-            {catalogState === "ready"
-              ? "Browse current catalog prices and availability. Prices exclude VAT; sales confirms every quotation."
-              : "Choose products for your quote basket. Sales will confirm pricing, availability and delivery."}
-          </p>
+          <p>Choose products and selling units for your quote basket. Sales will confirm pricing, availability and delivery.</p>
         </div>
       </div>
 
@@ -236,30 +222,14 @@ export function CatalogSection({
                 </div>
               ) : null}
             </div>
-            <div className="catalog-sort-panel" aria-label="Catalog sorting and price filters">
+            <div className="catalog-sort-panel" aria-label="Catalog sorting">
               <label>
                 <span>Sort</span>
                 <select value={sort} onChange={(event) => onSortChange(event.target.value)}>
                   <option value="featured">Featured first</option>
                   <option value="name_asc">Name A-Z</option>
                   <option value="name_desc">Name Z-A</option>
-                  <option value="price_asc">Price low-high</option>
-                  <option value="price_desc">Price high-low</option>
                 </select>
-              </label>
-              <label>
-                <span>Min price</span>
-                <div className="price-input">
-                  <DollarSign size={15} />
-                  <input inputMode="decimal" placeholder="0" value={minPrice} onChange={(event) => onPriceFilterChange("min", event.target.value)} />
-                </div>
-              </label>
-              <label>
-                <span>Max price</span>
-                <div className="price-input">
-                  <DollarSign size={15} />
-                  <input inputMode="decimal" placeholder="Any" value={maxPrice} onChange={(event) => onPriceFilterChange("max", event.target.value)} />
-                </div>
               </label>
             </div>
             <div className="catalog-tools__actions">
@@ -297,13 +267,6 @@ export function CatalogSection({
               </div>
               <div className="filter-panel__section filter-panel__section--rules">
                 <div>
-                  <span className="filter-panel__label">Storefront rules</span>
-                  <p>
-                    Price list: <strong>{priceList}</strong>. Currency:{" "}
-                    <strong>{catalogFacets?.rules.defaultCurrency || "FJD"}</strong>.
-                  </p>
-                </div>
-                <div>
                   <span className="filter-panel__label">Excluded warehouses</span>
                   <p>{catalogFacets?.rules.excludedWarehouses.join(", ") || "Showroom warehouses excluded"}</p>
                 </div>
@@ -320,6 +283,11 @@ export function CatalogSection({
           {catalogState === "loading" ? (
             <div className="catalog-empty" role="status" aria-live="polite">
               <strong>Loading products...</strong>
+            </div>
+          ) : catalogState === "unavailable" ? (
+            <div className="catalog-empty" role="status">
+              <strong>The catalog is temporarily unavailable.</strong>
+              <p>Please reload this page to try again.</p>
             </div>
           ) : products.length ? (
             <div className="product-grid">
@@ -349,7 +317,7 @@ export function CatalogSection({
                     <p>{plainTextDescription(product, "Contact sales for product details and availability.")}</p>
                     <div className="product-card__footer">
                       <div>
-                        <span className="price">{priceLabel(product)}</span>
+                        <strong className="selling-unit">{sellingUnitLabel(product)}</strong>
                         <small>
                           <Clock3 size={14} /> {purchaseFlowLabel(product)}
                         </small>

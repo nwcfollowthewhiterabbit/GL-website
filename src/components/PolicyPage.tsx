@@ -61,11 +61,9 @@ const policyContent: Record<PolicySlug, PolicyContent> = {
     icon: FileText,
     sections: [
       {
-        title: "Catalog prices",
+        title: "Pricing and availability",
         items: [
-          "Catalog prices are shown in Fijian dollars (FJD).",
-          "Catalog prices exclude VAT. Sales confirms the final price, applicable VAT and any delivery or service charges in your quotation.",
-          "Product information, stock and prices are sourced from ERPNext but may change before an order is accepted."
+          "Choose products, selling units and quantities in the catalog. Green Leaf sales confirms availability, prices, applicable VAT and any delivery or service charges in your quotation."
         ]
       },
       {

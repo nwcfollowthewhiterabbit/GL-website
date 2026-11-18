@@ -40,7 +40,7 @@ export function DiagnosticsSection({ diagnostics, recentQuotes }: DiagnosticsSec
               <article key={quote.name}>
                 <strong>{quote.name}</strong>
                 <span>{quote.customer}</span>
-                <span>{quote.grandTotal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FJD</span>
+                {quote.status?.toLowerCase() !== "draft" && typeof quote.grandTotal === "number" && <span>{quote.grandTotal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FJD</span>}
                 <span>{quote.status}</span>
               </article>
             ))}

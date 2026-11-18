@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { ArrowLeft, ArrowRight, Sparkles } from "lucide-react";
-import { offerKey, priceLabel, productImage, productPlaceholder } from "../lib/catalog";
+import { offerKey, sellingUnitLabel, productImage, productPlaceholder } from "../lib/catalog";
 import type { CatalogProduct } from "../types";
 
 type RecommendedProductsSectionProps = {
@@ -93,8 +93,7 @@ export function RecommendedProductsSection({ products, onSelectProduct }: Recomm
               }}
             />
             <span>{product.name}</span>
-            <strong>{priceLabel(product)}</strong>
-            <small>Excl. VAT</small>
+            <strong>{sellingUnitLabel(product)}</strong>
           </button>
         ))}
       </div>

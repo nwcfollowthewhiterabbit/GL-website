@@ -1191,7 +1191,7 @@ textarea:focus-visible {
 
 .catalog-tools {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(338px, 0.72fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(145px, 185px) auto;
   align-items: end;
   gap: 10px;
   margin-bottom: 14px;
@@ -1208,12 +1208,6 @@ textarea:focus-visible {
   gap: 8px;
 }
 
-.catalog-sort-panel {
-  display: grid;
-  grid-template-columns: minmax(150px, 1fr) minmax(86px, 0.55fr) minmax(86px, 0.55fr);
-  gap: 8px;
-}
-
 .catalog-sort-panel label {
   display: grid;
 }
@@ -1226,9 +1220,7 @@ textarea:focus-visible {
   text-transform: uppercase;
 }
 
-.catalog-sort-panel select,
-.catalog-sort-panel input,
-.price-input {
+.catalog-sort-panel select {
   width: 100%;
   min-height: 46px;
   padding: 0 10px;
@@ -1245,38 +1237,12 @@ textarea:focus-visible {
     box-shadow 150ms ease;
 }
 
-.price-input {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding-inline: 9px 8px;
-}
-
-.price-input svg {
-  flex: 0 0 auto;
-  color: var(--soft);
-}
-
-.price-input input {
-  min-height: 0;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-}
-
-.catalog-sort-panel select:focus,
-.catalog-sort-panel input:focus,
-.price-input:focus-within {
+.catalog-sort-panel select:focus {
   border-color: rgba(46, 111, 74, 0.42);
   background: var(--panel);
   box-shadow: var(--focus-ring), var(--control-shadow-hover);
 }
 
-.price-input:focus-within svg {
-  color: var(--leaf);
-}
 
 .catalog-filter-button {
   display: none;
@@ -2167,7 +2133,7 @@ textarea:focus-visible {
   font-size: 13px;
 }
 
-.price {
+.selling-unit {
   color: var(--ink);
   font-size: 17px;
   font-weight: 900;
@@ -3741,17 +3707,7 @@ textarea:focus-visible {
   color: var(--ink);
 }
 
-.quote-total {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 12px 0 2px;
-  color: var(--muted);
-}
 
-.quote-total strong {
-  color: var(--ink);
-}
 
 .order-flow-note {
   display: grid;
@@ -4321,13 +4277,7 @@ textarea:focus-visible {
     padding: 8px;
   }
 
-  .catalog-sort-panel {
-    grid-template-columns: 1fr 1fr;
-  }
 
-  .catalog-sort-panel label:first-child {
-    grid-column: 1 / -1;
-  }
 
   .nav-menu__main {
     align-items: stretch;

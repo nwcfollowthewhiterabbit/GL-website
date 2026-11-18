@@ -25,8 +25,11 @@ import type {
   WebsiteManufacturer
 } from "../types";
 
+export class ResourceNotFound extends Error {}
+
 async function getJson<T>(path: string): Promise<T> {
   const response = await fetch(path);
+  if (response.status === 404) throw new ResourceNotFound();
   if (!response.ok) throw new Error(`${path} failed`);
   return response.json();
 }
@@ -38,8 +41,6 @@ export function fetchCatalogProducts(params: {
   category?: string;
   categories?: string;
   sort?: string;
-  minPrice?: string;
-  maxPrice?: string;
 }) {
   const search = new URLSearchParams({
     page: String(params.page),
@@ -49,8 +50,6 @@ export function fetchCatalogProducts(params: {
   if (params.category) search.set("category", params.category);
   if (params.categories?.length) search.set("categories", params.categories);
   if (params.sort) search.set("sort", params.sort);
-  if (params.minPrice) search.set("minPrice", params.minPrice);
-  if (params.maxPrice) search.set("maxPrice", params.maxPrice);
   return getJson<CatalogProductsResponse>(`/api/catalog/products?${search.toString()}`);
 }
 

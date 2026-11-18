@@ -83,7 +83,7 @@ export function ServiceContactSection({ onOpenQuote }: ServiceContactSectionProp
         <div className="shell final-cta__inner">
           <div>
             <span>Ready to source hospitality supplies?</span>
-            <h2>Build a quote basket with current catalog prices and availability.</h2>
+            <h2>Choose products and quantities for your quote basket.</h2>
           </div>
           <button className="primary-button" onClick={onOpenQuote}>
             Open order basket <ArrowRight size={18} />

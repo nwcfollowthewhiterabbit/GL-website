@@ -15,12 +15,12 @@ import { RecommendedProductsSection } from "./components/RecommendedProductsSect
 import { ServiceContactSection } from "./components/ServiceContactSection";
 import { SiteFooter } from "./components/SiteFooter";
 import { SiteHeader } from "./components/SiteHeader";
-import { featuredProducts as fallbackProducts } from "./data/catalog";
 import { matchedItemGroups, websiteCategoryCount } from "./data/websiteCategories";
 import { useCustomerAccount } from "./hooks/useCustomerAccount";
 import { useStorefrontContent } from "./hooks/useStorefrontContent";
 import { useTheme } from "./hooks/useTheme";
 import {
+  ResourceNotFound,
   createQuoteRequest,
   purgeLegacyQuoteDetails,
   fetchCatalogProduct,
@@ -31,7 +31,7 @@ import {
   fetchRelatedCatalogProducts
 } from "./lib/api";
 import { catalogPath, departmentCategoryPath, findCategoryBySlug, parseStorefrontRoute, productPath, type StorefrontRoute } from "./lib/routes";
-import { offerKey, nextOrderQuantity, numericPrice, orderStep } from "./lib/catalog";
+import { basketLine, offerKey, nextOrderQuantity, orderStep } from "./lib/catalog";
 import type {
   CatalogFacets,
   CatalogProduct,
@@ -96,7 +96,7 @@ export function App({ initialRoute }: AppProps = {}) {
   const [erpProducts, setErpProducts] = useState<CatalogProduct[]>([]);
   const [catalogReference, setCatalogReference] = useState<CatalogReference | null>(null);
   const [catalogTotal, setCatalogTotal] = useState<number | null>(null);
-  const [catalogState, setCatalogState] = useState<"loading" | "ready" | "fallback">("loading");
+  const [catalogState, setCatalogState] = useState<"loading" | "ready" | "unavailable">("loading");
   const [quoteCompany, setQuoteCompany] = useState("");
   const [quoteEmail, setQuoteEmail] = useState("");
   const [quoteStatus, setQuoteStatus] = useState("");
@@ -107,7 +107,11 @@ export function App({ initialRoute }: AppProps = {}) {
     try {
       const saved = JSON.parse(window.localStorage.getItem("greenleaf.quoteLines") || "[]");
       if (Array.isArray(saved)) {
-        setQuoteLines(saved.filter((line) => typeof line?.sku === "string" && Number.isFinite(line.qty) && line.qty > 0).slice(0, 100));
+        const lines = saved
+          .filter((line) => typeof line?.sku === "string" && Number.isFinite(line.qty) && line.qty > 0)
+          .slice(0, 100)
+          .map((line) => basketLine(line, line.qty, line.unitConfirmed === true));
+        setQuoteLines(lines);
       }
     } catch { /* The basket still works when browser storage is unavailable. */ }
     setBasketRestored(true);
@@ -123,7 +127,7 @@ export function App({ initialRoute }: AppProps = {}) {
         const product = await fetchCatalogProduct(saved.sku).catch(() => null);
         if (!active || !product || product.sellingUnitCount !== 1) continue;
         setQuoteLines((lines) => lines.map((line) => line.sku === saved.sku && !line.unitConfirmed
-          ? { ...product, qty: line.qty, unitConfirmed: true } : line));
+          ? basketLine(product, line.qty, true) : line));
       }
     }
     void refreshLegacyBasket();
@@ -140,15 +144,13 @@ export function App({ initialRoute }: AppProps = {}) {
   const [searchTerm, setSearchTerm] = useState(route.view === "catalog" ? route.search || "" : "");
   const [searchFocused, setSearchFocused] = useState(false);
   const [catalogSort, setCatalogSort] = useState("featured");
-  const [minPrice, setMinPrice] = useState("");
-  const [maxPrice, setMaxPrice] = useState("");
   const [activeCategory, setActiveCategory] = useState("");
   const [activeWebsiteCategory, setActiveWebsiteCategory] = useState("");
   const [page, setPage] = useState(1);
-  const [catalogPriceList, setCatalogPriceList] = useState("Standard Selling");
   const [activeProduct, setActiveProduct] = useState<CatalogProduct | null>(null);
   const [previewProduct, setPreviewProduct] = useState<CatalogProduct | null>(null);
   const [productLoading, setProductLoading] = useState(false);
+  const [productUnavailable, setProductUnavailable] = useState(false);
   const [relatedProducts, setRelatedProducts] = useState<CatalogProduct[]>([]);
   const [catalogFacets, setCatalogFacets] = useState<CatalogFacets | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -227,8 +229,6 @@ export function App({ initialRoute }: AppProps = {}) {
       q: searchTerm,
       category: activeCategory,
       sort: catalogSort,
-      minPrice,
-      maxPrice,
       categories: departmentGroups
     })
       .then((data) => {
@@ -236,19 +236,18 @@ export function App({ initialRoute }: AppProps = {}) {
         setErpProducts(data.products || []);
         setCatalogTotal(data.total);
         setCatalogReference(data.reference || null);
-        setCatalogPriceList(data.priceList);
         setCatalogState("ready");
       })
       .catch(() => {
         if (ignore) return;
         setErpProducts([]);
-        setCatalogState("fallback");
+        setCatalogState("unavailable");
       });
 
     return () => {
       ignore = true;
     };
-  }, [activeCategory, catalogVisible, catalogSort, departmentGroups, maxPrice, minPrice, page, searchTerm]);
+  }, [activeCategory, catalogVisible, catalogSort, departmentGroups, page, searchTerm]);
 
   useEffect(() => {
     if (!catalogVisible) return;
@@ -332,36 +331,30 @@ export function App({ initialRoute }: AppProps = {}) {
       return;
     }
 
-    const localProduct = erpProducts.concat(fallbackProducts).find((product) => product.sku === route.sku && (!route.uom || product.uom === route.uom));
-    if (localProduct) {
-      setActiveProduct(localProduct);
-    }
-
     let ignore = false;
     setProductLoading(true);
+    setProductUnavailable(false);
+    setRelatedProducts([]);
     fetchCatalogProduct(route.sku, route.uom)
       .then((product) => {
         if (ignore) return;
         setActiveProduct(product);
-        return fetchRelatedCatalogProducts(product.sku, 4).catch(() => []);
+        setProductLoading(false);
+        fetchRelatedCatalogProducts(product.sku, 4)
+          .then((related) => { if (!ignore) setRelatedProducts(related); })
+          .catch(() => { /* Related products are optional. */ });
       })
-      .then((related) => {
-        if (ignore || !related) return;
-        setRelatedProducts(related);
-      })
-      .catch(() => {
+      .catch((error) => {
         if (ignore) return;
-        setActiveProduct(localProduct || null);
-        setRelatedProducts([]);
-      })
-      .finally(() => {
-        if (!ignore) setProductLoading(false);
+        setActiveProduct(null);
+        setProductUnavailable(!(error instanceof ResourceNotFound));
+        setProductLoading(false);
       });
 
     return () => {
       ignore = true;
     };
-  }, [erpProducts, route]);
+  }, [route]);
 
   useEffect(() => {
     if (!basketRestored) return;
@@ -384,15 +377,8 @@ export function App({ initialRoute }: AppProps = {}) {
     if (account.session && new URLSearchParams(window.location.search).get("basket") === "1") setQuoteOpen(true);
   }, [account.session?.email]);
 
-  const products = useMemo<CatalogProduct[]>(() => {
-    if (catalogState === "fallback") return fallbackProducts;
-    return erpProducts;
-  }, [catalogState, erpProducts]);
-
+  const products = erpProducts;
   const quoteCount = quoteLines.reduce((sum, line) => sum + line.qty, 0);
-  const quoteTotal = quoteLines.reduce((sum, line) => {
-    return line.unitConfirmed ? sum + numericPrice(line) * line.qty : sum;
-  }, 0);
 
   const visibleCategories = useMemo(() => {
     return websiteNavigationCategories.map((category) => ({
@@ -465,13 +451,6 @@ export function App({ initialRoute }: AppProps = {}) {
     setPage(1);
   }
 
-  function setPriceFilter(kind: "min" | "max", value: string) {
-    const normalized = value.replace(/[^\d.]/g, "");
-    if (kind === "min") setMinPrice(normalized);
-    else setMaxPrice(normalized);
-    setPage(1);
-  }
-
   function openProductPreview(product: CatalogProduct) {
     setPreviewProduct(product);
   }
@@ -514,14 +493,14 @@ export function App({ initialRoute }: AppProps = {}) {
     setQuoteLines((current) => {
       const unresolved = current.find((line) => !line.unitConfirmed && line.sku === product.sku);
       if (unresolved) {
-        return current.map((line) => line === unresolved ? { ...product, qty: line.qty, unitConfirmed: true } : line);
+        return current.map((line) => line === unresolved ? basketLine(product, line.qty, true) : line);
       }
       const key = offerKey(product);
       const existing = current.find((line) => offerKey(line) === key);
       if (existing) {
-        return current.map((line) => (offerKey(line) === key ? { ...product, unitConfirmed: true, qty: nextOrderQuantity(product, line.qty, 1) } : line));
+        return current.map((line) => (offerKey(line) === key ? basketLine(product, nextOrderQuantity(product, line.qty, 1), true) : line));
       }
-      return [...current, { ...product, qty: orderStep(product), unitConfirmed: true }];
+      return [...current, basketLine(product, orderStep(product), true)];
     });
     setQuoteOpen(true);
   }
@@ -580,8 +559,7 @@ export function App({ initialRoute }: AppProps = {}) {
         lines: quoteLines.map((line) => ({
           sku: line.sku,
           qty: line.qty,
-          uom: line.uom,
-          expectedRate: typeof line.price === "number" ? line.price : undefined
+          uom: line.uom
         })),
         notes: quoteNotes || "Order basket from storefront"
       });
@@ -603,7 +581,7 @@ export function App({ initialRoute }: AppProps = {}) {
         const line = data.missing?.find((item) => item.reason === "invalid_pack_quantity");
         setQuoteStatus(`${line?.sku || "This item"} must be ordered in multiples of ${line?.packingUnit || "the displayed pack"}. Review its quantity in the basket.`);
       } else if (data.mode === "validation_failed") {
-        setQuoteStatus("A selected price, pack or quantity has changed. Remove the affected line and choose a current selling unit from the catalog.");
+        setQuoteStatus("A selected product, pack or quantity has changed. Remove the affected line and choose a current selling unit from the catalog.");
       } else if (data.mode === "validated_dry_run") {
         setQuoteResult(quoteResultFromResponse(data, quoteEmail, { dryRun: true }));
         setQuoteStatus("Validated locally. ERPNext REST credentials are not configured.");
@@ -673,6 +651,7 @@ export function App({ initialRoute }: AppProps = {}) {
         <ProductDetailPage
           product={activeProduct}
           isLoading={productLoading}
+          unavailable={productUnavailable}
           relatedProducts={relatedProducts}
           onBackToCatalog={backToCatalog}
           onAddToQuote={addToQuote}
@@ -691,14 +670,11 @@ export function App({ initialRoute }: AppProps = {}) {
             activeWebsiteCategory={activeWebsiteCategory}
             searchTerm={searchTerm}
             sort={catalogSort}
-            minPrice={minPrice}
-            maxPrice={maxPrice}
             page={page}
             pageSize={PAGE_SIZE}
             productCount={catalogTotal || products.length}
             totalPages={totalPages}
             filtersOpen={filtersOpen}
-            priceList={catalogPriceList}
             catalogFacets={catalogFacets}
             searchSuggestions={catalogSuggestions}
             suggestionsLoading={catalogSuggestionsLoading}
@@ -708,7 +684,6 @@ export function App({ initialRoute }: AppProps = {}) {
             onSearchChange={setSearch}
             onSearchFocus={() => setSearchFocused(true)}
             onSortChange={setSort}
-            onPriceFilterChange={setPriceFilter}
             onSelectSuggestion={selectCatalogSuggestion}
             onPageChange={setPage}
             onSelectProduct={openProductPreview}
@@ -732,7 +707,6 @@ export function App({ initialRoute }: AppProps = {}) {
         isAccountLoading={!account.sessionReady}
         quoteLines={quoteLines}
         quoteCount={quoteCount}
-        quoteTotal={quoteTotal}
         quoteCompany={quoteCompany}
         buyerContact={buyerContact}
         quoteEmail={quoteEmail}

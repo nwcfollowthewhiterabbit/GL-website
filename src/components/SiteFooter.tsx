@@ -46,7 +46,6 @@ export function SiteFooter({ departments }: SiteFooterProps) {
       </div>
       <div className="shell footer-bottom">
         <span>{legacyBrand.legalName} trading as Green Leaf Pacific</span>
-        <span>Prices exclude VAT · Currency FJD</span>
       </div>
       <div className="shell footer-payment">
         <PaymentTrustMarks compact />

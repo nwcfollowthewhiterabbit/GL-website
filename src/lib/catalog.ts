@@ -1,4 +1,4 @@
-import type { CatalogProduct } from "../types";
+import type { CatalogProduct, QuoteLine } from "../types";
 
 const productPlaceholder = "/product-placeholder.svg";
 
@@ -30,21 +30,23 @@ export function offerKey(product: Pick<CatalogProduct, "sku" | "uom">) {
   return JSON.stringify([product.sku, product.uom || ""]);
 }
 
-export function priceLabel(product: CatalogProduct) {
-  if (product.priceMode === "Hide Price" || product.price === "Hide Price") return "Contact sales";
-  if (product.priceMode === "Quote Only" || product.price === "Quote Only") return "Quote only";
-  if (typeof product.price === "string") return product.price;
-  if (product.price <= 0) return "Quote only";
-  return `${product.price.toLocaleString("en-US", {
-    maximumFractionDigits: 2,
-    minimumFractionDigits: 2
-  })} ${product.currency || "FJD"}${product.uom ? ` per ${product.uom}` : ""}`;
+export function sellingUnitLabel(product: CatalogProduct) {
+  return product.uom ? `Selling unit: ${product.uom}` : "Contact sales for the selling unit";
 }
 
-export function numericPrice(product: CatalogProduct) {
-  if (typeof product.price === "number") return Number.isFinite(product.price) ? product.price : 0;
-  const match = String(product.price || "").replace(/,/g, "").match(/^\s*(\d+(?:\.\d+)?)/);
-  return match ? Number(match[1]) : 0;
+// Keep only the product details needed to identify a saved pack and its quantity.
+// This same projection upgrades baskets written by versions that stored entire API responses.
+export function basketLine(product: CatalogProduct, qty: number, unitConfirmed: boolean): QuoteLine {
+  return {
+    sku: product.sku,
+    name: product.name || product.sku,
+    category: product.category || "",
+    uom: product.uom,
+    packingUnit: product.packingUnit,
+    image: product.image,
+    qty,
+    unitConfirmed: Boolean(product.uom && unitConfirmed)
+  };
 }
 
 export function availabilityLabel(product: CatalogProduct) {
@@ -56,7 +58,6 @@ export function availabilityLabel(product: CatalogProduct) {
   }
   if (product.availability === "available") return "Available";
   if (product.availability === "special_order") return "Special order";
-  if (product.availability === "hidden_no_price") return "Quote only";
   return "ERPNext item";
 }
 
@@ -88,17 +89,16 @@ export function requiresAvailabilityConfirmation(product: CatalogProduct, reques
 }
 
 export function purchaseFlowLabel(product: CatalogProduct) {
-  if (orderStep(product) > 1) return `Order in multiples of ${orderStep(product)} · excl. VAT`;
+  if (orderStep(product) > 1) return `Order in multiples of ${orderStep(product)}`;
   if (isSpecialOrder(product)) return "Sales will confirm availability and lead time";
-  return "Excl. VAT · final price and delivery confirmed by sales";
+  return "Sales will confirm stock and delivery";
 }
 
 export function productSpecs(product: CatalogProduct) {
   return [
     { label: "SKU", value: product.sku },
     { label: "Category", value: product.category },
-    { label: "UOM", value: product.uom || "Each" },
-    { label: "Availability", value: availabilityLabel(product) },
-    { label: "Price", value: `${priceLabel(product)} excl. VAT` }
+    { label: "Selling unit", value: product.uom || "Confirm with sales" },
+    { label: "Availability", value: availabilityLabel(product) }
   ];
 }

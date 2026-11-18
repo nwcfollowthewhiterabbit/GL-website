@@ -2,10 +2,7 @@ export type CatalogProduct = {
   sku: string;
   name: string;
   category: string;
-  price: number | string;
-  priceMode?: string;
   stockDisplay?: string;
-  currency?: string;
   status?: string;
   availability?: string;
   quantity?: number;
@@ -40,11 +37,8 @@ export type ItemGroup = {
   itemCount: number;
   showOnStorefront?: boolean;
   sortOrder?: number;
-  priceMode?: string;
-  priceList?: string;
   stockDisplay?: string;
   showProductsWithoutImages?: boolean;
-  showProductsWithoutPrice?: boolean;
   categoryNote?: string;
 };
 
@@ -103,7 +97,6 @@ export type StorefrontContentSources = {
 };
 
 export type CatalogDiagnostics = {
-  priceList?: string;
   storefrontRules?: StorefrontRules;
   totals: {
     total_items: number;
@@ -120,7 +113,6 @@ export type CatalogDiagnostics = {
 export type StorefrontRules = {
   excludedGroups: string[];
   excludedWarehouses: string[];
-  defaultCurrency: string;
 };
 
 export type CatalogFacets = {
@@ -135,7 +127,7 @@ export type RecentQuote = {
   customer: string;
   transactionDate?: string;
   validTill?: string;
-  grandTotal: number;
+  grandTotal?: number;
   status: string;
   orderType?: string;
   creation?: string;
@@ -171,8 +163,8 @@ export type AccountDocumentLine = {
   description?: string;
   qty: number;
   uom?: string;
-  rate: number;
-  amount: number;
+  rate?: number;
+  amount?: number;
   image?: string | null;
   deliveryDate?: string;
   deliveredQty?: number;
@@ -244,7 +236,6 @@ export type CatalogProductsResponse = {
   page: number;
   pageSize: number;
   total: number;
-  priceList: string;
   categoryRule?: ItemGroup;
   products: CatalogProduct[];
 };
@@ -258,7 +249,7 @@ export type QuoteRequestPayload = {
     phone?: string;
     location?: string;
   };
-  lines: Array<{ sku: string; uom?: string; qty: number; expectedRate?: number }>;
+  lines: Array<{ sku: string; uom?: string; qty: number }>;
   notes?: string;
 };
 
@@ -271,12 +262,10 @@ export type QuoteRequestResponse = {
     name: string;
     owner?: string;
     customer?: string;
-    grand_total?: number;
   };
   validLines?: Array<{
     item_code: string;
     qty: number;
-    rate?: number;
     uom?: string;
     availableQuantity?: number;
     fulfillmentStatus?: "in_stock" | "low_stock" | "special_order";
