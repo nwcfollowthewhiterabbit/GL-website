@@ -20,13 +20,26 @@ function matchesReview(rowAlias, proofs, fields) {
         CASE ${rowAlias}.name ${hashes} END`;
 }
 
+function reviewedImageMatchSql(alias) {
+  return matchesReview(alias, reviewedPhotos, [`COALESCE(${alias}.item_name, '')`, `COALESCE(${alias}.thumbnail, '')`]);
+}
+
+export function imageReadySql(alias, hasThumbnail) {
+  const primary = `IFNULL(${alias}.image, '') <> ''`;
+  return hasThumbnail ? `(${primary} OR (${reviewedImageMatchSql(alias)}))` : primary;
+}
+
 export function reviewedImageSql(alias) {
-  const match = matchesReview(alias, reviewedPhotos, [`COALESCE(${alias}.item_name, '')`, `COALESCE(${alias}.thumbnail, '')`]);
+  const match = reviewedImageMatchSql(alias);
   return `CASE WHEN IFNULL(${alias}.image, '') = '' AND ${match} THEN ${alias}.thumbnail ELSE ${alias}.image END`;
 }
 
+export function reviewedDescriptionMatchSql(primary) {
+  return matchesReview("i", reviewedDescriptions, ["COALESCE(i.item_name, '')", primary, "COALESCE(i.woocommerce_description, '')"]);
+}
+
 export function reviewedDescriptionSql(primary) {
-  const match = matchesReview("i", reviewedDescriptions, ["COALESCE(i.item_name, '')", primary, "COALESCE(i.woocommerce_description, '')"]);
+  const match = reviewedDescriptionMatchSql(primary);
   return `CASE WHEN ${match} THEN i.woocommerce_description ELSE ${primary} END`;
 }
 

@@ -34,7 +34,7 @@ export const publicStockConversionSql = `CASE
 // Public rates must identify a selling unit and a trusted ERP conversion to stock.
 // Rank effective dates before edit times; equally current conflicting rates need ERP review.
 export async function publicSellingUnitsSql({ exactSku = false, search = false, featured = false, requireImage = false, requireConversion = true } = {}) {
-  const imageFilter = requireImage ? `AND IFNULL(${(await getCatalogPublicationSql()).priceImageValue}, '') <> ''` : "";
+  const imageFilter = requireImage ? `AND (${(await getCatalogPublicationSql()).priceImageReady})` : "";
   const customPriceList = await hasCustomField("Item Group", "website_price_list");
   const priceList = customPriceList ? "COALESCE(NULLIF(g.website_price_list, ''), :priceList)" : ":priceList";
   const completeConversion = `COUNT(current_price.conversion_factor) = COUNT(*)

@@ -1,4 +1,4 @@
-import { reviewedDescriptionSql, reviewedImageSql } from "./catalog-verified-content.mjs";
+import { imageReadySql, reviewedDescriptionMatchSql, reviewedDescriptionSql, reviewedImageSql } from "./catalog-verified-content.mjs";
 import { getErpPool } from "./erpnext-db.mjs";
 
 export const EXCLUDED_STOREFRONT_GROUPS = [
@@ -36,29 +36,32 @@ export async function getCatalogPublicationSql() {
     : "COALESCE(NULLIF(i.description, ''), '')";
   const descriptionValue = columns.has("woocommerce_description") ? reviewedDescriptionSql(primaryDescription) : primaryDescription;
   const imageValue = columns.has("thumbnail") ? reviewedImageSql("i") : "i.image";
-  const priceImageValue = columns.has("thumbnail") ? reviewedImageSql("item") : "item.image";
+  const imageReady = imageReadySql("i", columns.has("thumbnail"));
+  const priceImageReady = imageReadySql("item", columns.has("thumbnail"));
   const cleanDescription = `
     TRIM(
       REGEXP_REPLACE(
-        ${descriptionValue},
+        ${primaryDescription},
         '<[^>]*>',
         ' '
       )
     )
   `;
-  const descriptionReady = `
-    ${cleanDescription} <> ''
-    AND CHAR_LENGTH(${cleanDescription}) >= 24
+  const cleanPrimaryReady = `
+    CHAR_LENGTH(${cleanDescription}) >= 24
     AND LOWER(${cleanDescription}) <> LOWER(TRIM(COALESCE(NULLIF(i.item_name, ''), i.name)))
   `;
+  const descriptionReady = columns.has("woocommerce_description")
+    ? `((${cleanPrimaryReady}) OR (${reviewedDescriptionMatchSql(primaryDescription)}))`
+    : cleanPrimaryReady;
 
   publicationSql = {
     imageValue,
-    priceImageValue,
+    priceImageReady,
     descriptionValue,
     descriptionReady,
     productReady: `
-      IFNULL(${imageValue}, '') <> ''
+      (${imageReady})
       AND IFNULL(price.price_list_rate, 0) > 0
       AND ${descriptionReady}
     `
