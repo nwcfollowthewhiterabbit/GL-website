@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { productPlaceholder } from "../lib/catalog";
 import type { WebsiteBanner } from "../types";
@@ -17,6 +17,7 @@ type HeroSectionProps = {
 
 export function HeroSection({ banners }: HeroSectionProps) {
   const [activeSlide, setActiveSlide] = useState(0);
+  const imageRef = useRef<HTMLImageElement>(null);
   const slide = banners[activeSlide] || banners[0];
 
   useEffect(() => {
@@ -24,12 +25,22 @@ export function HeroSection({ banners }: HeroSectionProps) {
   }, [banners]);
 
   useEffect(() => {
-    if (banners.length <= 1) return;
-    const timer = window.setInterval(() => {
-      setActiveSlide((value) => (value + 1) % banners.length);
-    }, 6500);
-    return () => window.clearInterval(timer);
-  }, [banners.length]);
+    const image = imageRef.current;
+    if (!image || banners.length <= 1) return;
+    let timer: number | undefined;
+    function startDisplayTime() {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        setActiveSlide((value) => (value + 1) % banners.length);
+      }, 6500);
+    }
+    image.addEventListener("load", startDisplayTime);
+    if (image.complete && image.naturalWidth > 0) startDisplayTime();
+    return () => {
+      window.clearTimeout(timer);
+      image.removeEventListener("load", startDisplayTime);
+    };
+  }, [slide, activeSlide, banners.length]);
 
   function previousSlide() {
     setActiveSlide((value) => (value - 1 + banners.length) % banners.length);
@@ -51,9 +62,9 @@ export function HeroSection({ banners }: HeroSectionProps) {
           target={slide.openInNewTab ? "_blank" : undefined}
           rel={slide.openInNewTab ? "noreferrer" : undefined}
         >
-          <picture>
+          <picture key={slide.id || slide.image}>
             {compactImages[slide.image] && <source media="(max-width: 980px)" srcSet={compactImages[slide.image]} />}
-            <img src={slide.image} alt="" width={1920} height={500} fetchPriority="high"
+            <img ref={imageRef} src={slide.image} alt="" width={1920} height={500} fetchPriority="high"
               onError={(event) => {
                 const image = event.currentTarget;
                 const source = image.parentElement?.querySelector("source");
