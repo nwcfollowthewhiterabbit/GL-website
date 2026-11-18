@@ -9,7 +9,7 @@ const row = {
   sku: "SAMPLE", name: "Sample cups - $137.25", offer_count: 1, category: "Cups", uom: "50/Case",
   price: 137.25, currency: "FJD", price_mode_override: "Price List", packing_unit: 2,
   quantity: 12, availability: "available",
-  description: "<p>Foam - $450</p><p>10cm US$1,200.20 cushion, 180*94*83-$5000</p><p>5mm glass -FJD&nbsp;20.50</p>"
+  description: "<p>Foam - $450</p><p>10cm US$1,200.20 cushion, 180*94*83-$5000</p><p>5mm glass -FJD&nbsp;20.50</p><p>Metal 29.99 FJD, 20 USD frame</p>"
 };
 const lookups = [];
 pool.execute = async (sql, params) => {
@@ -39,7 +39,7 @@ try {
   assert.deepEqual(lookups[0], lookups[1]);
   assert.deepEqual(standard, obsolete);
   assert.equal(standard.total, 1);
-  assert.equal(standard.products[0].description, "<p>Foam</p><p>10cm cushion, 180*94*83</p><p>5mm glass</p>");
+  assert.equal(standard.products[0].description, "<p>Foam</p><p>10cm cushion, 180*94*83</p><p>5mm glass</p><p>Metal, frame</p>");
   assert.deepEqual(
     [standard.products[0].uom, standard.products[0].packingUnit, standard.products[0].quantity],
     ["50/Case", 2, 12]

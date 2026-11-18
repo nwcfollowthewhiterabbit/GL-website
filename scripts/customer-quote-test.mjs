@@ -64,3 +64,8 @@ assert.equal(resolveSellingLines([{ ...multiple, qty: 1 }], six).missing[0].reas
 const soldBySix = resolveSellingLines([multiple], six).validLines[0];
 assert.equal(soldBySix.qty, 6);
 assert.equal(Math.round(soldBySix.qty * soldBySix.rate * 100), 33246);
+
+const withSupplierCopy = { item_code: "SET", item_name: "Set, size 12 - 29.99 FJD", qty: 1, uom: "Each" };
+const cleanReceipt = publicQuoteReceipt({ validLines: [withSupplierCopy], missing: [] });
+assert.equal(cleanReceipt.validLines[0].item_name, "Set, size 12");
+assert.equal(withSupplierCopy.item_name, "Set, size 12 - 29.99 FJD");

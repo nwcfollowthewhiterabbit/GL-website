@@ -53,7 +53,15 @@ export function displayItemName(sku, name) {
   return sku === "BIO-R-200Y" ? name.replaceAll("\u00e2\u20ac\u201c", "–") : name;
 }
 
-// Some supplier descriptions include component prices alongside dimensions and materials.
+// Supplier copy sometimes puts a component price beside its dimensions or material.
+const currencyCode = "(?:FJD|USD|AUD|NZD|CAD|EUR|GBP)";
+const amount = String.raw`\d+(?:[,.]\d{3})*(?:[.,]\d{1,2})?`;
+const gap = String.raw`(?:\s|&nbsp;|&#160;|&#x0*a0;)*`;
+const dollar = String.raw`(?:\$|&#0*36;|&#x0*24;|&dollar;)`;
+const prefix = String.raw`(?:\b${currencyCode}${gap}${dollar}?|(?:US|FJ|AU?|NZ|CA)?${dollar}|[£€])`;
+const hasCurrency = new RegExp(String.raw`${currencyCode}|${dollar}|[£€]`, "i");
+const embeddedPrice = new RegExp(String.raw`[ \t]*(?:[-–—][ \t]*)?(?:${prefix}${gap}${amount}|${amount}${gap}${currencyCode}\b)`, "gi");
+
 export function withoutEmbeddedPrices(text) {
-  return text.replace(/[ \t]*(?:[-–—][ \t]*)?(?:(?:US|FJ|AU?|NZ|CA)?(?:\$|&#0*36;|&#x0*24;|&dollar;)|[£€]|\b(?:FJD|USD|AUD|NZD|CAD|EUR|GBP))(?:\s|&nbsp;|&#160;)*\d+(?:,\d{3})*(?:\.\d+)?/gi, "");
+  return hasCurrency.test(text) ? text.replace(embeddedPrice, "") : text;
 }

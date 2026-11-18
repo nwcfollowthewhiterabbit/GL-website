@@ -1,3 +1,4 @@
+import { withoutEmbeddedPrices } from "./catalog-verified-content.mjs";
 import crypto from "node:crypto";
 import mysql from "mysql2/promise";
 import { getErpPool, getErpDbConfig } from "./erpnext-db.mjs";
@@ -451,7 +452,8 @@ export function publicQuoteReceipt({ id, missing, validLines, fulfillment }) {
   return {
     id, missing, fulfillment,
     validLines: validLines.map(({ item_code, item_name, qty, uom, stock_uom, conversion_factor, availableQuantity, fulfillmentStatus }) => ({
-      item_code, item_name, qty, uom, stock_uom, conversion_factor, availableQuantity, fulfillmentStatus
+      item_code, item_name: withoutEmbeddedPrices(item_name || item_code) || item_code,
+      qty, uom, stock_uom, conversion_factor, availableQuantity, fulfillmentStatus
     }))
   };
 }
