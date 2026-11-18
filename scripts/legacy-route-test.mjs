@@ -7,6 +7,7 @@ for (const [url, destination] of [
   ["/index.php?route=product/product&path=132_133_685&product_id=106098", "/products/ART-2C-WP"],
   ["/index.php?route=product/category&path=59_65", "/catalog/front-of-house"],
   ["/index.php?route=product/manufacturer/info&manufacturer_id=12", "/catalog?q=Vicrila"],
+  ["/index.php?route=product/product&product_id=106281", "/products/ALT-AT-ST49FGA"],
   ["/index.php?route=product/product&product_id=107821", "/products/ONT-50BP-SUNDRIED"],
   ["/index.php?route=product/product&product_id=107822", "/products/ONT-55BP-Aged-Green"],
   ["/index.php?route=product/product&product_id=107824", "/products/ONT-55BP-SUNDRIED"],

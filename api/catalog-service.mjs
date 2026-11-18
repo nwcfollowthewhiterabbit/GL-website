@@ -231,7 +231,7 @@ async function loadCatalogProducts(options, includeTotal = true) {
         i.item_name AS name,
         i.item_group AS category,
         price.uom, i.sales_uom, price.packing_unit,
-        i.image,
+        ${publication.imageValue} AS image,
         ${publication.descriptionValue} AS description,
         IFNULL(price.price_list_rate, 0) AS price,
         IFNULL(price.currency, :defaultCurrency) AS currency,
@@ -470,7 +470,7 @@ export async function getCatalogQualityReport() {
   const qualityColumns = `
     COUNT(*) AS total,
     ${readyCountSql} AS ready,
-    SUM(CASE WHEN IFNULL(i.image, '') = '' THEN 1 ELSE 0 END) AS missing_image,
+    SUM(CASE WHEN IFNULL(${publication.imageValue}, '') = '' THEN 1 ELSE 0 END) AS missing_image,
     SUM(CASE WHEN IFNULL(price.price_list_rate, 0) <= 0 THEN 1 ELSE 0 END) AS missing_price,
     SUM(CASE WHEN NOT (${publication.descriptionReady}) THEN 1 ELSE 0 END) AS incomplete_description
   `;
@@ -517,7 +517,7 @@ async function loadCatalogDiagnostics() {
       SELECT
         COUNT(*) AS total_items,
         SUM(CASE WHEN IFNULL(i.disabled, 0) = 0 THEN 1 ELSE 0 END) enabled_items,
-        SUM(CASE WHEN IFNULL(i.image, '') = '' THEN 1 ELSE 0 END) without_image,
+        SUM(CASE WHEN IFNULL(${publication.imageValue}, '') = '' THEN 1 ELSE 0 END) without_image,
         SUM(CASE WHEN IFNULL(i.item_group, '') IN ('', 'All Item Groups') THEN 1 ELSE 0 END) weak_group,
         SUM(CASE WHEN IFNULL(price.price_list_rate, 0) <= 0 THEN 1 ELSE 0 END) without_selling_price,
         SUM(CASE WHEN IFNULL(i.disabled, 0) = 0 AND ${publication.productReady} THEN 1 ELSE 0 END) publication_ready,

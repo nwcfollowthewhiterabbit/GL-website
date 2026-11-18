@@ -1,3 +1,4 @@
+import { reviewedDescriptionSql, reviewedImageSql } from "./catalog-verified-content.mjs";
 import { getErpPool } from "./erpnext-db.mjs";
 
 export const EXCLUDED_STOREFRONT_GROUPS = [
@@ -26,13 +27,16 @@ export async function getCatalogPublicationSql() {
       FROM INFORMATION_SCHEMA.COLUMNS
       WHERE TABLE_SCHEMA = DATABASE()
         AND TABLE_NAME = 'tabItem'
-        AND COLUMN_NAME IN ('description', 'web_long_description')
+        AND COLUMN_NAME IN ('description', 'web_long_description', 'thumbnail', 'woocommerce_description')
     `
   );
   const columns = new Set(rows.map((row) => row.COLUMN_NAME));
-  const descriptionValue = columns.has("web_long_description")
+  const primaryDescription = columns.has("web_long_description")
     ? "COALESCE(NULLIF(i.web_long_description, ''), NULLIF(i.description, ''), '')"
     : "COALESCE(NULLIF(i.description, ''), '')";
+  const descriptionValue = columns.has("woocommerce_description") ? reviewedDescriptionSql(primaryDescription) : primaryDescription;
+  const imageValue = columns.has("thumbnail") ? reviewedImageSql("i") : "i.image";
+  const priceImageValue = columns.has("thumbnail") ? reviewedImageSql("item") : "item.image";
   const cleanDescription = `
     TRIM(
       REGEXP_REPLACE(
@@ -49,10 +53,12 @@ export async function getCatalogPublicationSql() {
   `;
 
   publicationSql = {
+    imageValue,
+    priceImageValue,
     descriptionValue,
     descriptionReady,
     productReady: `
-      IFNULL(i.image, '') <> ''
+      IFNULL(${imageValue}, '') <> ''
       AND IFNULL(price.price_list_rate, 0) > 0
       AND ${descriptionReady}
     `
