@@ -116,7 +116,7 @@ export async function getVisibleItemReference(sku, { withPrice = false } = {}) {
   const reference = { sku: row.sku, name: displayItemName(row.sku, row.name) };
   if (withPrice) reference.description = reviewedEnquiryDescription(row);
   const reviewed = withPrice && enquiryUnits.get(sku);
-  if (!reviewed || reviewed.name !== row.name || reviewed.stockUom !== row.stock_uom) return reference;
+  if (!reviewed || reviewed.name.trim() !== row.name.trim() || reviewed.stockUom !== row.stock_uom) return reference;
   const category = await getCategoryRule(row.item_group);
   if ((row.price_mode || category.priceMode) !== "Price List") return reference;
 
