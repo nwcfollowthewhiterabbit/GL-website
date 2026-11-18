@@ -193,8 +193,8 @@ function AccountDocumentModal({ detail, salesEmail, onClose }: AccountDocumentMo
           </div>
           <div className="account-detail__lines">
             {detail.lines.length ? (
-              detail.lines.map((line) => (
-                <article key={`${detail.name}-${line.itemCode}-${line.qty}`}>
+              detail.lines.map((line, index) => (
+                <article key={`${detail.name}-${index}`}>
                   <div>
                     <strong>{line.itemName}</strong>
                     <span>{line.itemCode}</span>

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { ArrowLeft, ArrowRight, Sparkles } from "lucide-react";
-import { priceLabel, productImage, productPlaceholder } from "../lib/catalog";
+import { offerKey, priceLabel, productImage, productPlaceholder } from "../lib/catalog";
 import type { CatalogProduct } from "../types";
 
 type RecommendedProductsSectionProps = {
@@ -84,7 +84,7 @@ export function RecommendedProductsSection({ products, onSelectProduct }: Recomm
         }}
       >
         {products.map((product) => (
-          <button className="recommended-product" key={product.sku} onClick={() => onSelectProduct(product)}>
+          <button className="recommended-product" key={offerKey(product)} onClick={() => onSelectProduct(product)}>
             <img
               src={productImage(product)}
               alt=""

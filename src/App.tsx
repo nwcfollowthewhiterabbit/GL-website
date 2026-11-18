@@ -32,7 +32,7 @@ import {
   fetchRelatedCatalogProducts
 } from "./lib/api";
 import { catalogPath, departmentCategoryPath, findCategoryBySlug, parseStorefrontRoute, productPath, type StorefrontRoute } from "./lib/routes";
-import { numericPrice } from "./lib/catalog";
+import { offerKey, numericPrice } from "./lib/catalog";
 import type {
   CatalogDiagnostics,
   CatalogFacets,
@@ -107,6 +107,22 @@ export function App({ initialRoute }: AppProps = {}) {
       return Array.isArray(saved) ? saved.filter((line) => typeof line?.sku === "string" && Number.isFinite(line.qty) && line.qty > 0).slice(0, 100) : [];
     } catch { return []; }
   });
+  // Saved baskets from the SKU-only release used stock UOM for every pack.
+  // Retain quantities, and upgrade only when ERP returns exactly one selling unit.
+  useEffect(() => {
+    let active = true;
+    async function refreshLegacyBasket() {
+      for (const saved of quoteLines.filter((line) => !line.unitConfirmed)) {
+        if (!active) return;
+        const product = await fetchCatalogProduct(saved.sku).catch(() => null);
+        if (!active || !product || product.sellingUnitCount !== 1) continue;
+        setQuoteLines((lines) => lines.map((line) => line.sku === saved.sku && !line.unitConfirmed
+          ? { ...product, qty: line.qty, unitConfirmed: true } : line));
+      }
+    }
+    void refreshLegacyBasket();
+    return () => { active = false; };
+  }, []);
   const [quoteOpen, setQuoteOpen] = useState(false);
   const [buyerContact, setBuyerContact] = useState("");
   const [buyerPhone, setBuyerPhone] = useState("");
@@ -303,14 +319,14 @@ export function App({ initialRoute }: AppProps = {}) {
       return;
     }
 
-    const localProduct = [...erpProducts, ...fallbackProducts].find((product) => product.sku === route.sku);
+    const localProduct = erpProducts.concat(fallbackProducts).find((product) => product.sku === route.sku && (!route.uom || product.uom === route.uom));
     if (localProduct) {
       setActiveProduct(localProduct);
     }
 
     let ignore = false;
     setProductLoading(true);
-    fetchCatalogProduct(route.sku)
+    fetchCatalogProduct(route.sku, route.uom)
       .then((product) => {
         if (ignore) return;
         setActiveProduct(product);
@@ -367,7 +383,7 @@ export function App({ initialRoute }: AppProps = {}) {
 
   const quoteCount = quoteLines.reduce((sum, line) => sum + line.qty, 0);
   const quoteTotal = quoteLines.reduce((sum, line) => {
-    return sum + numericPrice(line) * line.qty;
+    return line.unitConfirmed ? sum + numericPrice(line) * line.qty : sum;
   }, 0);
 
   const visibleCategories = useMemo(() => {
@@ -454,12 +470,12 @@ export function App({ initialRoute }: AppProps = {}) {
 
   function openProductPage(product: CatalogProduct) {
     setActiveProduct(product);
-    navigate(productPath(product.sku), { view: "product", sku: product.sku });
+    navigate(productPath(product.sku, product.uom), { view: "product", sku: product.sku, uom: product.uom });
   }
 
   function selectCatalogSuggestion(suggestion: CatalogSuggestion) {
     if (suggestion.type === "product" && suggestion.sku) {
-      navigate(productPath(suggestion.sku), { view: "product", sku: suggestion.sku });
+      navigate(productPath(suggestion.sku, suggestion.uom), { view: "product", sku: suggestion.sku, uom: suggestion.uom });
       return;
     }
 
@@ -488,30 +504,36 @@ export function App({ initialRoute }: AppProps = {}) {
     }
     setQuoteResult(null);
     setQuoteLines((current) => {
-      const existing = current.find((line) => line.sku === product.sku);
-      if (existing) {
-        return current.map((line) => (line.sku === product.sku ? { ...line, qty: line.qty + 1 } : line));
+      const unresolved = current.find((line) => !line.unitConfirmed && line.sku === product.sku);
+      if (unresolved) {
+        return current.map((line) => line === unresolved ? { ...product, qty: line.qty, unitConfirmed: true } : line);
       }
-      return [...current, { ...product, qty: 1 }];
+      const key = offerKey(product);
+      const existing = current.find((line) => offerKey(line) === key);
+      if (existing) {
+        return current.map((line) => (offerKey(line) === key ? { ...product, unitConfirmed: true, qty: line.qty + 1 } : line));
+      }
+      return [...current, { ...product, qty: 1, unitConfirmed: true }];
     });
     setQuoteOpen(true);
   }
 
-  function setLineQty(sku: string, qty: number) {
+  function setLineQty(offer: string, qty: number) {
     setQuoteResult(null);
     setQuoteLines((current) =>
       current
-        .map((line) => (line.sku === sku ? { ...line, qty: Math.max(1, qty) } : line))
+        .map((line) => (offerKey(line) === offer ? { ...line, qty: Math.max(1, qty) } : line))
         .filter((line) => line.qty > 0)
     );
   }
 
-  function removeLine(sku: string) {
+  function removeLine(offer: string) {
     setQuoteResult(null);
-    setQuoteLines((current) => current.filter((line) => line.sku !== sku));
+    setQuoteLines((current) => current.filter((line) => offerKey(line) !== offer));
   }
 
   function validateQuoteForm(requireLines: boolean) {
+    if (requireLines && quoteLines.some((line) => !line.unitConfirmed)) return "Select the current selling unit for each saved product.";
     if (requireLines && !quoteLines.length) return "Add at least one product.";
     if (!quoteCompany.trim()) return "Company name is required.";
     if (!quoteEmail.trim()) return "Buyer email is required.";
@@ -544,7 +566,12 @@ export function App({ initialRoute }: AppProps = {}) {
           phone: buyerPhone,
           location: deliveryLocation
         },
-        lines: quoteLines.map((line) => ({ sku: line.sku, qty: line.qty })),
+        lines: quoteLines.map((line) => ({
+          sku: line.sku,
+          qty: line.qty,
+          uom: line.uom,
+          expectedRate: typeof line.price === "number" ? line.price : undefined
+        })),
         notes: quoteNotes || "Order basket from storefront"
       });
 
@@ -562,7 +589,7 @@ export function App({ initialRoute }: AppProps = {}) {
         setQuoteStatus("Your session has expired. Sign in again; your basket is saved.");
         void account.refresh();
       } else if (data.mode === "validation_failed") {
-        setQuoteStatus("Some items or quantities could not be quoted. Review your basket and try again.");
+        setQuoteStatus("A selected price, pack or quantity has changed. Remove the affected line and choose a current selling unit from the catalog.");
       } else if (data.mode === "validated_dry_run") {
         setQuoteResult(quoteResultFromResponse(data, quoteEmail, { dryRun: true }));
         setQuoteStatus("Validated locally. ERPNext REST credentials are not configured.");

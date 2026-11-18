@@ -10,6 +10,11 @@
 - Corrected tablet filters, keyboard access to the product preview and the account-loading state.
 - Updated customer-facing terms, payment information and privacy copy for the current sales-reviewed quotation process.
 
+## 2026-11-18 — Упаковки каталога и котировки
+
+- Сохранены продажная упаковка и цена на всём пути до строк ERP. Разные упаковки одного SKU остаются отдельными строками при любом порядке добавления.
+- Старые корзины сохраняют количество и запрашивают явный выбор, если упаковку нельзя восстановить однозначно.
+
 ## 2026-11-17 — Customer quotation release
 
 - Added email-first registration and single-use password recovery with throttling.

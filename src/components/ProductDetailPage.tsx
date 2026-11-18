@@ -3,7 +3,7 @@ import {
   availabilityLabel,
   availabilityTone,
   plainTextDescription,
-  priceLabel,
+  offerKey, priceLabel,
   productImage,
   productPlaceholder,
   productSpecs
@@ -126,7 +126,7 @@ export function ProductDetailPage({
             {relatedProducts.length ? (
               <div className="related-products__grid">
                 {relatedProducts.map((item) => (
-                  <button className="related-product" key={item.sku} onClick={() => onSelectRelated(item)}>
+                  <button className="related-product" key={offerKey(item)} onClick={() => onSelectRelated(item)}>
                     <img
                       src={productImage(item)}
                       alt=""

@@ -337,7 +337,7 @@ app.get("/api/catalog/product", async (req, res) => {
       return;
     }
 
-    const product = await getCatalogProductBySku(sku);
+    const product = await getCatalogProductBySku(sku, String(req.query.uom || "").trim());
     if (!product) {
       res.status(404).json({ error: "product_not_found" });
       return;
@@ -386,7 +386,7 @@ app.get("/api/catalog/featured", async (req, res) => {
 
 app.get("/api/catalog/products/:sku", async (req, res) => {
   try {
-    const product = await getCatalogProductBySku(req.params.sku);
+    const product = await getCatalogProductBySku(req.params.sku, String(req.query.uom || "").trim());
     if (!product) {
       res.status(404).json({ error: "product_not_found" });
       return;

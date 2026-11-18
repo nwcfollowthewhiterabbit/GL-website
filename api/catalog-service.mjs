@@ -1,3 +1,4 @@
+import { publicSellingUnitsSql, sellingName, storePriceParams } from "./selling-units.mjs";
 import { getErpPool } from "./erpnext-db.mjs";
 import { availableCustomFields, getCategoryRule, getCategoryRules } from "./storefront-rules.mjs";
 import { getCatalogPublicationSql } from "./catalog-publication-rules.mjs";
@@ -121,25 +122,11 @@ async function getItemGroupBranchNames(category) {
   return names.length ? names : [category];
 }
 
-function itemBaseSql(priceList = DEFAULT_PRICE_LIST) {
+async function itemBaseSql() {
   const excluded = EXCLUDED_WAREHOUSES.map((_, index) => `:excludedWarehouse${index}`).join(", ");
   return `
     FROM \`tabItem\` i
-    LEFT JOIN (
-      SELECT ip.item_code, ip.price_list_rate, ip.currency
-      FROM \`tabItem Price\` ip
-      JOIN (
-        SELECT item_code, MAX(modified) AS modified
-        FROM \`tabItem Price\`
-        WHERE price_list = :priceList
-          AND docstatus = 0
-          AND (valid_upto IS NULL OR valid_upto >= CURDATE())
-        GROUP BY item_code
-      ) latest
-        ON latest.item_code = ip.item_code AND latest.modified = ip.modified
-      WHERE ip.price_list = :priceList
-        AND ip.docstatus = 0
-    ) price ON price.item_code = i.name
+    JOIN (${await publicSellingUnitsSql()}) price ON price.item_code = i.name
     LEFT JOIN (
       SELECT b.item_code, SUM(b.actual_qty) AS actual_qty
       FROM \`tabBin\` b
@@ -167,9 +154,9 @@ function catalogQualityBaseSql() {
   `;
 }
 
-function baseParams(priceList = DEFAULT_PRICE_LIST) {
+function baseParams() {
   return {
-    priceList,
+    ...storePriceParams(),
     excludedWarehouse0: EXCLUDED_WAREHOUSES[0],
     excludedWarehouse1: EXCLUDED_WAREHOUSES[1]
   };
@@ -216,11 +203,19 @@ export async function getCatalogProducts(options = {}) {
     getCatalogPublicationSql()
   ]);
 
-  const base = itemBaseSql(priceList);
+  const base = await itemBaseSql();
   const categoryNames = category ? await getItemGroupBranchNames(category) : [];
   const where = itemWhere({ q, category, categoryNames, categories, featured, includeHidden, includeWeakGroups, categoryRule, hasItemFields, hasGroupFields, minPrice, maxPrice, productReadySql: publication.productReady });
+  if (options.exactSku) {
+    where.sql += " AND i.name = :exactSku";
+    where.params.exactSku = options.exactSku;
+  }
+  if (options.exactUom) {
+    where.sql += " AND price.uom = :exactUom";
+    where.params.exactUom = options.exactUom;
+  }
   const params = {
-    ...baseParams(priceList),
+    ...baseParams(),
     ...where.params,
     limit: pageSize,
     offset
@@ -236,23 +231,23 @@ export async function getCatalogProducts(options = {}) {
         i.name AS sku,
         i.item_name AS name,
         i.item_group AS category,
-        i.stock_uom AS uom,
+        price.uom, i.sales_uom,
         i.image,
         ${publication.descriptionValue} AS description,
         IFNULL(price.price_list_rate, 0) AS price,
         IFNULL(price.currency, :defaultCurrency) AS currency,
-        GREATEST(FLOOR(IFNULL(stock.actual_qty, 0)), 0) AS quantity,
+        GREATEST(FLOOR(IFNULL(stock.actual_qty, 0) / price.conversion_factor), 0) AS quantity,
         ${hasItemFields.website_price_mode_override ? "i.website_price_mode_override" : "NULL"} AS price_mode_override,
         ${hasItemFields.website_stock_display_override ? "i.website_stock_display_override" : "NULL"} AS stock_display_override,
         ${hasItemFields.website_sort_order ? "IFNULL(i.website_sort_order, 0)" : "0"} AS website_sort_order,
         CASE
           WHEN IFNULL(price.price_list_rate, 0) <= 0 THEN 'hidden_no_price'
-          WHEN IFNULL(stock.actual_qty, 0) <= 0 THEN 'special_order'
+          WHEN IFNULL(stock.actual_qty, 0) < price.conversion_factor THEN 'special_order'
           ELSE 'available'
         END AS availability
       ${base}
       WHERE ${where.sql}
-      ORDER BY ${catalogOrderBy(sort)}
+      ORDER BY ${catalogOrderBy(sort)}, i.name, (price.uom = i.sales_uom) DESC, price.uom
       LIMIT :limit OFFSET :offset
     `,
     { ...params, defaultCurrency: process.env.DEFAULT_CURRENCY || "FJD" }
@@ -279,7 +274,7 @@ export async function getCatalogProducts(options = {}) {
         priceMode,
         stockDisplay: row.stock_display_override || categoryRule.stockDisplay,
         sku: row.sku,
-        name: row.name || row.sku,
+        name: sellingName(row.name || row.sku, row.sales_uom, row.uom),
         category: row.category || "All Item Groups",
         uom: row.uom || "Nos",
         image: row.image || null,
@@ -404,10 +399,11 @@ export async function getCatalogSuggestions(query, limit = 8) {
     }));
 
   const productSuggestions = catalogResult.products.map((product) => ({
-    id: `product:${product.sku}`,
+    id: JSON.stringify(["product", product.sku, product.uom]),
     type: "product",
     label: product.name,
-    detail: `${product.sku} - ${product.category}`,
+    detail: `${product.sku} · ${product.uom} · ${product.category}`,
+    uom: product.uom,
     sku: product.sku,
     category: product.category,
     image: product.image || null
@@ -420,9 +416,22 @@ export async function getCatalogItemGroups() {
   return getCategoryRules();
 }
 
-export async function getCatalogProductBySku(sku) {
-  const result = await getCatalogProducts({ q: sku, pageSize: 25 });
-  return result.products.find((product) => product.sku === sku) || null;
+export async function getCatalogProductBySku(sku, uom = "") {
+  const result = await getCatalogProducts({ exactSku: sku, exactUom: uom, pageSize: 1 });
+  return result.products.length ? { ...result.products[0], sellingUnitCount: result.total } : null;
+}
+
+export async function getPublishedCatalogSkus() {
+  const [base, publication, hasItemFields, hasGroupFields] = await Promise.all([
+    itemBaseSql(), getCatalogPublicationSql(),
+    availableCustomFields("Item", ["website_show_on_storefront"]),
+    availableCustomFields("Item Group", ["website_show_on_storefront"])
+  ]);
+  const where = itemWhere({ categories: [], minPrice: null, maxPrice: null, hasItemFields, hasGroupFields, productReadySql: publication.productReady });
+  const params = { ...baseParams(), ...where.params };
+  EXCLUDED_STOREFRONT_GROUPS.forEach((group, index) => { params[`excludedGroup${index}`] = group; });
+  const [rows] = await getErpPool().execute(`SELECT DISTINCT i.name ${base} WHERE ${where.sql} ORDER BY i.name`, params);
+  return rows.map((row) => row.name);
 }
 
 function normalizeQualityRows(rows, key) {

@@ -15,6 +15,10 @@ export function productImage(product: CatalogProduct) {
   return productPlaceholder;
 }
 
+export function offerKey(product: Pick<CatalogProduct, "sku" | "uom">) {
+  return JSON.stringify([product.sku, product.uom || ""]);
+}
+
 export function priceLabel(product: CatalogProduct) {
   if (product.priceMode === "Hide Price" || product.price === "Hide Price") return "Contact sales";
   if (product.priceMode === "Quote Only" || product.price === "Quote Only") return "Quote only";
@@ -23,7 +27,7 @@ export function priceLabel(product: CatalogProduct) {
   return `${product.price.toLocaleString("en-US", {
     maximumFractionDigits: 2,
     minimumFractionDigits: 2
-  })} ${product.currency || "FJD"}`;
+  })} ${product.currency || "FJD"}${product.uom ? ` per ${product.uom}` : ""}`;
 }
 
 export function numericPrice(product: CatalogProduct) {

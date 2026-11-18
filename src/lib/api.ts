@@ -54,8 +54,9 @@ export function fetchCatalogProducts(params: {
   return getJson<CatalogProductsResponse>(`/api/catalog/products?${search.toString()}`);
 }
 
-export async function fetchCatalogProduct(sku: string) {
+export async function fetchCatalogProduct(sku: string, uom?: string) {
   const search = new URLSearchParams({ sku });
+  if (uom) search.set("uom", uom);
   const data = await getJson<{ product: CatalogProduct }>(`/api/catalog/product?${search.toString()}`);
   return data.product;
 }

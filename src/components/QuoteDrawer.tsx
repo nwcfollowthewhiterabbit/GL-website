@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { ArrowRight, Building2, CheckCircle2, ClipboardCheck, Mail, MapPin, Minus, Phone, Plus, RotateCcw, Send, StickyNote, Trash2, UserRound } from "lucide-react";
-import { priceLabel, productImage, productPlaceholder, purchaseFlowLabel } from "../lib/catalog";
+import { offerKey, priceLabel, productImage, productPlaceholder, purchaseFlowLabel } from "../lib/catalog";
 import type { QuoteLine, QuoteResult } from "../types";
 
 type QuoteDrawerProps = {
@@ -26,8 +26,8 @@ type QuoteDrawerProps = {
   onPhoneChange: (value: string) => void;
   onDeliveryLocationChange: (value: string) => void;
   onNotesChange: (value: string) => void;
-  onSetLineQty: (sku: string, qty: number) => void;
-  onRemoveLine: (sku: string) => void;
+  onSetLineQty: (offer: string, qty: number) => void;
+  onRemoveLine: (offer: string) => void;
   onClear: () => void;
   onNewQuote: () => void;
   onSubmit: () => void;
@@ -76,14 +76,14 @@ export function QuoteDrawer(props: QuoteDrawerProps) {
         <div className="quote-drawer__lines">
           {quoteLines.length ? <>
             <div className="quote-drawer__section-title"><span>Selected products</span><button type="button" onClick={onClear} disabled={isSubmitting || Boolean(quoteResult)}>Clear all</button></div>
-            {quoteLines.map((line) => <article className="quote-line" key={line.sku}>
+            {quoteLines.map((line) => <article className="quote-line" key={offerKey(line)}>
               <img src={productImage(line)} alt="" onError={(event) => { event.currentTarget.src = productPlaceholder; }} />
-              <div className="quote-line__body"><h3>{line.name}</h3><p>{line.sku}</p><strong>{priceLabel(line)}</strong><small>{purchaseFlowLabel(line)}</small></div>
+              <div className="quote-line__body"><h3>{line.name}</h3><p>{line.sku}</p>{line.unitConfirmed ? <strong>{priceLabel(line)}</strong> : <a href={`/catalog?${new URLSearchParams({ q: line.sku })}`}>Choose the current selling unit</a>}<small>{purchaseFlowLabel(line)}</small></div>
               <div className="qty-control">
-                <button type="button" className="icon-button" onClick={() => onSetLineQty(line.sku, line.qty - 1)} disabled={line.qty <= 1 || isSubmitting || Boolean(quoteResult)} aria-label={`Decrease quantity of ${line.name}`}><Minus /></button>
+                <button type="button" className="icon-button" onClick={() => onSetLineQty(offerKey(line), line.qty - 1)} disabled={line.qty <= 1 || isSubmitting || Boolean(quoteResult)} aria-label={`Decrease quantity of ${line.name}`}><Minus /></button>
                 <span aria-label={`Quantity of ${line.name}`}>{line.qty}</span>
-                <button type="button" className="icon-button" onClick={() => onSetLineQty(line.sku, line.qty + 1)} disabled={isSubmitting || Boolean(quoteResult)} aria-label={`Increase quantity of ${line.name}`}><Plus /></button>
-                <button type="button" className="icon-button" onClick={() => onRemoveLine(line.sku)} disabled={isSubmitting || Boolean(quoteResult)} aria-label={`Remove ${line.name}`}><Trash2 /></button>
+                <button type="button" className="icon-button" onClick={() => onSetLineQty(offerKey(line), line.qty + 1)} disabled={isSubmitting || Boolean(quoteResult)} aria-label={`Increase quantity of ${line.name}`}><Plus /></button>
+                <button type="button" className="icon-button" onClick={() => onRemoveLine(offerKey(line))} disabled={isSubmitting || Boolean(quoteResult)} aria-label={`Remove ${line.name}`}><Trash2 /></button>
               </div>
             </article>)}
           </> : quoteResult ? <div className="quote-confirmation-empty"><ClipboardCheck size={22} /><strong>Thank you for your request</strong><p>Green Leaf sales will review your products, quantities and delivery requirements.</p></div> : <div className="quote-empty"><strong>No products selected</strong><p>Add products from the catalog, then send your basket to Green Leaf for a quote.</p><a className="secondary-button" href="/catalog" onClick={onClose}>Browse catalog</a></div>}
@@ -108,7 +108,7 @@ export function QuoteDrawer(props: QuoteDrawerProps) {
             <label className="field field--textarea"><StickyNote size={18} /><textarea placeholder="Notes, timing or alternatives" aria-label="Quote notes" maxLength={2000} value={quoteNotes} onChange={(event) => onNotesChange(event.target.value)} /></label>
             <div className="quote-total"><span>Indicative subtotal, excluding VAT</span><strong>{quoteTotalLabel} FJD</strong></div>
             <div className="order-flow-note is-confirmation"><strong>Sales will confirm your quote</strong><span>Prices, availability, VAT and delivery are confirmed in your quotation. Sending a request does not place a confirmed order. No online payment is taken.</span></div>
-            <button type="submit" className="quote-button" disabled={!canSubmit}>{isSubmitting ? "Sending request..." : "Request a quote"} <Send size={17} /></button>
+            <button type="submit" className="quote-button" disabled={!canSubmit || quoteLines.some((line) => !line.unitConfirmed)}>{isSubmitting ? "Sending request..." : "Request a quote"} <Send size={17} /></button>
           </form>}
           {quoteStatus ? <p className="quote-panel__status" role="status">{quoteStatus}</p> : null}
         </div>

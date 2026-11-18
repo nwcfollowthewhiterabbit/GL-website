@@ -1,6 +1,6 @@
 export type StorefrontRoute =
   | { view: "catalog"; categorySlug?: string; itemGroupSlug?: string; search?: string }
-  | { view: "product"; sku: string }
+  | { view: "product"; sku: string; uom?: string }
   | { view: "account" }
   | { view: "about" }
   | { view: "how-we-operate" }
@@ -42,8 +42,9 @@ export function departmentCategoryPath(departmentId: string, category: string) {
   return `/catalog/${departmentId}/${slugify(category)}`;
 }
 
-export function productPath(sku: string) {
-  return `/products/${encodeURIComponent(sku)}`;
+export function productPath(sku: string, uom?: string) {
+  const query = uom ? `?${new URLSearchParams({ uom })}` : "";
+  return `/products/${encodeURIComponent(sku)}${query}`;
 }
 
 export function parseStorefrontRoute(pathname = window.location.pathname, search = window.location.search): StorefrontRoute {
@@ -56,7 +57,8 @@ export function parseStorefrontRoute(pathname = window.location.pathname, search
   if (path.startsWith("/products/")) {
     return {
       view: "product",
-      sku: decodeURIComponent(path.slice("/products/".length))
+      sku: decodeURIComponent(path.slice("/products/".length)),
+      uom: new URLSearchParams(query).get("uom") || undefined
     };
   }
 

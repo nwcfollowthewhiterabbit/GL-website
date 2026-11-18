@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronRight, Clock3, DollarSign, Layers3, Search, ShoppingCart, X } from "lucide-react";
-import { availabilityLabel, availabilityTone, plainTextDescription, priceLabel, productImage, productPlaceholder, purchaseFlowLabel } from "../lib/catalog";
+import { availabilityLabel, availabilityTone, plainTextDescription, offerKey, priceLabel, productImage, productPlaceholder, purchaseFlowLabel } from "../lib/catalog";
 import type { CatalogDiagnostics, CatalogFacets, CatalogProduct, CatalogSuggestion, ItemGroup, WebsiteCategory } from "../types";
 
 type WebsiteCategoryView = WebsiteCategory & {
@@ -313,7 +313,7 @@ export function CatalogSection({
           ) : products.length ? (
             <div className="product-grid">
               {products.map((product) => (
-                <article className="product-card" key={product.sku}>
+                <article className="product-card" key={offerKey(product)}>
                   <button
                     type="button"
                     className="product-card__image"

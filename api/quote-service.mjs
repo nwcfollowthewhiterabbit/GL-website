@@ -4,6 +4,7 @@ import { getErpPool, getErpDbConfig } from "./erpnext-db.mjs";
 import { createDoc, hasErpnextRestCredentials, listDoc } from "./erpnext-rest.mjs";
 import { EXCLUDED_STOREFRONT_GROUPS } from "./catalog-service.mjs";
 import { getCatalogPublicationSql } from "./catalog-publication-rules.mjs";
+import { erpLocalDate as quoteTransactionDate, publicSellingUnitsSql, sellingName, storePriceParams } from "./selling-units.mjs";
 import { legacySyncRules } from "./legacy-sync-rules.mjs";
 import { availableCustomFields } from "./storefront-rules.mjs";
 
@@ -20,13 +21,7 @@ function clean(value) {
   return String(value || "").trim();
 }
 
-export function quoteTransactionDate(now = new Date(), timeZone = process.env.ERP_TIME_ZONE || "Pacific/Fiji") {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone, year: "numeric", month: "2-digit", day: "2-digit"
-  }).formatToParts(now);
-  const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
-  return `${values.year}-${values.month}-${values.day}`;
-}
+export { quoteTransactionDate };
 
 function quoteId() {
   return `GLQ-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -66,6 +61,8 @@ function normalizeLines(lines) {
     .filter((line) => line && typeof line === "object")
     .map((line) => ({
       sku: clean(line.sku || line.item_code || line.itemCode),
+      uom: clean(line.uom),
+      expectedRate: line.expectedRate == null ? null : Number(line.expectedRate),
       qty: Number(line.qty ?? line.quantity ?? 1),
       note: clean(line.note).slice(0, 500)
     }))
@@ -73,6 +70,8 @@ function normalizeLines(lines) {
       (line) =>
         line.sku &&
         line.sku.length <= 140 &&
+        line.uom.length <= 140 &&
+        (line.expectedRate == null || (Number.isFinite(line.expectedRate) && line.expectedRate >= 0)) &&
         Number.isFinite(line.qty) &&
         line.qty > 0 &&
         line.qty <= MAX_QUOTE_QUANTITY
@@ -83,7 +82,7 @@ export function validQuoteLines(lines) {
   if (!Array.isArray(lines) || !lines.length || lines.length > MAX_QUOTE_LINES) return false;
   if (lines.some((line) => !line || typeof line !== "object")) return false;
   const normalized = normalizeLines(lines);
-  return normalized.length === lines.length && new Set(normalized.map((line) => line.sku)).size === normalized.length;
+  return normalized.length === lines.length && new Set(normalized.map((line) => JSON.stringify([line.sku, line.uom]))).size === normalized.length;
 }
 
 export function bindQuoteToAccount(payload, account) {
@@ -99,7 +98,7 @@ export function trustedQuoteRate(item) {
   return Number.isFinite(rate) && rate > 0 ? rate : 0;
 }
 
-async function getErpItemsBySku(skus, priceList = DEFAULTS.priceList) {
+async function getErpItemsBySku(skus) {
   if (!skus.length) return new Map();
 
   const placeholders = skus.map((_, index) => `:sku${index}`).join(", ");
@@ -108,7 +107,7 @@ async function getErpItemsBySku(skus, priceList = DEFAULTS.priceList) {
   EXCLUDED_STOREFRONT_GROUPS.forEach((group, index) => {
     params[`excludedGroup${index}`] = group;
   });
-  params.priceList = priceList;
+  Object.assign(params, storePriceParams());
   params.excludedWarehouse0 = EXCLUDED_STOCK_WAREHOUSES[0];
   params.excludedWarehouse1 = EXCLUDED_STOCK_WAREHOUSES[1];
   const [itemFields, groupFields, publication] = await Promise.all([
@@ -135,24 +134,12 @@ async function getErpItemsBySku(skus, priceList = DEFAULTS.priceList) {
       SELECT
         i.name AS sku,
         i.item_name AS item_name,
-        i.stock_uom,
+        i.stock_uom, i.sales_uom, price.uom, price.conversion_factor,
         IFNULL(price.price_list_rate, 0) AS price,
         IFNULL(price.currency, :currency) AS currency,
-        GREATEST(FLOOR(IFNULL(stock.actual_qty, 0)), 0) AS available_quantity
+        GREATEST(IFNULL(stock.actual_qty, 0), 0) AS available_quantity
       FROM \`tabItem\` i
-      LEFT JOIN (
-        SELECT ip.item_code, ip.price_list_rate, ip.currency
-        FROM \`tabItem Price\` ip
-        JOIN (
-          SELECT item_code, MAX(modified) AS modified
-          FROM \`tabItem Price\`
-          WHERE price_list = :priceList
-            AND docstatus = 0
-            AND (valid_upto IS NULL OR valid_upto >= CURDATE())
-          GROUP BY item_code
-        ) latest ON latest.item_code = ip.item_code AND latest.modified = ip.modified
-        WHERE ip.price_list = :priceList AND ip.docstatus = 0
-      ) price ON price.item_code = i.name
+      JOIN (${await publicSellingUnitsSql()}) price ON price.item_code = i.name
       LEFT JOIN (
         SELECT b.item_code, SUM(b.actual_qty) AS actual_qty
         FROM \`tabBin\` b
@@ -169,7 +156,12 @@ async function getErpItemsBySku(skus, priceList = DEFAULTS.priceList) {
     { ...params, currency: process.env.DEFAULT_CURRENCY || "FJD" }
   );
 
-  return new Map(rows.map((row) => [row.sku, row]));
+  const items = new Map();
+  for (const row of rows) {
+    if (!items.has(row.sku)) items.set(row.sku, []);
+    items.get(row.sku).push(row);
+  }
+  return items;
 }
 
 async function findCustomerByEmail(email) {
@@ -300,6 +292,49 @@ export function coalesceQuoteRequest(payload, operation) {
   return promise;
 }
 
+export function resolveSellingLines(lines, erpItems) {
+  const missing = [];
+  const validLines = [];
+  const selected = new Set();
+  const stockDemand = new Map();
+  for (const line of lines) {
+    const offers = erpItems.get(line.sku) || [];
+    // Older requests omitted the unit. Recover only an unambiguous offer.
+    const item = line.uom ? offers.find((offer) => offer.uom === line.uom)
+      : offers.length === 1 ? offers[0] : null;
+    if (!item) {
+      missing.push({ sku: line.sku, uom: line.uom, reason: offers.length ? "selling_unit_unavailable" : "item_not_found" });
+      continue;
+    }
+    if (line.expectedRate != null && line.expectedRate !== trustedQuoteRate(item)) {
+      missing.push({ sku: line.sku, uom: item.uom, reason: "price_changed" });
+      continue;
+    }
+    const key = JSON.stringify([line.sku, item.uom]);
+    if (selected.has(key)) {
+      missing.push({ sku: line.sku, uom: item.uom, reason: "duplicate_selling_unit" });
+      continue;
+    }
+    selected.add(key);
+    const factor = Number(item.conversion_factor);
+    stockDemand.set(line.sku, (stockDemand.get(line.sku) || 0) + line.qty * factor);
+    validLines.push({
+      item_code: line.sku,
+      item_name: sellingName(item.item_name || line.sku, item.sales_uom, item.uom),
+      qty: line.qty, rate: trustedQuoteRate(item), uom: item.uom, conversion_factor: factor,
+      stock_uom: item.stock_uom,
+      availableQuantity: Math.max(0, Math.floor(Number(item.available_quantity) / factor))
+    });
+  }
+  for (const line of validLines) {
+    const offers = erpItems.get(line.item_code);
+    const stock = Number(offers[0].available_quantity);
+    line.fulfillmentStatus = line.availableQuantity <= 0 ? "special_order"
+      : stockDemand.get(line.item_code) > stock ? "low_stock" : "in_stock";
+  }
+  return { missing, validLines };
+}
+
 export async function prepareQuoteRequest(payload = {}, account = null) {
   const id = normalizeQuoteRequestId(payload.id);
   const marker = quoteMarkerFromId(id);
@@ -318,33 +353,8 @@ export async function prepareQuoteRequest(payload = {}, account = null) {
   };
   const lines = normalizeLines(payload.lines);
   const skus = [...new Set(lines.map((line) => line.sku))];
-  const erpItems = await getErpItemsBySku(skus, process.env.DEFAULT_PRICE_LIST || DEFAULTS.priceList);
-
-  const missing = [];
-  const validLines = [];
-
-  for (const line of lines) {
-    const item = erpItems.get(line.sku);
-    if (!item) {
-      missing.push({ sku: line.sku, reason: "item_not_found" });
-      continue;
-    }
-
-    validLines.push({
-      item_code: line.sku,
-      item_name: item.item_name || line.sku,
-      qty: line.qty,
-      rate: trustedQuoteRate(item),
-      uom: item.stock_uom || "Nos",
-      availableQuantity: Number(item.available_quantity || 0),
-      fulfillmentStatus:
-        Number(item.available_quantity || 0) <= 0
-          ? "special_order"
-          : Number(item.available_quantity || 0) < line.qty
-            ? "low_stock"
-            : "in_stock"
-    });
-  }
+  const erpItems = await getErpItemsBySku(skus);
+  const { missing, validLines } = resolveSellingLines(lines, erpItems);
 
   const fulfillment = {
     mode: validLines.some((line) => line.fulfillmentStatus === "special_order")
@@ -387,9 +397,15 @@ export async function prepareQuoteRequest(payload = {}, account = null) {
     currency: process.env.DEFAULT_CURRENCY || "FJD",
     selling_price_list: process.env.DEFAULT_PRICE_LIST || DEFAULTS.priceList,
     order_type: "Sales",
+    ignore_pricing_rule: 1,
     items: validLines.map((line) => ({
       item_code: line.item_code,
+      item_name: line.item_name,
+      uom: line.uom,
+      stock_uom: line.stock_uom,
+      conversion_factor: line.conversion_factor,
       qty: line.qty,
+      price_list_rate: line.rate,
       rate: line.rate
     })),
     enq_det: notes.join("\n")

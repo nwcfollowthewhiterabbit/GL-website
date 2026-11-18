@@ -10,6 +10,7 @@ export type CatalogProduct = {
   availability?: string;
   quantity?: number;
   uom?: string;
+  sellingUnitCount?: number;
   image?: string | null;
   description?: string;
 };
@@ -20,12 +21,14 @@ export type CatalogSuggestion = {
   label: string;
   detail?: string;
   sku?: string;
+  uom?: string;
   category?: string;
   departmentId?: string;
   image?: string | null;
 };
 
 export type QuoteLine = CatalogProduct & {
+  unitConfirmed?: boolean;
   qty: number;
 };
 
@@ -251,7 +254,7 @@ export type QuoteRequestPayload = {
     phone?: string;
     location?: string;
   };
-  lines: Array<{ sku: string; qty: number }>;
+  lines: Array<{ sku: string; uom?: string; qty: number; expectedRate?: number }>;
   notes?: string;
 };
 
