@@ -113,7 +113,7 @@ try {
   check("Stored selling unit and quantity match the basket", line.uom === uom && Number(line.qty) === qty);
   check("Draft status and quote receipts keep ERP amounts private",
     !("grandTotal" in detail.data.quote) && !("rate" in line) && !("amount" in line) &&
-    [created, replay].every(({ data }) => !("rate" in data.validLines[0]) && !("grand_total" in data.quotation)));
+    [created, replay].every(({ data }) => !("rate" in data.validLines[0]) && !("grand_total" in Object(data.quotation))));
   await call(`/api/account/quotes/${encodeURIComponent(name)}`, { cookie: second.cookie, expected: 404 });
   const foreign = await call("/api/quote-requests", { cookie: second.cookie, body: payload(second, "q3"), expected: 201 });
   const foreignName = quoteName(foreign.data);

@@ -64,7 +64,7 @@ try {
   for (const result of [first, second]) {
     assert.deepEqual(result.validLines.map(line => [line.item_code, line.qty, line.uom]), [[itemCode, qty, uom]]);
     assert.equal("rate" in result.validLines[0] || "amount" in result.validLines[0], false);
-    assert.equal("grand_total" in result.quotation || "grandTotal" in result.quotation, false);
+    assert.equal("grand_total" in Object(result.quotation) || "grandTotal" in Object(result.quotation), false);
   }
   console.log(`ERPNext runtime contract passed for ${quotationName(first)}.`);
 } finally {
