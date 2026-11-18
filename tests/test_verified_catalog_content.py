@@ -41,6 +41,17 @@ class VerifiedCatalogContentTests(unittest.TestCase):
         self.db.execute("UPDATE item SET name = ?, image = '/files/new-primary.jpg'", (values[0],))
         self.assertEqual(read(), "/files/new-primary.jpg")
 
+    def test_display_dash_changes_only_for_the_confirmed_item(self):
+        script = r"""
+          import assert from 'node:assert/strict';
+          import { displayItemName } from './api/catalog-verified-content.mjs';
+          const damaged = 'Cup \u00e2\u20ac\u201c 100/Case';
+          assert.equal(displayItemName('BIO-R-200Y', damaged), 'Cup – 100/Case');
+          assert.equal(displayItemName('OTHER', damaged), damaged);
+          assert.equal(displayItemName('BIO-R-200Y', 'Revised name'), 'Revised name');
+        """
+        subprocess.run(["node", "--input-type=module", "-e", script], cwd=ROOT, check=True)
+
     def test_unreviewed_commerce_description_never_overrides_the_primary(self):
         self.db.execute("INSERT INTO item VALUES ('ALT-AT-ADCF-3','Changed item','','','Main description','Unreviewed')")
         self.assertEqual(self.db.execute(f"SELECT {self.description_sql} FROM item i").fetchone()[0], "Main description")

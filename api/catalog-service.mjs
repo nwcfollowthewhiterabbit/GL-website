@@ -1,4 +1,5 @@
 import { cachePublicRead } from "./public-read-cache.mjs";
+import { displayItemName } from "./catalog-verified-content.mjs";
 import { publicPriceSummarySql, publicSellingUnitsSql, sellingName, storePriceParams } from "./selling-units.mjs";
 import { getErpPool } from "./erpnext-db.mjs";
 import { availableCustomFields, getCategoryRule, getCategoryRules } from "./storefront-rules.mjs";
@@ -278,7 +279,7 @@ async function loadCatalogProducts(options, includeTotal = true) {
         priceMode,
         stockDisplay: row.stock_display_override || categoryRule.stockDisplay,
         sku: row.sku,
-        name: sellingName(row.name || row.sku, row.sales_uom, row.uom),
+        name: displayItemName(row.sku, sellingName(row.name || row.sku, row.sales_uom, row.uom)),
         category: row.category || "All Item Groups",
         uom: row.uom || "Nos",
         packingUnit: Number(row.packing_unit || 0),

@@ -1,3 +1,4 @@
+import { displayItemName } from "./catalog-verified-content.mjs";
 import crypto from "node:crypto";
 import { getErpPool } from "./erpnext-db.mjs";
 import { assertWebsiteMigrationsApplied } from "./migrations/runner.mjs";
@@ -129,7 +130,7 @@ function namedList(values, prefix = "value") {
 function accountLine(row) {
   return {
     itemCode: row.item_code,
-    itemName: row.item_name || row.item_code,
+    itemName: displayItemName(row.item_code, row.item_name || row.item_code),
     description: row.description || "",
     qty: Number(row.qty || 0),
     uom: row.uom || row.stock_uom || "",

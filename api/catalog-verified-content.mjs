@@ -29,3 +29,8 @@ export function reviewedDescriptionSql(primary) {
   const match = matchesReview("i", reviewedDescriptions, ["COALESCE(i.item_name, '')", primary, "COALESCE(i.woocommerce_description, '')"]);
   return `CASE WHEN ${match} THEN i.woocommerce_description ELSE ${primary} END`;
 }
+
+export function displayItemName(sku, name) {
+  // The archived English title confirms this exact damaged UTF-8 dash.
+  return sku === "BIO-R-200Y" ? name.replaceAll("\u00e2\u20ac\u201c", "–") : name;
+}
