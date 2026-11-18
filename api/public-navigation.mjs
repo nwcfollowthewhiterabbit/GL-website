@@ -120,10 +120,9 @@ function escapeHtml(text) {
     .replaceAll('"', "&quot;").replaceAll("'", "&#39;");
 }
 
-function informationPage(res, status, title, description, { sku, account, price, reference, choices = [], specifications } = {}) {
+function informationPage(res, status, title, description, { sku, account, uom, reference, choices = [], specifications } = {}) {
   const subject = [sku, reference].filter(Boolean).join(" / ");
   const mail = "mailto:buy@greenleafpacific.com" + (subject ? "?subject=" + encodeURIComponent("Availability of " + subject) : "");
-  const rate = price ? price.currency + " " + price.amount.toFixed(2) + " per " + price.uom : "";
   res.status(status).set("X-Robots-Tag", "noindex, follow").type("html").send(
     '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
     + '<meta name="robots" content="noindex, follow"><link rel="stylesheet" href="/store-information.css">'
@@ -132,7 +131,7 @@ function informationPage(res, status, title, description, { sku, account, price,
     + (choices.length ? '<ul>' + choices.map(choice => '<li><a href="' + escapeHtml(destination(choice)) + '">' + escapeHtml(choice.title) + '</a></li>').join('') + '</ul>' : '')
     + (reference ? '<p>Previous catalog reference ' + escapeHtml(reference) + '</p>' : '')
     + (specifications ? '<p>' + escapeHtml(specifications) + '</p>' : '')
-    + (rate ? '<p><strong>' + escapeHtml(rate) + '</strong></p>' : '')
+    + (uom ? '<p>Packaging: ' + escapeHtml(uom) + '</p>' : '')
     + '<p>' + escapeHtml(description) + '</p><p><a href="' + escapeHtml(mail) + '">Email Green Leaf sales</a> · <a href="tel:+6796702222">+679 670 2222</a></p>'
     + '<p>4, Nippon Complex, Nadi Backroad, Nadi, Fiji</p><nav><a href="/catalog">Browse the current catalog</a>'
     + (account ? '<a href="/account">Open customer account</a>' : '') + '</nav></main></body></html>'
@@ -209,11 +208,10 @@ export function installPublicNavigation(app, loadPublishedSkus, loadCategoryPath
       if (choices?.length) return informationPage(res, 200, "Previous catalog listings", "Select the product or packaging from the previous catalog.", { sku, choices });
       if (record?.target) return res.redirect(302, destination(record));
       if (record && record.value !== sku) return res.redirect(301, destination(record));
-      const item = await findCatalogReference(sku, code => loadVisibleItem(code, { withPrice: true }));
+      const item = await findCatalogReference(sku, code => loadVisibleItem(code, { withDetails: true }));
       if (item) {
-        const message = item.price ? "Contact sales to confirm availability, packaging and the quantity for your quotation."
-          : "Contact sales with this item code to confirm packaging, current pricing and availability.";
-        return informationPage(res, 200, item.name || item.sku, message, { sku: item.sku, price: item.price, specifications: item.description });
+        const message = "Contact sales to confirm availability, packaging and the quantity for your quotation.";
+        return informationPage(res, 200, item.name || item.sku, message, { sku: item.sku, uom: item.uom, specifications: item.description });
       }
       if (record) return informationPage(res, 200, record.title || sku, "This item appeared in our previous catalog. Contact sales with this item code for availability or a current alternative.", { sku });
       return informationPage(res, 404, "Product not found", "Search the catalog or contact our team for help identifying this item.");

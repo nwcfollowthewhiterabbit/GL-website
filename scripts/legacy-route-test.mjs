@@ -41,7 +41,8 @@ for (const [sku, , part, material] of specs) {
 const app = express();
 const loadItem = async (sku, options = {}) => {
   assert.equal(sku, "REW-3445745");
-  return { sku, name: "Plate, round", ...(options.withPrice ? { price: { amount: 36.68, currency: "FJD", uom: "125/Case" } } : {}) };
+  return { sku, name: "Plate, round", ...(options.withDetails ? { uom: "125/Case" } : {}),
+    price: { amount: 36.68, currency: "FJD", uom: "125/Case" } };
 };
 assert.equal((await findCatalogReference(" rew-3445745 ", loadItem))?.sku, "REW-3445745");
 assert.equal(await findCatalogReference("INTERNAL-UNKNOWN", () => assert.fail("private SKU lookup")), null);
@@ -65,7 +66,8 @@ try {
   const contact = await fetch(base + "/products/REW-3445745");
   const contactText = await contact.text();
   assert.equal(contact.status, 200);
-  assert.match(contactText, /FJD 36.68 per 125\/Case/);
+  assert.match(contactText, /Packaging: 125\/Case/);
+  assert.doesNotMatch(contactText, /FJD|36\.68/);
   assert.match(contactText, /Contact sales to confirm availability/);
   assert.doesNotMatch(contactText, /add to basket/i);
   const archive = await fetch(base + "/previous-products/105069");

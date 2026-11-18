@@ -51,4 +51,5 @@ const excluded = new Set(manifest.excludedApps);
 assert.ok(excluded.has("woocommerceconnector"));
 assert.ok(!manifest.supportedTargets.some((target) => excluded.has(target)));
 
+await import("./catalog-response-test.mjs");
 console.log("ERPNext website layer contract passed.");

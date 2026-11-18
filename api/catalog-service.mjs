@@ -10,7 +10,6 @@ import { EXCLUDED_STOREFRONT_GROUPS, getCatalogPublicationSql } from "./catalog-
 const enquiryUnits = new Map(JSON.parse(readFileSync(new URL("./enquiry-price-units.json", import.meta.url), "utf8"))
   .map(([sku, name, uom, stockUom]) => [sku, { name, uom, stockUom }]));
 
-const DEFAULT_PRICE_LIST = process.env.DEFAULT_PRICE_LIST || "Standard Selling";
 const EXCLUDED_WAREHOUSES = ["Showroom - GL", "Furniture Showroom (Upstairs) - GL"];
 export { EXCLUDED_STOREFRONT_GROUPS } from "./catalog-publication-rules.mjs";
 
@@ -30,12 +29,7 @@ function parseCategoryList(value) {
     .filter(Boolean);
 }
 
-function numericOption(value) {
-  const number = Number(value);
-  return Number.isFinite(number) ? number : null;
-}
-
-function itemWhere({ q, category, categoryNames, categories, featured, includeHidden, includeWeakGroups, categoryRule, hasItemFields, hasGroupFields, minPrice, maxPrice, productReadySql }) {
+function itemWhere({ q, category, categoryNames, categories, featured, includeHidden, includeWeakGroups, hasItemFields, hasGroupFields, productReadySql }) {
   const clauses = [
     "IFNULL(i.disabled, 0) = 0",
     "IFNULL(i.is_sales_item, 1) = 1",
@@ -67,16 +61,6 @@ function itemWhere({ q, category, categoryNames, categories, featured, includeHi
     params.q = `%${q}%`;
   }
 
-  if (minPrice !== null) {
-    params.minPrice = minPrice;
-    clauses.push("IFNULL(price.price_list_rate, 0) >= :minPrice");
-  }
-
-  if (maxPrice !== null) {
-    params.maxPrice = maxPrice;
-    clauses.push("IFNULL(price.price_list_rate, 0) <= :maxPrice");
-  }
-
   if (category) {
     const selectedCategories = categoryNames.length ? categoryNames : [category];
     const categoryPlaceholders = selectedCategories.map((_, index) => `:selectedCategory${index}`).join(", ");
@@ -95,40 +79,38 @@ function itemWhere({ q, category, categoryNames, categories, featured, includeHi
   return { sql: clauses.join(" AND "), params };
 }
 
-export async function getVisibleItemReference(sku, { withPrice = false } = {}) {
+export async function getVisibleItemReference(sku, { withDetails = false } = {}) {
   const [hasItemFields, hasGroupFields, publication] = await Promise.all([
     availableCustomFields("Item", ["website_show_on_storefront", "website_price_mode_override"]),
-    availableCustomFields("Item Group", ["website_show_on_storefront"]),
+    availableCustomFields("Item Group", ["website_show_on_storefront", "website_price_mode"]),
     getCatalogPublicationSql()
   ]);
-  const where = itemWhere({ categories: [], minPrice: null, maxPrice: null, hasItemFields, hasGroupFields, includeHidden: true });
+  const where = itemWhere({ categories: [], hasItemFields, hasGroupFields, includeHidden: true });
   const params = { sku };
   EXCLUDED_STOREFRONT_GROUPS.forEach((group, index) => { params[`excludedGroup${index}`] = group; });
   const [rows] = await getErpPool().execute(
     `SELECT i.name AS sku, COALESCE(NULLIF(i.item_name, ''), i.name) AS name, i.stock_uom, i.item_group,
-            ${withPrice && publication.hasSpecFields ? "i.manufacturer, i.manufacturer_part_no, i.image," : ""}
-            ${hasItemFields.website_price_mode_override ? "i.website_price_mode_override" : "NULL"} AS price_mode
+            ${withDetails && publication.hasSpecFields ? "i.manufacturer, i.manufacturer_part_no, i.image," : ""}
+            COALESCE(${hasItemFields.website_price_mode_override ? "NULLIF(i.website_price_mode_override, '')" : "NULL"},
+                     ${hasGroupFields.website_price_mode ? "NULLIF(ig.website_price_mode, '')" : "NULL"}, 'Price List') AS price_mode
      FROM \`tabItem\` i LEFT JOIN \`tabItem Group\` ig ON ig.name = i.item_group
      WHERE i.name = :sku AND ${where.sql} LIMIT 1`, params
   );
   const row = rows[0];
   if (!row || row.sku !== sku) return null;
   const reference = { sku: row.sku, name: displayItemName(row.sku, row.name) };
-  if (withPrice) reference.description = reviewedEnquiryDescription(row);
-  const reviewed = withPrice && enquiryUnits.get(sku);
+  if (withDetails) reference.description = reviewedEnquiryDescription(row);
+  const reviewed = withDetails && enquiryUnits.get(sku);
   if (!reviewed || reviewed.name.trim() !== row.name.trim() || reviewed.stockUom !== row.stock_uom) return reference;
-  const category = await getCategoryRule(row.item_group);
-  if ((row.price_mode || category.priceMode) !== "Price List") return reference;
+  if (row.price_mode !== "Price List") return reference;
 
   const sql = await publicSellingUnitsSql({ exactSku: true, requireConversion: false });
-  const [rates] = await getErpPool().execute(
-    `SELECT uom, currency, price_list_rate FROM (${sql}) prices
+  const [units] = await getErpPool().execute(
+    `SELECT uom FROM (${sql}) prices
      WHERE uom = :reviewedUom AND packing_unit <= 1`,
     { ...storePriceParams(), exactSku: sku, reviewedUom: reviewed.uom }
   );
-  if (rates.length === 1 && rates[0].uom === reviewed.uom && Number(rates[0].price_list_rate) > 0) {
-    reference.price = { amount: Number(rates[0].price_list_rate), currency: rates[0].currency, uom: rates[0].uom };
-  }
+  if (units.length === 1 && units[0].uom === reviewed.uom) reference.uom = reviewed.uom;
   return reference;
 }
 
@@ -191,8 +173,7 @@ export function getCatalogProducts(options = {}, { includeTotal = true } = {}) {
   const firstPage = normalizePage(options.page, 1, 1000) === 1 && pageSize <= 24
     && (!options.sort || options.sort === "featured")
     && !options.q && !options.category && !options.categories && !options.featured
-    && !options.exactSku && !options.exactUom
-    && options.minPrice === undefined && options.maxPrice === undefined;
+    && !options.exactSku && !options.exactUom;
   if (firstPage) {
     return firstCatalogPage().then(page => ({ ...page, pageSize, products: page.products.slice(0, pageSize) }));
   }
@@ -213,25 +194,20 @@ async function loadCatalogProducts(options, includeTotal = true) {
   const includeHidden = false;
   const includeWeakGroups = false;
   const sort = String(options.sort || "featured").trim();
-  const minPrice = numericOption(options.minPrice);
-  const maxPrice = numericOption(options.maxPrice);
   const categoryRule = await getCategoryRule(category);
   if (category && !includeHidden && !categoryRule.showOnStorefront) {
     return {
       page,
       pageSize,
       total: 0,
-      priceList: categoryRule.priceList || DEFAULT_PRICE_LIST,
       categoryRule,
       products: []
     };
   }
 
-  const priceList = String(categoryRule.priceList || DEFAULT_PRICE_LIST).trim() || DEFAULT_PRICE_LIST;
   const [hasItemFields, hasGroupFields, publication] = await Promise.all([
     availableCustomFields("Item", [
       "website_show_on_storefront",
-      "website_price_mode_override",
       "website_stock_display_override",
       "website_sort_order",
       "website_featured"
@@ -246,7 +222,7 @@ async function loadCatalogProducts(options, includeTotal = true) {
     featured: featured && hasItemFields.website_featured
   });
   const categoryNames = category ? await getItemGroupBranchNames(category) : [];
-  const where = itemWhere({ q, category, categoryNames, categories, featured, includeHidden, includeWeakGroups, categoryRule, hasItemFields, hasGroupFields, minPrice, maxPrice, productReadySql: publication.productReady });
+  const where = itemWhere({ q, category, categoryNames, categories, featured, includeHidden, includeWeakGroups, hasItemFields, hasGroupFields, productReadySql: publication.productReady });
   if (options.exactSku) {
     where.sql += " AND i.name = :exactSku";
     where.params.exactSku = options.exactSku;
@@ -277,10 +253,7 @@ async function loadCatalogProducts(options, includeTotal = true) {
         ${publication.imageValue} AS image,
         ${publication.descriptionValue} AS description, ${publication.specMatch} AS reviewed_asset,
         (${publication.primaryReady}) AS primary_description_ready,
-        IFNULL(price.price_list_rate, 0) AS price,
-        IFNULL(price.currency, :defaultCurrency) AS currency,
         GREATEST(FLOOR(IFNULL(stock.actual_qty, 0) / price.conversion_factor), 0) AS quantity,
-        ${hasItemFields.website_price_mode_override ? "i.website_price_mode_override" : "NULL"} AS price_mode_override,
         ${hasItemFields.website_stock_display_override ? "i.website_stock_display_override" : "NULL"} AS stock_display_override,
         ${hasItemFields.website_sort_order ? "IFNULL(i.website_sort_order, 0)" : "0"} AS website_sort_order,
         CASE
@@ -293,7 +266,7 @@ async function loadCatalogProducts(options, includeTotal = true) {
       ORDER BY ${catalogOrderBy(sort)}, i.name, (price.uom = i.sales_uom) DESC, price.uom
       LIMIT :limit OFFSET :offset
     `,
-    { ...params, defaultCurrency: process.env.DEFAULT_CURRENCY || "FJD" }
+    params
   );
 
   // An out-of-range page has no row to carry the window count.
@@ -314,12 +287,9 @@ async function loadCatalogProducts(options, includeTotal = true) {
     page,
     pageSize,
     ...(includeTotal ? { total } : {}),
-    priceList,
     categoryRule,
     products: rows.map((row) => {
-      const priceMode = row.price_mode_override || categoryRule.priceMode;
       return {
-        priceMode,
         stockDisplay: row.stock_display_override || categoryRule.stockDisplay,
         sku: row.sku,
         name: displayItemName(row.sku, sellingName(row.name || row.sku, row.sales_uom, row.uom)),
@@ -328,8 +298,6 @@ async function loadCatalogProducts(options, includeTotal = true) {
         packingUnit: Number(row.packing_unit || 0),
         image: row.reviewed_asset ? reviewedProductImage(row.sku) : (row.image || null),
         description: row.reviewed_asset && !row.primary_description_ready ? reviewedProductDescription(row.sku) : (row.description || ""),
-        price: priceMode === "Price List" ? Number(row.price || 0) : priceMode,
-        currency: row.currency || process.env.DEFAULT_CURRENCY || "FJD",
         quantity: Number(row.quantity || 0),
         availability: row.availability
       };
@@ -343,10 +311,6 @@ function catalogOrderBy(sort) {
       return "i.item_name ASC, i.name ASC";
     case "name_desc":
       return "i.item_name DESC, i.name DESC";
-    case "price_asc":
-      return "IFNULL(price.price_list_rate, 0) ASC, i.item_name ASC";
-    case "price_desc":
-      return "IFNULL(price.price_list_rate, 0) DESC, i.item_name ASC";
     default:
       return "website_sort_order, CASE WHEN IFNULL(stock.actual_qty, 0) > 0 THEN 0 ELSE 1 END, i.modified DESC";
   }
@@ -483,7 +447,7 @@ export async function getPublishedCatalogSkus() {
     availableCustomFields("Item", ["website_show_on_storefront"]),
     availableCustomFields("Item Group", ["website_show_on_storefront"])
   ]);
-  const where = itemWhere({ categories: [], minPrice: null, maxPrice: null, hasItemFields, hasGroupFields, productReadySql: publication.productReady });
+  const where = itemWhere({ categories: [], hasItemFields, hasGroupFields, productReadySql: publication.productReady });
   const params = { ...baseParams(), ...where.params };
   EXCLUDED_STOREFRONT_GROUPS.forEach((group, index) => { params[`excludedGroup${index}`] = group; });
   const [rows] = await getErpPool().execute(`SELECT DISTINCT i.name ${base} WHERE ${where.sql} ORDER BY i.name`, params);
@@ -587,11 +551,9 @@ async function loadCatalogDiagnostics() {
   );
 
   return {
-    priceList: DEFAULT_PRICE_LIST,
     storefrontRules: {
       excludedGroups: EXCLUDED_STOREFRONT_GROUPS,
       excludedWarehouses: EXCLUDED_WAREHOUSES,
-      defaultCurrency: process.env.DEFAULT_CURRENCY || "FJD",
       source: "ERPNext Item Group website fields when present"
     },
     totals: rows[0],

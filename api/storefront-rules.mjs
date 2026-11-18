@@ -8,11 +8,8 @@ import { publicPriceSummarySql, storePriceParams } from "./selling-units.mjs";
 export const CATEGORY_RULE_FIELDS = [
   "website_show_on_storefront",
   "website_sort_order",
-  "website_price_mode",
-  "website_price_list",
   "website_stock_display",
   "website_show_products_without_images",
-  "website_show_products_without_price",
   "website_category_note"
 ];
 
@@ -83,11 +80,8 @@ export function defaultCategoryRule(category = "") {
     itemCount: 0,
     showOnStorefront: true,
     sortOrder: 0,
-    priceMode: "Price List",
-    priceList: "",
     stockDisplay: "Availability",
     showProductsWithoutImages: true,
-    showProductsWithoutPrice: false,
     categoryNote: ""
   };
 }
@@ -105,11 +99,8 @@ export function normalizeCategoryRule(row = {}) {
     itemCount: Number(row.item_count || 0),
     showOnStorefront: categoryBoolean(row.website_show_on_storefront, true),
     sortOrder: Number(row.website_sort_order || 0),
-    priceMode: row.website_price_mode || "Price List",
-    priceList: row.website_price_list || "",
     stockDisplay: row.website_stock_display || "Availability",
     showProductsWithoutImages: categoryBoolean(row.website_show_products_without_images, true),
-    showProductsWithoutPrice: categoryBoolean(row.website_show_products_without_price, false),
     categoryNote: row.website_category_note || ""
   };
 }
